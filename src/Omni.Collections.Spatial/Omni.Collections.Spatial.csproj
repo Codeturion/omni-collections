@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>OmniCollections.Spatial</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Codeturion</Authors>
+    <Description>Spatial data structures (QuadTree, KDTree, SpatialHashGrid) for Omni.Collections</Description>
+    <PackageTags>collections;spatial;quadtree;kdtree;performance</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/Codeturion/omni-collections</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/Codeturion/omni-collections</PackageProjectUrl>
+    <PackageReleaseNotes>Spatial data structures: QuadTree, KDTree, SpatialHashGrid, BloomRTreeDictionary</PackageReleaseNotes>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Omni.Collections.Core/Omni.Collections.Core.csproj" />
+    <ProjectReference Include="../Omni.Collections.Linear/Omni.Collections.Linear.csproj" />
+    <ProjectReference Include="../Omni.Collections.Probabilistic/Omni.Collections.Probabilistic.csproj" />
+    <ProjectReference Include="../Omni.Collections.Hybrid/Omni.Collections.Hybrid.csproj" />
+  </ItemGroup>
+
+</Project>

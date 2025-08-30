@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>OmniCollections</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Codeturion</Authors>
+    <Description>Complete collection of specialized .NET data structures - meta-package including all categories</Description>
+    <PackageTags>collections;performance;datastructures;metapackage;complete</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/Codeturion/omni-collections</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/Codeturion/omni-collections</PackageProjectUrl>
+    <PackageReleaseNotes>Meta-package containing all Omni.Collections categories: Core, Linear, Spatial, Hybrid, Probabilistic, Grid, Reactive, Temporal</PackageReleaseNotes>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Reactive" Version="6.0.0" />
+    <ProjectReference Include="../Omni.Collections.Core/Omni.Collections.Core.csproj" />
+    <ProjectReference Include="../Omni.Collections.Linear/Omni.Collections.Linear.csproj" />
+    <ProjectReference Include="../Omni.Collections.Spatial/Omni.Collections.Spatial.csproj" />
+    <ProjectReference Include="../Omni.Collections.Probabilistic/Omni.Collections.Probabilistic.csproj" />
+    <ProjectReference Include="../Omni.Collections.Hybrid/Omni.Collections.Hybrid.csproj" />
+    <ProjectReference Include="../Omni.Collections.Grid/Omni.Collections.Grid.csproj" />
+    <ProjectReference Include="../Omni.Collections.Reactive/Omni.Collections.Reactive.csproj" />
+    <ProjectReference Include="../Omni.Collections.Temporal/Omni.Collections.Temporal.csproj" />
+  </ItemGroup>
+
+</Project>

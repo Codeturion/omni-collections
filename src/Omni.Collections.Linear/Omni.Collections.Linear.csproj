@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>OmniCollections.Linear</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Codeturion</Authors>
+    <Description>Linear data structures (FastQueue, MinHeap, BoundedList) for Omni.Collections</Description>
+    <PackageTags>collections;linear;queue;heap;performance</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/Codeturion/omni-collections</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/Codeturion/omni-collections</PackageProjectUrl>
+    <PackageReleaseNotes>Linear data structures: FastQueue, MinHeap, BoundedList, PooledList, PooledStack</PackageReleaseNotes>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Omni.Collections.Core/Omni.Collections.Core.csproj" />
+  </ItemGroup>
+
+</Project>

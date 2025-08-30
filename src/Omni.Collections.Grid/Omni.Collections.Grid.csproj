@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>OmniCollections.Grid</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Codeturion</Authors>
+    <Description>Grid data structures (BitGrid2D, LayeredGrid2D, HexGrid2D) for Omni.Collections</Description>
+    <PackageTags>collections;grid;2d;hex;performance</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/Codeturion/omni-collections</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/Codeturion/omni-collections</PackageProjectUrl>
+    <PackageReleaseNotes>Grid data structures: BitGrid2D, LayeredGrid2D, HexGrid2D</PackageReleaseNotes>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Omni.Collections.Core/Omni.Collections.Core.csproj" />
+  </ItemGroup>
+
+</Project>
