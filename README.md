@@ -31,6 +31,7 @@ Comprehensive benchmarks because "trust me, it's faster" isn't engineering. Clea
   - [Unity Game Development](#unity-game-development-examples)
   - [High-Throughput Web APIs](#high-throughput-web-api-processing)
 - [Installation](#installation)
+- [Performance Results](#performance-results)
 - [Performance & Benchmarking](#benchmarking)
 - [Security Considerations](#security-considerations)
 - [Choosing the Right Structure](#choosing-the-right-structure)
@@ -1213,7 +1214,67 @@ Console.WriteLine(queue.Dequeue()); // "Hello Omni.Collections!"
 
 </details>
 
-## Benchmarking
+## Performance Results
+
+<details>
+<summary>📊 Complete benchmark results from our test suite</summary>
+
+**Hardware:** Intel i7-13700KF, 24 logical cores, .NET 8.0, BenchmarkDotNet precision profiling
+
+**Methodology:** 20 iterations, statistical confidence intervals, memory allocation tracking
+
+### Linear Collections
+- [FastQueue vs Queue](docs/benchmarks/linear/fastqueue-vs-queue.md)
+- [MinHeap vs SortedSet](docs/benchmarks/linear/minheap-vs-sortedset.md)
+- [MaxHeap vs SortedSet](docs/benchmarks/linear/maxheap-vs-sortedset.md)
+- [PooledStack vs Stack](docs/benchmarks/linear/pooledstack-vs-stack.md)
+- [PooledList vs List](docs/benchmarks/linear/pooledlist-vs-list.md)
+- [BoundedList vs List](docs/benchmarks/linear/boundedlist-vs-list.md)
+
+### Spatial Structures
+- [QuadTree vs List](docs/benchmarks/spatial/quadtree-vs-list.md)
+- [OctTree vs List](docs/benchmarks/spatial/octtree-vs-list.md)
+- [KDTree vs List](docs/benchmarks/spatial/kdtree-vs-list.md)
+- [KDTree Distance Metrics](docs/benchmarks/spatial/kdtree-distance-metrics.md)
+- [SpatialHashGrid vs Dictionary](docs/benchmarks/spatial/spatialhashgrid-vs-dictionary.md)
+- [TemporalSpatialHashGrid vs Manual](docs/benchmarks/spatial/temporalspatialhashgrid-vs-manual.md)
+- [BloomRTreeDictionary vs Dictionary](docs/benchmarks/spatial/bloomrtreedictionary-vs-dictionary.md)
+- [BloomRTree Scaling](docs/benchmarks/spatial/bloomrtree-scaling.md)
+
+### Hybrid Structures
+- [CounterDictionary vs Dictionary](docs/benchmarks/hybrid/counterdictionary-vs-dictionary.md)
+- [LinkedDictionary vs Dictionary](docs/benchmarks/hybrid/linkeddictionary-vs-dictionary.md)
+- [QueueDictionary vs Dictionary](docs/benchmarks/hybrid/queuedictionary-vs-dictionary.md)
+- [CircularDictionary vs Dictionary](docs/benchmarks/hybrid/circulardictionary-vs-dictionary.md)
+- [DequeDictionary vs Dictionary](docs/benchmarks/hybrid/dequedictionary-vs-dictionary.md)
+- [ConcurrentLinkedDictionary vs Dictionary](docs/benchmarks/hybrid/concurrentlinkeddictionary-vs-dictionary.md)
+- [LinkedMultiMap vs Dictionary](docs/benchmarks/hybrid/linkedmultimap-vs-dictionary.md)
+- [GraphDictionary vs Dictionary](docs/benchmarks/hybrid/graphdictionary-vs-dictionary.md)
+- [PredictiveDictionary vs Dictionary](docs/benchmarks/hybrid/predictivedictionary-vs-dictionary.md)
+
+### Probabilistic Structures
+- [BloomFilter vs HashSet](docs/benchmarks/probabilistic/bloomfilter-vs-hashset.md)
+- [BloomDictionary vs Dictionary](docs/benchmarks/probabilistic/bloomdictionary-vs-dictionary.md)
+- [CountMinSketch vs Dictionary](docs/benchmarks/probabilistic/countminsketch-vs-dictionary.md)
+- [HyperLogLog vs HashSet](docs/benchmarks/probabilistic/hyperloglog-vs-hashset.md)
+- [TDigest vs List](docs/benchmarks/probabilistic/tdigest-vs-list.md)
+- [DigestStreaming vs P2Quantile](docs/benchmarks/probabilistic/digeststreaming-vs-p2quantile.md)
+
+### Grid Structures
+- [BitGrid2D vs BoolArray](docs/benchmarks/grid/bitgrid2d-vs-boolarray.md)
+- [LayeredGrid2D vs Array3D](docs/benchmarks/grid/layeredgrid2d-vs-array3d.md)
+- [HexGrid2D vs Dictionary](docs/benchmarks/grid/hexgrid2d-vs-dictionary.md)
+
+### Reactive Structures
+- [ObservableList vs List](docs/benchmarks/reactive/observablelist-vs-list.md)
+- [ObservableHashSet vs HashSet](docs/benchmarks/reactive/observablehashset-vs-hashset.md)
+
+### Temporal Structures
+- [TimelineArray vs Dictionary](docs/benchmarks/temporal/timelinearray-vs-dictionary.md)
+
+</details>
+
+## Performance & Benchmarking
 
 <details>
 <summary>📊 Performance validation and benchmark results</summary>
