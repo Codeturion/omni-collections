@@ -152,12 +152,10 @@ public class PooledList<T> : IList<T>, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void RemoveAt(int index)
     {
-#if DEBUG
-        if (_disposed)
-            throw new ObjectDisposedException(nameof(PooledList<T>));
+        ThrowIfDisposed();
         if ((uint)index >= (uint)_size)
             throw new ArgumentOutOfRangeException(nameof(index));
-#endif
+
         _size--;
         if (index < _size)
         {

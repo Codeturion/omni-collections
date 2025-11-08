@@ -332,7 +332,7 @@ public class TemporalSpatialGridTests
     /// Multiple threads should be able to insert and query data without corruption.
     /// </summary>
     [Fact]
-    public void TemporalSpatialGrid_HandlesConcurrentAccess()
+    public async System.Threading.Tasks.Task TemporalSpatialGrid_HandlesConcurrentAccess()
     {
         var grid = new TemporalSpatialGrid<int>();
         var tasks = new List<System.Threading.Tasks.Task>();
@@ -360,7 +360,7 @@ public class TemporalSpatialGridTests
             }
         }));
 
-        System.Threading.Tasks.Task.WaitAll(tasks.ToArray());
+        await System.Threading.Tasks.Task.WhenAll(tasks.ToArray());
 
         grid.CurrentObjectCount.Should().Be(400);
     }

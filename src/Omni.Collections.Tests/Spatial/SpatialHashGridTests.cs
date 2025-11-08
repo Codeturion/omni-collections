@@ -715,9 +715,9 @@ public class SpatialHashGridTests : IDisposable
     [Fact]
     public void Insert_NullReferenceType_HandlesCorrectly()
     {
-        var grid = new SpatialHashGrid<string?>();
+        var grid = new SpatialHashGrid<string>();
 
-        grid.Insert(50.0f, 50.0f, null);
+        grid.Insert(50.0f, 50.0f, null!);
 
         grid.Count.Should().Be(1);
         var items = grid.GetObjectsAt(50.0f, 50.0f).ToList();

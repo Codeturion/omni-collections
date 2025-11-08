@@ -343,7 +343,7 @@ public class DigestStreamingAnalyticsTests
     /// Multiple threads should be able to add data and query percentiles safely.
     /// </summary>
     [Fact]
-    public void ThreadSafety_HandlesConcurrentAccess()
+    public async Task ThreadSafety_HandlesConcurrentAccess()
     {
         var analytics = DigestStreamingAnalytics<double>.CreateNumeric(TimeSpan.FromMinutes(5));
         var tasks = new List<Task>();
@@ -374,7 +374,7 @@ public class DigestStreamingAnalyticsTests
             }
         }));
 
-        Task.WaitAll(tasks.ToArray());
+        await Task.WhenAll(tasks.ToArray());
 
         analytics.TotalProcessed.Should().Be(threadsCount * itemsPerThread);
     }

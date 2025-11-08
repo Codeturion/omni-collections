@@ -957,8 +957,8 @@ public class ProbabilisticStructureBenchmarks
     public class BloomDictionaryVsDict : BaselineComparisonBenchmark<BloomDictionary<string, string>, Dictionary<string, string>, string, string>
     {
         private readonly Random _random = new Random(42);
-        private string[] _existingKeys;
-        private string[] _nonExistingKeys;
+        private string[] _existingKeys = Array.Empty<string>();
+        private string[] _nonExistingKeys = Array.Empty<string>();
         private int _keyIndex;
         
         // Test with different miss rates - from low (where BloomDictionary overhead hurts) to high (where it helps)

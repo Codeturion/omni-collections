@@ -183,7 +183,7 @@ public class BloomDictionaryTests
     [Fact]
     public void Add_NullKey_ThrowsArgumentNullException()
     {
-        var dict = new BloomDictionary<string?, int>();
+        var dict = new BloomDictionary<string, int>();
 
         var act = () => dict.Add(null!, 10);
 
@@ -232,7 +232,7 @@ public class BloomDictionaryTests
     [Fact]
     public void Indexer_SetNullKey_ThrowsArgumentNullException()
     {
-        var dict = new BloomDictionary<string?, int>();
+        var dict = new BloomDictionary<string, int>();
 
         var act = () => dict[null!] = 10;
 
@@ -278,7 +278,7 @@ public class BloomDictionaryTests
     [Fact]
     public void TryGetValue_NullKey_ThrowsArgumentNullException()
     {
-        var dict = new BloomDictionary<string?, int>();
+        var dict = new BloomDictionary<string, int>();
 
         var act = () => dict.TryGetValue(null!, out _);
 
@@ -346,7 +346,7 @@ public class BloomDictionaryTests
     [Fact]
     public void Remove_NullKey_ThrowsArgumentNullException()
     {
-        var dict = new BloomDictionary<string?, int>();
+        var dict = new BloomDictionary<string, int>();
 
         var act = () => dict.Remove(null!);
 

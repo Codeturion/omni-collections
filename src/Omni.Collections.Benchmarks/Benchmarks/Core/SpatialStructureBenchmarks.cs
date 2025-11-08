@@ -493,7 +493,6 @@ public class SpatialStructureBenchmarks
         protected override object PerformBaselineGet()
         {
             var point = GetRandomKey();
-            var targetItem = (point, 0);
 
             // True k-nearest neighbors: calculate distances and sort
             return BaselineCollection.Select(item => new
