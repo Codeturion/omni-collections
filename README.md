@@ -2,21 +2,40 @@
 
 [![NuGet Version](https://img.shields.io/nuget/v/OmniCollections.svg)](https://www.nuget.org/packages/OmniCollections/)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/OmniCollections.svg)](https://www.nuget.org/packages/OmniCollections/)
+[![Build Status](https://github.com/Codeturion/omni-collections/actions/workflows/publish-nuget.yml/badge.svg)](https://github.com/Codeturion/omni-collections/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **33 specialized .NET data structures addressing algorithmic bottlenecks**
 
 When .NET's built-in collections hit their limits - spatial indexing, priority processing, bounded memory, streaming analytics - these structures provide the missing pieces. The core collections deliver proven algorithmic improvements; others explore useful combinations and patterns.
 
+> 🚀 **[View Live Performance Dashboard](https://codeturion.github.io/omni-collections/)** - Interactive benchmarks showing 4.8x average performance improvement across 200M+ operations
+
 Some structures emerged from research curiosity, but all maintain production-quality implementation standards.
 
 Comprehensive benchmarks because "trust me, it's faster" isn't engineering. Clean architecture because performance code shouldn't be throwaway code.
 
+## What's New in v1.0.1
+
+🔧 **Bug Fixes & Improvements**
+- Fixed `CircularDictionary` removal/eviction logic and enumerator for accurate gap handling
+- Fixed `SpatialHashGrid.Remove()` to properly remove entries from all occupied cells (critical bug fix)
+- Added always-on safety checks to `FastQueue`, `PooledStack`, and `PooledList` for consistent bounds validation
+- Improved test coverage with additional edge case testing
+
+🚀 **Automated Publishing**
+- GitHub Actions workflow now automatically publishes to NuGet on version tags
+- Continuous integration ensures all tests pass before release
+
 ## Table of Contents
 
-<!-- Table of Contents - Always expanded -->
+<details>
+<summary>📋 Click to expand table of contents</summary>
 
+- [What's New in v1.0.1](#whats-new-in-v101)
 - [Quick Start](#quick-start)
+- [Complexity Guarantees](#complexity-guarantees)
+- [Performance Results & Benchmarking](#performance-results--benchmarking)
 - [What's Inside](#whats-inside)
 - [Core Data Structures](#core-data-structures)
   - [Linear Collections](#linear-collections) (6 structures)
@@ -30,12 +49,13 @@ Comprehensive benchmarks because "trust me, it's faster" isn't engineering. Clea
   - [Unity Game Development](#unity-game-development-examples)
   - [High-Throughput Web APIs](#high-throughput-web-api-processing)
 - [Installation](#installation)
-- [Performance Results & Benchmarking](#performance-results--benchmarking)
 - [Security Considerations](#security-considerations)
 - [Choosing the Right Structure](#choosing-the-right-structure)
 - [Contributing](#contributing)
 - [License](#license)
 - [Acknowledgments](#acknowledgments)
+
+</details>
 
 ## Quick Start
 
@@ -76,9 +96,154 @@ cache["key"] = data; // Auto-evicts oldest when full
 
 ### Next Steps
 - 📚 Browse [Core Data Structures](#core-data-structures) for your specific use case
-- 🎮 See [Real-World Examples](#real-world-usage-examples) for Unity, web apps, and services  
-- 📊 Check [Performance Claims](#benchmarking) with our benchmark results
+- 🎮 See [Real-World Examples](#real-world-usage-examples) for Unity, web apps, and services
+- 📊 Check [Performance Results & Benchmarking](#performance-results--benchmarking) with our benchmark results
 - 🔧 [Report Issues](https://github.com/Codeturion/omni-collections/issues) or ask questions
+
+</details>
+
+## Complexity Guarantees
+
+| Structure | Insert | Remove | Lookup | Special Operation |
+|-----------|--------|--------|--------|-------------------|
+| **Spatial** |
+| QuadTree | O(log n) | O(log n) | - | Spatial query: O(log n + k) |
+| OctTree | O(log n) | O(log n) | - | 3D query: O(log n + k) |
+| KDTree | O(log n) | O(log n) | - | k-NN: O(log n) average |
+| SpatialHashGrid | O(1) avg | O(1) avg | - | Range query: O(k) |
+| TemporalSpatialHashGrid | O(1) avg | O(1) avg | - | Temporal query: O(k), Trajectory: O(t) |
+| BloomRTreeDictionary | O(log n) | O(log n) | O(1) | Range query: O(log n + k) with pruning |
+| **Linear** |
+| FastQueue | O(1)* | O(1) | - | Enqueue/Dequeue: O(1) |
+| MinHeap/MaxHeap | O(log n) | O(log n) | O(1) peek | ExtractMin/Max: O(log n) |
+| BoundedList | O(1) | O(n) | O(1) | Capacity-bounded |
+| PooledList | O(1)* | O(n) | O(1) | ArrayPool integration |
+| PooledStack | O(1)* | O(1) | O(1) peek | Push/Pop: O(1) |
+| **Hybrid** |
+| CounterDictionary | O(1) | O(1) | O(1) | GetFrequency: O(1) |
+| LinkedDictionary | O(1) | O(1) | O(1) | Maintains insertion order |
+| QueueDictionary | O(1) | O(1) | O(1) | Dequeue: O(1) |
+| CircularDictionary | O(1) | O(1) | O(1) | Auto-eviction on capacity |
+| DequeDictionary | O(1) | O(1) | O(1) | AddFirst/Last: O(1) |
+| ConcurrentLinkedDictionary | O(1) | O(1) | O(1) | Thread-safe operations |
+| LinkedMultiMap | O(1) | O(1) | O(1) | GetValues: O(k) |
+| GraphDictionary | O(1) | O(1) | O(1) | AddEdge: O(1), ShortestPath: O(V+E) |
+| BloomDictionary | O(k) | O(k) | O(k) | MightContain: O(k) |
+| PredictiveDictionary | O(1) | O(1) | O(1) | Prediction: O(1) |
+| **Probabilistic** |
+| BloomFilter | O(k) | - | O(k) | Zero false negatives |
+| CountMinSketch | O(d) | - | O(d) | EstimateCount: O(d) |
+| HyperLogLog | O(1) | - | - | EstimateCardinality: O(m) |
+| TDigest | O(log n) | - | O(1) | Quantile query: O(1) |
+| DigestStreamingAnalytics | O(log n) | - | O(1) | Quantile query: O(1) |
+| **Grid** |
+| BitGrid2D | O(1) | O(1) | O(1) | Bit-packed storage |
+| LayeredGrid2D | O(1) | O(1) | O(1) | Layer operations: O(1) |
+| HexGrid2D | O(1) | O(1) | O(1) | Neighbor queries: O(6) |
+| **Reactive** |
+| ObservableList | O(1)* | O(n) | O(1) | Event notification: O(s) |
+| ObservableHashSet | O(1) | O(1) | O(1) | Event notification: O(s) |
+| **Temporal** |
+| TimelineArray | O(1) | - | O(log n) | GetRange: O(log n + k) |
+| TemporalSpatialGrid | O(1) | O(1) | O(1) | Snapshot: O(n), QueryAtTime: O(k) |
+
+*Amortized
+k = number of hash functions or results
+d = sketch depth
+m = HyperLogLog registers
+s = subscribers
+
+## Performance Results & Benchmarking
+
+<details>
+<summary>📊 Click to view benchmark categories and local testing guide</summary>
+
+All benchmarks compare Omni Collections against standard .NET baseline implementations:
+
+### Benchmark Categories
+
+### Linear Collections
+- [FastQueue vs Queue](docs/benchmarks/linear/fastqueue-vs-queue.md)
+- [MinHeap vs SortedSet](docs/benchmarks/linear/minheap-vs-sortedset.md)
+- [MaxHeap vs SortedSet](docs/benchmarks/linear/maxheap-vs-sortedset.md)
+- [PooledStack vs Stack](docs/benchmarks/linear/pooledstack-vs-stack.md)
+- [PooledList vs List](docs/benchmarks/linear/pooledlist-vs-list.md)
+- [BoundedList vs List](docs/benchmarks/linear/boundedlist-vs-list.md)
+
+### Spatial Structures
+- [QuadTree vs List](docs/benchmarks/spatial/quadtree-vs-list.md)
+- [OctTree vs List](docs/benchmarks/spatial/octtree-vs-list.md)
+- [KDTree vs List](docs/benchmarks/spatial/kdtree-vs-list.md)
+- [KDTree Distance Metrics](docs/benchmarks/spatial/kdtree-distance-metrics.md)
+- [SpatialHashGrid vs Dictionary](docs/benchmarks/spatial/spatialhashgrid-vs-dictionary.md)
+- [TemporalSpatialHashGrid vs Manual](docs/benchmarks/spatial/temporalspatialhashgrid-vs-manual.md)
+- [BloomRTreeDictionary vs Dictionary](docs/benchmarks/spatial/bloomrtreedictionary-vs-dictionary.md)
+- [BloomRTree Scaling](docs/benchmarks/spatial/bloomrtree-scaling.md)
+
+### Hybrid Structures
+- [CounterDictionary vs Dictionary](docs/benchmarks/hybrid/counterdictionary-vs-dictionary.md)
+- [LinkedDictionary vs Dictionary](docs/benchmarks/hybrid/linkeddictionary-vs-dictionary.md)
+- [QueueDictionary vs Dictionary](docs/benchmarks/hybrid/queuedictionary-vs-dictionary.md)
+- [CircularDictionary vs Dictionary](docs/benchmarks/hybrid/circulardictionary-vs-dictionary.md)
+- [DequeDictionary vs Dictionary](docs/benchmarks/hybrid/dequedictionary-vs-dictionary.md)
+- [ConcurrentLinkedDictionary vs Dictionary](docs/benchmarks/hybrid/concurrentlinkeddictionary-vs-dictionary.md)
+- [LinkedMultiMap vs Dictionary](docs/benchmarks/hybrid/linkedmultimap-vs-dictionary.md)
+- [GraphDictionary vs Dictionary](docs/benchmarks/hybrid/graphdictionary-vs-dictionary.md)
+- [PredictiveDictionary vs Dictionary](docs/benchmarks/hybrid/predictivedictionary-vs-dictionary.md)
+
+### Probabilistic Structures
+- [BloomFilter vs HashSet](docs/benchmarks/probabilistic/bloomfilter-vs-hashset.md)
+- [BloomDictionary vs Dictionary](docs/benchmarks/probabilistic/bloomdictionary-vs-dictionary.md)
+- [CountMinSketch vs Dictionary](docs/benchmarks/probabilistic/countminsketch-vs-dictionary.md)
+- [HyperLogLog vs HashSet](docs/benchmarks/probabilistic/hyperloglog-vs-hashset.md)
+- [TDigest vs List](docs/benchmarks/probabilistic/tdigest-vs-list.md)
+- [DigestStreaming vs P2Quantile](docs/benchmarks/probabilistic/digeststreaming-vs-p2quantile.md)
+
+### Grid Structures
+- [BitGrid2D vs BoolArray](docs/benchmarks/grid/bitgrid2d-vs-boolarray.md)
+- [LayeredGrid2D vs Array3D](docs/benchmarks/grid/layeredgrid2d-vs-array3d.md)
+- [HexGrid2D vs Dictionary](docs/benchmarks/grid/hexgrid2d-vs-dictionary.md)
+
+### Reactive Structures
+- [ObservableList vs List](docs/benchmarks/reactive/observablelist-vs-list.md)
+- [ObservableHashSet vs HashSet](docs/benchmarks/reactive/observablehashset-vs-hashset.md)
+
+### Temporal Structures
+- [TimelineArray vs Dictionary](docs/benchmarks/temporal/timelinearray-vs-dictionary.md)
+
+### Run Benchmarks Locally
+
+Want to verify these results on your own hardware? Here's how to run the complete benchmark suite:
+
+**Easy way (Windows):**
+```bash
+cd src/Omni.Collections.Benchmarks
+
+# Run all benchmarks with precision profiling
+run-benchmarks.bat all precision
+
+# Run specific categories
+run-benchmarks.bat linear precision          # FastQueue, MinHeap, etc.
+run-benchmarks.bat spatial precision         # QuadTree, KDTree, etc. 
+run-benchmarks.bat hybrid precision          # Dictionary variants
+
+# Quick validation
+run-benchmarks.bat all fast
+```
+
+**Manual way (cross-platform):**
+```bash
+cd src/Omni.Collections.Benchmarks
+
+# Run specific categories  
+dotnet run -- --precision --linear         # Linear collections
+dotnet run -- --precision --spatial        # Spatial structures
+dotnet run -- --precision --hybrid         # Hybrid dictionaries
+dotnet run -- --precision --probabilistic  # Probabilistic structures
+
+# Quick validation
+dotnet run -- --fast --all
+```
 
 </details>
 
@@ -582,56 +747,6 @@ var heatMap = temporalGrid.GenerateHeatMap(minX, minY, maxX, maxY, startTime, en
 
 </details>
 
-### Complexity Guarantees
-
-| Structure | Insert | Remove | Lookup | Special Operation |
-|-----------|--------|--------|--------|-------------------|
-| **Spatial** |
-| QuadTree | O(log n) | O(log n) | - | Spatial query: O(log n + k) |
-| OctTree | O(log n) | O(log n) | - | 3D query: O(log n + k) |
-| KDTree | O(log n) | O(log n) | - | k-NN: O(log n) average |
-| SpatialHashGrid | O(1) avg | O(1) avg | - | Range query: O(k) |
-| TemporalSpatialHashGrid | O(1) avg | O(1) avg | - | Temporal query: O(k), Trajectory: O(t) |
-| BloomRTreeDictionary | O(log n) | O(log n) | O(1) | Range query: O(log n + k) with pruning |
-| **Linear** |
-| FastQueue | O(1)* | O(1) | - | Enqueue/Dequeue: O(1) |
-| MinHeap/MaxHeap | O(log n) | O(log n) | O(1) peek | ExtractMin/Max: O(log n) |
-| BoundedList | O(1) | O(n) | O(1) | Capacity-bounded |
-| PooledList | O(1)* | O(n) | O(1) | ArrayPool integration |
-| PooledStack | O(1)* | O(1) | O(1) peek | Push/Pop: O(1) |
-| **Hybrid** |
-| CounterDictionary | O(1) | O(1) | O(1) | GetFrequency: O(1) |
-| LinkedDictionary | O(1) | O(1) | O(1) | Maintains insertion order |
-| QueueDictionary | O(1) | O(1) | O(1) | Dequeue: O(1) |
-| CircularDictionary | O(1) | O(1) | O(1) | Auto-eviction on capacity |
-| DequeDictionary | O(1) | O(1) | O(1) | AddFirst/Last: O(1) |
-| ConcurrentLinkedDictionary | O(1) | O(1) | O(1) | Thread-safe operations |
-| LinkedMultiMap | O(1) | O(1) | O(1) | GetValues: O(k) |
-| GraphDictionary | O(1) | O(1) | O(1) | AddEdge: O(1), ShortestPath: O(V+E) |
-| BloomDictionary | O(k) | O(k) | O(k) | MightContain: O(k) |
-| PredictiveDictionary | O(1) | O(1) | O(1) | Prediction: O(1) |
-| **Probabilistic** |
-| BloomFilter | O(k) | - | O(k) | Zero false negatives |
-| CountMinSketch | O(d) | - | O(d) | EstimateCount: O(d) |
-| HyperLogLog | O(1) | - | - | EstimateCardinality: O(m) |
-| TDigest | O(log n) | - | O(1) | Quantile query: O(1) |
-| DigestStreamingAnalytics | O(log n) | - | O(1) | Quantile query: O(1) |
-| **Grid** |
-| BitGrid2D | O(1) | O(1) | O(1) | Bit-packed storage |
-| LayeredGrid2D | O(1) | O(1) | O(1) | Layer operations: O(1) |
-| HexGrid2D | O(1) | O(1) | O(1) | Neighbor queries: O(6) |
-| **Reactive** |
-| ObservableList | O(1)* | O(n) | O(1) | Event notification: O(s) |
-| ObservableHashSet | O(1) | O(1) | O(1) | Event notification: O(s) |
-| **Temporal** |
-| TimelineArray | O(1) | - | O(log n) | GetRange: O(log n + k) |
-| TemporalSpatialGrid | O(1) | O(1) | O(1) | Snapshot: O(n), QueryAtTime: O(k) |
-
-*Amortized
-k = number of hash functions or results
-d = sketch depth
-m = HyperLogLog registers
-s = subscribers
 
 ## Real-World Usage Examples
 
@@ -1210,109 +1325,6 @@ Console.WriteLine(queue.Dequeue()); // "Hello Omni.Collections!"
 
 </details>
 
-## Performance Results & Benchmarking
-
-### 🚀 Interactive Dashboard
-**[View Live Performance Dashboard](https://codeturion.github.io/omni-collections/)** 
-
-🎯 **Complete interactive benchmark results featuring:**
-- **33 specialized data structures** with verified performance comparisons
-- **4.8x average performance improvement** across all operations
-- **200M+ total element operations** benchmarked for statistical significance
-- **Interactive charts** with real-time filtering by category and metric type
-- **Professional methodology** using BenchmarkDotNet precision profiling
-
-**Hardware:** Intel i7-13700KF, 24 logical cores, .NET 8.0
-**Methodology:** 20 iterations, statistical confidence intervals, comprehensive memory allocation tracking
-
-### Benchmark Categories
-All benchmarks compare Omni Collections against standard .NET baseline implementations:
-
-### Linear Collections
-- [FastQueue vs Queue](docs/benchmarks/linear/fastqueue-vs-queue.md)
-- [MinHeap vs SortedSet](docs/benchmarks/linear/minheap-vs-sortedset.md)
-- [MaxHeap vs SortedSet](docs/benchmarks/linear/maxheap-vs-sortedset.md)
-- [PooledStack vs Stack](docs/benchmarks/linear/pooledstack-vs-stack.md)
-- [PooledList vs List](docs/benchmarks/linear/pooledlist-vs-list.md)
-- [BoundedList vs List](docs/benchmarks/linear/boundedlist-vs-list.md)
-
-### Spatial Structures
-- [QuadTree vs List](docs/benchmarks/spatial/quadtree-vs-list.md)
-- [OctTree vs List](docs/benchmarks/spatial/octtree-vs-list.md)
-- [KDTree vs List](docs/benchmarks/spatial/kdtree-vs-list.md)
-- [KDTree Distance Metrics](docs/benchmarks/spatial/kdtree-distance-metrics.md)
-- [SpatialHashGrid vs Dictionary](docs/benchmarks/spatial/spatialhashgrid-vs-dictionary.md)
-- [TemporalSpatialHashGrid vs Manual](docs/benchmarks/spatial/temporalspatialhashgrid-vs-manual.md)
-- [BloomRTreeDictionary vs Dictionary](docs/benchmarks/spatial/bloomrtreedictionary-vs-dictionary.md)
-- [BloomRTree Scaling](docs/benchmarks/spatial/bloomrtree-scaling.md)
-
-### Hybrid Structures
-- [CounterDictionary vs Dictionary](docs/benchmarks/hybrid/counterdictionary-vs-dictionary.md)
-- [LinkedDictionary vs Dictionary](docs/benchmarks/hybrid/linkeddictionary-vs-dictionary.md)
-- [QueueDictionary vs Dictionary](docs/benchmarks/hybrid/queuedictionary-vs-dictionary.md)
-- [CircularDictionary vs Dictionary](docs/benchmarks/hybrid/circulardictionary-vs-dictionary.md)
-- [DequeDictionary vs Dictionary](docs/benchmarks/hybrid/dequedictionary-vs-dictionary.md)
-- [ConcurrentLinkedDictionary vs Dictionary](docs/benchmarks/hybrid/concurrentlinkeddictionary-vs-dictionary.md)
-- [LinkedMultiMap vs Dictionary](docs/benchmarks/hybrid/linkedmultimap-vs-dictionary.md)
-- [GraphDictionary vs Dictionary](docs/benchmarks/hybrid/graphdictionary-vs-dictionary.md)
-- [PredictiveDictionary vs Dictionary](docs/benchmarks/hybrid/predictivedictionary-vs-dictionary.md)
-
-### Probabilistic Structures
-- [BloomFilter vs HashSet](docs/benchmarks/probabilistic/bloomfilter-vs-hashset.md)
-- [BloomDictionary vs Dictionary](docs/benchmarks/probabilistic/bloomdictionary-vs-dictionary.md)
-- [CountMinSketch vs Dictionary](docs/benchmarks/probabilistic/countminsketch-vs-dictionary.md)
-- [HyperLogLog vs HashSet](docs/benchmarks/probabilistic/hyperloglog-vs-hashset.md)
-- [TDigest vs List](docs/benchmarks/probabilistic/tdigest-vs-list.md)
-- [DigestStreaming vs P2Quantile](docs/benchmarks/probabilistic/digeststreaming-vs-p2quantile.md)
-
-### Grid Structures
-- [BitGrid2D vs BoolArray](docs/benchmarks/grid/bitgrid2d-vs-boolarray.md)
-- [LayeredGrid2D vs Array3D](docs/benchmarks/grid/layeredgrid2d-vs-array3d.md)
-- [HexGrid2D vs Dictionary](docs/benchmarks/grid/hexgrid2d-vs-dictionary.md)
-
-### Reactive Structures
-- [ObservableList vs List](docs/benchmarks/reactive/observablelist-vs-list.md)
-- [ObservableHashSet vs HashSet](docs/benchmarks/reactive/observablehashset-vs-hashset.md)
-
-### Temporal Structures
-- [TimelineArray vs Dictionary](docs/benchmarks/temporal/timelinearray-vs-dictionary.md)
-
-</details>
-
-### Run Benchmarks Locally
-
-Want to verify these results on your own hardware? Here's how to run the complete benchmark suite:
-
-**Easy way (Windows):**
-```bash
-cd src/Omni.Collections.Benchmarks
-
-# Run all benchmarks with precision profiling
-run-benchmarks.bat all precision
-
-# Run specific categories
-run-benchmarks.bat linear precision          # FastQueue, MinHeap, etc.
-run-benchmarks.bat spatial precision         # QuadTree, KDTree, etc. 
-run-benchmarks.bat hybrid precision          # Dictionary variants
-
-# Quick validation
-run-benchmarks.bat all fast
-```
-
-**Manual way (cross-platform):**
-```bash
-cd src/Omni.Collections.Benchmarks
-
-# Run specific categories  
-dotnet run -- --precision --linear         # Linear collections
-dotnet run -- --precision --spatial        # Spatial structures
-dotnet run -- --precision --hybrid         # Hybrid dictionaries
-dotnet run -- --precision --probabilistic  # Probabilistic structures
-
-# Quick validation
-dotnet run -- --fast --all
-```
-
 ## Design Philosophy
 
 1. **Algorithmic efficiency over micro-optimization** - Better algorithms scale better than faster loops
@@ -1413,7 +1425,7 @@ See [LICENSE](LICENSE) file for full terms.
 
 ## Acknowledgments
 
-Architecture, design decisions, and algorithmic choices by me. AI assistance (Claude Code, ChatGPT and Gemini) helped with implementation details, documentation, and testing patterns throughout development.
+Architecture, design, and implementation by the author. AI coding assistants may have been used for selected development tasks including code scaffolding, documentation, and test coverage.
 
 ---
 
