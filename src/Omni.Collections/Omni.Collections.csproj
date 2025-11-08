@@ -11,7 +11,7 @@
 
   <PropertyGroup>
     <PackageId>OmniCollections</PackageId>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <Authors>Codeturion</Authors>
     <Description>Complete collection of specialized .NET data structures - meta-package including all categories</Description>
     <PackageTags>collections;performance;datastructures;metapackage;complete</PackageTags>

@@ -370,6 +370,60 @@ public class CircularDictionaryTests
         dict.ContainsKey("key1").Should().BeTrue();
     }
 
+    [Fact]
+    public void Remove_WhenNotEmpty_DecrementsCountAndReusesSlot()
+    {
+        var dict = new CircularDictionary<string, int>(3);
+        dict.Add("A", 1);
+        dict.Add("B", 2);
+        dict.Add("C", 3);
+
+        dict.Remove("B").Should().BeTrue();
+
+        dict.Count.Should().Be(2);
+        dict.IsFull.Should().BeFalse();
+
+        dict.Add("D", 4);
+
+        dict.Count.Should().Be(3);
+        dict.ContainsKey("A").Should().BeTrue();
+        dict.ContainsKey("C").Should().BeTrue();
+        dict.ContainsKey("D").Should().BeTrue();
+        dict.ContainsKey("B").Should().BeFalse();
+        dict.GetOldest().Key.Should().Be("A");
+    }
+
+    [Fact]
+    public void Remove_OldestEntry_AdvancesOldestPointer()
+    {
+        var dict = new CircularDictionary<string, int>(3);
+        dict.Add("A", 1);
+        dict.Add("B", 2);
+        dict.Add("C", 3);
+
+        dict.Remove("A").Should().BeTrue();
+
+        dict.Count.Should().Be(2);
+        dict.GetOldest().Key.Should().Be("B");
+    }
+
+    [Fact]
+    public void Remove_NewestEntry_UpdatesNewestPointer()
+    {
+        var dict = new CircularDictionary<string, int>(3);
+        dict.Add("A", 1);
+        dict.Add("B", 2);
+        dict.Add("C", 3);
+
+        dict.Remove("C").Should().BeTrue();
+
+        dict.Count.Should().Be(2);
+        dict.GetNewest().Key.Should().Be("B");
+
+        dict.Add("D", 4);
+        dict.GetNewest().Key.Should().Be("D");
+    }
+
     /// <summary>
     /// Tests that Clear method removes all items from the dictionary.
     /// The method should reset count to zero and clear all entries.
@@ -469,6 +523,23 @@ public class CircularDictionaryTests
         recentTwo[1].Key.Should().Be("E");
     }
 
+    [Fact]
+    public void GetRecentWindow_WithGaps_StillReturnsMostRecentItems()
+    {
+        var dict = new CircularDictionary<string, int>(4);
+        dict.Add("A", 1);
+        dict.Add("B", 2);
+        dict.Add("C", 3);
+
+        dict.Remove("B");
+
+        var window = dict.GetRecentWindow(2).ToList();
+
+        window.Should().HaveCount(2);
+        window[0].Key.Should().Be("A");
+        window[1].Key.Should().Be("C");
+    }
+
     /// <summary>
     /// Tests that GetStatistics method returns correct statistical information.
     /// The method should calculate accurate indices and average age metrics.
@@ -521,6 +592,25 @@ public class CircularDictionaryTests
         items.Should().HaveCount(3);
         items.Should().Contain(kvp => kvp.Key == "A" && kvp.Value == 1);
         items.Should().Contain(kvp => kvp.Key == "B" && kvp.Value == 2);
+        items.Should().Contain(kvp => kvp.Key == "C" && kvp.Value == 3);
+    }
+
+    [Fact]
+    public void Enumeration_AfterRemovals_TraversesRemainingItems()
+    {
+        var dict = new CircularDictionary<string, int>(4);
+        dict.Add("A", 1);
+        dict.Add("B", 2);
+        dict.Add("C", 3);
+        dict.Add("D", 4);
+
+        dict.Remove("B");
+        dict.Remove("D");
+
+        var items = dict.ToList();
+
+        items.Should().HaveCount(2);
+        items.Should().Contain(kvp => kvp.Key == "A" && kvp.Value == 1);
         items.Should().Contain(kvp => kvp.Key == "C" && kvp.Value == 3);
     }
 

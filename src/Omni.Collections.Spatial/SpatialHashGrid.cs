@@ -97,18 +97,23 @@ public class SpatialHashGrid<T> : IDisposable where T : notnull
 
     public void InsertBounds(float x, float y, float width, float height, T item)
     {
-        var entry = new SpatialEntry<T>(x, y, item);
         if (_useSpatialMode)
         {
             int minCellX = (int)Math.Floor((x - width * 0.5f) * _inverseCellSize);
             int maxCellX = (int)Math.Floor((x + width * 0.5f) * _inverseCellSize);
             int minCellY = (int)Math.Floor((y - height * 0.5f) * _inverseCellSize);
             int maxCellY = (int)Math.Floor((y + height * 0.5f) * _inverseCellSize);
+
+            var occupiedCells = new List<long>();
+            var entry = new SpatialEntry<T>(x, y, item, occupiedCells);
+
             for (int cellX = minCellX; cellX <= maxCellX; cellX++)
             {
                 for (int cellY = minCellY; cellY <= maxCellY; cellY++)
                 {
                     var cellKey = GetCellKey(cellX, cellY);
+                    occupiedCells.Add(cellKey); // Track this cell
+
                     if (!_grid!.TryGetValue(cellKey, out List<SpatialEntry<T>>? cell))
                     {
                         cell = new List<SpatialEntry<T>>();
@@ -121,6 +126,8 @@ public class SpatialHashGrid<T> : IDisposable where T : notnull
         }
         else
         {
+            // Linear mode doesn't need cell tracking
+            var entry = new SpatialEntry<T>(x, y, item);
             _linearList!.Add(entry);
             _count++;
             if (_count > _spatialThreshold)
@@ -134,19 +141,42 @@ public class SpatialHashGrid<T> : IDisposable where T : notnull
     {
         if (_useSpatialMode)
         {
+            // Start with the cell at the given position
             var cellKey = GetCellKey(x, y);
             if (!_grid!.TryGetValue(cellKey, out List<SpatialEntry<T>>? cell))
                 return false;
+
             for (int i = cell.Count - 1; i >= 0; i--)
             {
                 if (EqualityComparer<T>.Default.Equals(cell[i].Item, item))
                 {
-                    cell.RemoveAt(i);
-                    _count--;
-                    if (cell.Count == 0)
+                    var entry = cell[i];
+
+                    // If this entry has occupied cells tracked, remove from all
+                    if (entry.OccupiedCells != null)
                     {
-                        _grid.Remove(cellKey);
+                        foreach (var occupiedCellKey in entry.OccupiedCells)
+                        {
+                            if (_grid.TryGetValue(occupiedCellKey, out var occupiedCell))
+                            {
+                                // Remove all instances of this entry from this cell
+                                occupiedCell.RemoveAll(e =>
+                                    EqualityComparer<T>.Default.Equals(e.Item, item));
+
+                                if (occupiedCell.Count == 0)
+                                    _grid.Remove(occupiedCellKey);
+                            }
+                        }
                     }
+                    else
+                    {
+                        // Single-cell entry, just remove from this cell
+                        cell.RemoveAt(i);
+                        if (cell.Count == 0)
+                            _grid.Remove(cellKey);
+                    }
+
+                    _count--;
                     return true;
                 }
             }
@@ -465,11 +495,14 @@ readonly struct SpatialEntry<T>
     public readonly float X;
     public readonly float Y;
     public readonly T Item;
-    public SpatialEntry(float x, float y, T item)
+    public readonly List<long>? OccupiedCells; // Track which cells this entry occupies (for bounds-inserted entries)
+
+    public SpatialEntry(float x, float y, T item, List<long>? occupiedCells = null)
     {
         X = x;
         Y = y;
         Item = item;
+        OccupiedCells = occupiedCells;
     }
 }
 

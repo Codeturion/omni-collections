@@ -11,7 +11,7 @@
 
   <PropertyGroup>
     <PackageId>OmniCollections.Hybrid</PackageId>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <Authors>Codeturion</Authors>
     <Description>Hybrid data structures (QueueDictionary, LinkedDictionary, CircularDictionary) for Omni.Collections</Description>
     <PackageTags>collections;hybrid;dictionary;queue;performance</PackageTags>

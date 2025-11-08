@@ -77,7 +77,6 @@ namespace Omni.Collections.Hybrid
             var hashCode = _comparer.GetHashCode(key) & 0x7FFFFFFF;
             var bucketIndex = hashCode % _buckets.Length;
             var currentIndex = _buckets[bucketIndex];
-            var previousIndex = -1;
             var chainLength = 0;
             
             while (currentIndex != -1)
@@ -90,7 +89,6 @@ namespace Omni.Collections.Hybrid
                     _version++;
                     return;
                 }
-                previousIndex = currentIndex;
                 currentIndex = entry.NextIndex;
                 chainLength++;
                 
@@ -102,38 +100,25 @@ namespace Omni.Collections.Hybrid
                         $"CircularDictionary: Excessive collision chain length ({chainLength}) detected for key: {key}");
                 }
             }
-            Entry newEntry;
-            int newIndex;
-            if (_count < _capacity)
+            if (_count == _capacity)
             {
-                newIndex = _tail;
-                newEntry = _buffer[newIndex];
-                _tail = (_tail + 1) % _capacity;
-                _count++;
+                EvictOldest();
             }
-            else
-            {
-                newIndex = _head;
-                newEntry = _buffer[newIndex];
-                RemoveFromBucket(newEntry);
-                _head = (_head + 1) % _capacity;
-                _tail = (_tail + 1) % _capacity;
-            }
+            var wasEmpty = _count == 0;
+            int newIndex = GetNextFreeIndex(_tail);
+            Entry newEntry = _buffer[newIndex];
             newEntry.Key = key;
             newEntry.Value = value;
             newEntry.HashCode = hashCode;
             newEntry.IsOccupied = true;
             newEntry.Timestamp = ++_timestamp;
-            newEntry.NextIndex = -1;
-            if (previousIndex == -1)
+            newEntry.NextIndex = _buckets[bucketIndex];
+            _buckets[bucketIndex] = newIndex;
+            _count++;
+            _tail = (newIndex + 1) % _capacity;
+            if (wasEmpty)
             {
-                newEntry.NextIndex = _buckets[bucketIndex];
-                _buckets[bucketIndex] = newIndex;
-            }
-            else
-            {
-                newEntry.NextIndex = _buffer[previousIndex].NextIndex;
-                _buffer[previousIndex].NextIndex = newIndex;
+                _head = newIndex;
             }
             _version++;
         }
@@ -177,7 +162,14 @@ namespace Omni.Collections.Hybrid
         {
             if (_count == 0)
                 throw new InvalidOperationException("Dictionary is empty");
+
             var entry = _buffer[_head];
+            if (!entry.IsOccupied)
+            {
+                var nextIndex = FindNextOccupiedIndex(_head);
+                _head = nextIndex;
+                entry = _buffer[nextIndex];
+            }
             return new KeyValuePair<TKey, TValue>(entry.Key, entry.Value);
         }
 
@@ -185,7 +177,14 @@ namespace Omni.Collections.Hybrid
         {
             if (_count == 0)
                 throw new InvalidOperationException("Dictionary is empty");
+
             var newestIndex = (_tail - 1 + _capacity) % _capacity;
+            if (!_buffer[newestIndex].IsOccupied)
+            {
+                newestIndex = FindPreviousOccupiedIndex(_tail);
+                _tail = (newestIndex + 1) % _capacity;
+            }
+
             var entry = _buffer[newestIndex];
             return new KeyValuePair<TKey, TValue>(entry.Key, entry.Value);
         }
@@ -205,9 +204,7 @@ namespace Omni.Collections.Hybrid
                         _buckets[bucketIndex] = entry.NextIndex;
                     else
                         _buffer[previousIndex].NextIndex = entry.NextIndex;
-                    entry.IsOccupied = false;
-                    entry.Key = default!;
-                    entry.Value = default!;
+                    FinalizeRemoval(currentIndex);
                     _version++;
                     return true;
                 }
@@ -242,15 +239,28 @@ namespace Omni.Collections.Hybrid
         {
             if (windowSize <= 0 || windowSize > _count)
                 windowSize = _count;
-            var startIndex = (_tail - windowSize + _capacity) % _capacity;
-            for (int i = 0; i < windowSize; i++)
+            if (windowSize == 0)
+                yield break;
+
+            var buffer = new KeyValuePair<TKey, TValue>[windowSize];
+            int filled = 0;
+            int index = (_tail - 1 + _capacity) % _capacity;
+            int scanned = 0;
+            while (filled < windowSize && scanned < _capacity)
             {
-                var index = (startIndex + i) % _capacity;
                 var entry = _buffer[index];
                 if (entry.IsOccupied)
                 {
-                    yield return new KeyValuePair<TKey, TValue>(entry.Key, entry.Value);
+                    buffer[windowSize - filled - 1] = new KeyValuePair<TKey, TValue>(entry.Key, entry.Value);
+                    filled++;
                 }
+                index = (index - 1 + _capacity) % _capacity;
+                scanned++;
+            }
+
+            for (int i = 0; i < filled; i++)
+            {
+                yield return buffer[i];
             }
         }
 
@@ -258,7 +268,18 @@ namespace Omni.Collections.Hybrid
         {
             if (_count == 0)
                 return (-1, -1, 0);
+            var oldestIndex = _head;
+            if (!_buffer[oldestIndex].IsOccupied)
+            {
+                oldestIndex = FindNextOccupiedIndex(oldestIndex);
+            }
+
             var newestIndex = (_tail - 1 + _capacity) % _capacity;
+            if (!_buffer[newestIndex].IsOccupied)
+            {
+                newestIndex = FindPreviousOccupiedIndex(_tail);
+            }
+
             var totalAge = 0L;
             var validCount = 0;
             for (int i = 0; i < _capacity; i++)
@@ -270,18 +291,46 @@ namespace Omni.Collections.Hybrid
                 }
             }
             var avgAge = validCount > 0 ? (double)totalAge / validCount : 0;
-            return (_head, newestIndex, avgAge);
+            return (oldestIndex, newestIndex, avgAge);
         }
         #region Private Methods
-        private void RemoveFromBucket(Entry entryToRemove)
+        private void EvictOldest() => RemoveEntryAtIndex(_head);
+
+        private int GetNextFreeIndex(int startIndex)
         {
-            var bucketIndex = entryToRemove.HashCode % _buckets.Length;
+            var index = startIndex;
+            for (int i = 0; i < _capacity; i++)
+            {
+                if (!_buffer[index].IsOccupied)
+                    return index;
+                index = (index + 1) % _capacity;
+            }
+            throw new InvalidOperationException("CircularDictionary: no free slot available for insertion.");
+        }
+
+        private int FindNextOccupiedIndex(int startIndex)
+        {
+            var index = startIndex;
+            for (int i = 0; i < _capacity; i++)
+            {
+                if (_buffer[index].IsOccupied)
+                    return index;
+                index = (index + 1) % _capacity;
+            }
+            throw new InvalidOperationException("CircularDictionary: failed to locate next occupied entry.");
+        }
+
+        private void RemoveEntryAtIndex(int index)
+        {
+            var entry = _buffer[index];
+            if (!entry.IsOccupied)
+                return;
+            var bucketIndex = entry.HashCode % _buckets.Length;
             var currentIndex = _buckets[bucketIndex];
             var previousIndex = -1;
             while (currentIndex != -1)
             {
-                var entry = _buffer[currentIndex];
-                if (entry == entryToRemove)
+                if (currentIndex == index)
                 {
                     if (previousIndex == -1)
                         _buckets[bucketIndex] = entry.NextIndex;
@@ -290,8 +339,54 @@ namespace Omni.Collections.Hybrid
                     break;
                 }
                 previousIndex = currentIndex;
-                currentIndex = entry.NextIndex;
+                currentIndex = _buffer[currentIndex].NextIndex;
             }
+            FinalizeRemoval(index);
+        }
+
+        private void FinalizeRemoval(int index)
+        {
+            var entry = _buffer[index];
+            var previousTail = _tail;
+
+            entry.IsOccupied = false;
+            entry.Key = default!;
+            entry.Value = default!;
+            entry.HashCode = 0;
+            entry.NextIndex = -1;
+            entry.Timestamp = 0;
+
+            _count--;
+            if (_count == 0)
+            {
+                _head = 0;
+                _tail = 0;
+                return;
+            }
+
+            if (_head == index)
+            {
+                _head = FindNextOccupiedIndex((index + 1) % _capacity);
+            }
+
+            var newestIndexBeforeRemoval = (previousTail - 1 + _capacity) % _capacity;
+            if (newestIndexBeforeRemoval == index)
+            {
+                var newNewestIndex = FindPreviousOccupiedIndex(index);
+                _tail = (newNewestIndex + 1) % _capacity;
+            }
+        }
+
+        private int FindPreviousOccupiedIndex(int startIndex)
+        {
+            var index = (startIndex - 1 + _capacity) % _capacity;
+            for (int i = 0; i < _capacity; i++)
+            {
+                if (_buffer[index].IsOccupied)
+                    return index;
+                index = (index - 1 + _capacity) % _capacity;
+            }
+            throw new InvalidOperationException("CircularDictionary: failed to locate previous occupied entry.");
         }
         #endregion
         #region IEnumerable Implementation
@@ -313,14 +408,16 @@ namespace Omni.Collections.Hybrid
             private readonly CircularDictionary<TKey, TValue> _dictionary;
             private readonly int _version;
             private int _index;
-            private int _visitedCount;
+            private int _probedCount;
+            private int _returnedCount;
             private KeyValuePair<TKey, TValue> _current;
             internal Enumerator(CircularDictionary<TKey, TValue> dictionary)
             {
                 _dictionary = dictionary;
                 _version = dictionary._version;
                 _index = dictionary._head;
-                _visitedCount = 0;
+                _probedCount = 0;
+                _returnedCount = 0;
                 _current = default;
             }
 
@@ -330,14 +427,17 @@ namespace Omni.Collections.Hybrid
             {
                 if (_version != _dictionary._version)
                     throw new InvalidOperationException("Collection was modified during enumeration");
-                while (_visitedCount < _dictionary._count)
+                if (_returnedCount >= _dictionary._count)
+                    return false;
+                while (_probedCount < _dictionary._capacity)
                 {
                     var entry = _dictionary._buffer[_index];
                     _index = (_index + 1) % _dictionary._capacity;
-                    _visitedCount++;
+                    _probedCount++;
                     if (entry.IsOccupied)
                     {
                         _current = new KeyValuePair<TKey, TValue>(entry.Key, entry.Value);
+                        _returnedCount++;
                         return true;
                     }
                 }
@@ -349,7 +449,8 @@ namespace Omni.Collections.Hybrid
                 if (_version != _dictionary._version)
                     throw new InvalidOperationException("Collection was modified during enumeration");
                 _index = _dictionary._head;
-                _visitedCount = 0;
+                _probedCount = 0;
+                _returnedCount = 0;
                 _current = default;
             }
 

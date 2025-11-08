@@ -65,11 +65,10 @@ public sealed class PooledStack<T> : IEnumerable<T>, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public T Pop()
     {
-#if DEBUG
         ThrowIfDisposed();
         if (IsEmpty)
             throw new InvalidOperationException("Stack is empty");
-#endif
+
         var item = _buffer[--_size];
         _buffer[_size] = default!;
         return item;

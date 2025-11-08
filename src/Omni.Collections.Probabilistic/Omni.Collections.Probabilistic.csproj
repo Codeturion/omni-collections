@@ -11,7 +11,7 @@
 
   <PropertyGroup>
     <PackageId>OmniCollections.Probabilistic</PackageId>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <Authors>Codeturion</Authors>
     <Description>Probabilistic data structures (BloomFilter, CountMinSketch, HyperLogLog) for Omni.Collections</Description>
     <PackageTags>collections;probabilistic;bloomfilter;analytics;performance</PackageTags>

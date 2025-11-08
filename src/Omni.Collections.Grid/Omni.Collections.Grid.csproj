@@ -11,7 +11,7 @@
 
   <PropertyGroup>
     <PackageId>OmniCollections.Grid</PackageId>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <Authors>Codeturion</Authors>
     <Description>Grid data structures (BitGrid2D, LayeredGrid2D, HexGrid2D) for Omni.Collections</Description>
     <PackageTags>collections;grid;2d;hex;performance</PackageTags>

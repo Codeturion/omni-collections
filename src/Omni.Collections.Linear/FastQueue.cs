@@ -112,10 +112,10 @@ public sealed class FastQueue<T> : IEnumerable<T>, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public T Dequeue()
     {
-#if DEBUG
+        ThrowIfDisposed();
         if (IsEmpty)
             throw new InvalidOperationException("Queue is empty");
-#endif
+
         var item = _buffer[_head];
         _buffer[_head] = default!;
         _head = (_head + 1) & _mask;
