@@ -15,7 +15,7 @@
     <Authors>Codeturion</Authors>
     <Description>Linear data structures (FastQueue, MinHeap, BoundedList) for Omni.Collections</Description>
     <PackageTags>collections;linear;queue;heap;performance</PackageTags>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <RepositoryUrl>https://github.com/Codeturion/omni-collections</RepositoryUrl>
     <PackageProjectUrl>https://github.com/Codeturion/omni-collections</PackageProjectUrl>
     <PackageReleaseNotes>Linear data structures: FastQueue, MinHeap, BoundedList, PooledList, PooledStack</PackageReleaseNotes>

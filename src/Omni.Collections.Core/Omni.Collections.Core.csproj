@@ -15,7 +15,7 @@
     <Authors>Codeturion</Authors>
     <Description>Core utilities and interfaces for Omni.Collections specialized data structures</Description>
     <PackageTags>collections;core;interfaces;utilities;performance</PackageTags>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <RepositoryUrl>https://github.com/Codeturion/omni-collections</RepositoryUrl>
     <PackageProjectUrl>https://github.com/Codeturion/omni-collections</PackageProjectUrl>
     <PackageReleaseNotes>Core utilities and interfaces for modular Omni.Collections architecture</PackageReleaseNotes>

@@ -15,7 +15,7 @@
     <Authors>Codeturion</Authors>
     <Description>Hybrid data structures (QueueDictionary, LinkedDictionary, CircularDictionary) for Omni.Collections</Description>
     <PackageTags>collections;hybrid;dictionary;queue;performance</PackageTags>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <RepositoryUrl>https://github.com/Codeturion/omni-collections</RepositoryUrl>
     <PackageProjectUrl>https://github.com/Codeturion/omni-collections</PackageProjectUrl>
     <PackageReleaseNotes>Hybrid data structures: QueueDictionary, LinkedDictionary, CircularDictionary</PackageReleaseNotes>

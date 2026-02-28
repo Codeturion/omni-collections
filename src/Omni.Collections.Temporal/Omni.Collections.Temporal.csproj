@@ -15,7 +15,7 @@
     <Authors>Codeturion</Authors>
     <Description>Temporal data structures (TimelineArray, TemporalSpatialGrid) for Omni.Collections</Description>
     <PackageTags>collections;temporal;timeline;performance</PackageTags>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <RepositoryUrl>https://github.com/Codeturion/omni-collections</RepositoryUrl>
     <PackageProjectUrl>https://github.com/Codeturion/omni-collections</PackageProjectUrl>
     <PackageReleaseNotes>Temporal data structures: TimelineArray, TemporalSpatialGrid</PackageReleaseNotes>

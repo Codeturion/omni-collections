@@ -15,7 +15,7 @@
     <Authors>Codeturion</Authors>
     <Description>Reactive data structures (ObservableList, ObservableHashSet) for Omni.Collections</Description>
     <PackageTags>collections;reactive;observable;performance</PackageTags>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <RepositoryUrl>https://github.com/Codeturion/omni-collections</RepositoryUrl>
     <PackageProjectUrl>https://github.com/Codeturion/omni-collections</PackageProjectUrl>
     <PackageReleaseNotes>Reactive data structures: ObservableList, ObservableHashSet</PackageReleaseNotes>

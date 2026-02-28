@@ -15,7 +15,7 @@
     <Authors>Codeturion</Authors>
     <Description>Complete collection of specialized .NET data structures - meta-package including all categories</Description>
     <PackageTags>collections;performance;datastructures;metapackage;complete</PackageTags>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <RepositoryUrl>https://github.com/Codeturion/omni-collections</RepositoryUrl>
     <PackageProjectUrl>https://github.com/Codeturion/omni-collections</PackageProjectUrl>
     <PackageReleaseNotes>Meta-package containing all Omni.Collections categories: Core, Linear, Spatial, Hybrid, Probabilistic, Grid, Reactive, Temporal</PackageReleaseNotes>

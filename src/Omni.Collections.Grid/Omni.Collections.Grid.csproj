@@ -15,7 +15,7 @@
     <Authors>Codeturion</Authors>
     <Description>Grid data structures (BitGrid2D, LayeredGrid2D, HexGrid2D) for Omni.Collections</Description>
     <PackageTags>collections;grid;2d;hex;performance</PackageTags>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <RepositoryUrl>https://github.com/Codeturion/omni-collections</RepositoryUrl>
     <PackageProjectUrl>https://github.com/Codeturion/omni-collections</PackageProjectUrl>
     <PackageReleaseNotes>Grid data structures: BitGrid2D, LayeredGrid2D, HexGrid2D</PackageReleaseNotes>

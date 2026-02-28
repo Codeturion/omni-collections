@@ -3,7 +3,9 @@
 [![NuGet Version](https://img.shields.io/nuget/v/OmniCollections.svg)](https://www.nuget.org/packages/OmniCollections/)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/OmniCollections.svg)](https://www.nuget.org/packages/OmniCollections/)
 [![Build Status](https://github.com/Codeturion/omni-collections/actions/workflows/publish-nuget.yml/badge.svg)](https://github.com/Codeturion/omni-collections/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub Stars](https://img.shields.io/github/stars/Codeturion/omni-collections)](https://github.com/Codeturion/omni-collections)
+[![GitHub Last Commit](https://img.shields.io/github/last-commit/Codeturion/omni-collections)](https://github.com/Codeturion/omni-collections)
+[![License: PolyForm Noncommercial](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-blue.svg)](https://polyformproject.org/licenses/noncommercial/1.0.0/)
 
 **33 specialized .NET data structures addressing algorithmic bottlenecks**
 
@@ -1419,9 +1421,10 @@ dotnet run --configuration Release -- --filter "*YourStructure*"
 
 ## License
 
-MIT License - Use freely in production with attribution.
+[PolyForm Noncommercial 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0/)
 
-See [LICENSE](LICENSE) file for full terms.
+Free to use, fork, modify, and share for any personal or non-commercial purpose.
+Commercial use requires permission.
 
 ## Acknowledgments
 
