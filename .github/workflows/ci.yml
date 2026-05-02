@@ -33,3 +33,6 @@ jobs:
 
       - name: Test
         run: dotnet test --configuration Release --no-build --verbosity normal
+
+      - name: Validate benchmarks
+        run: dotnet run --project src/Omni.Collections.Benchmarks -c Release --no-build -- --list flat
