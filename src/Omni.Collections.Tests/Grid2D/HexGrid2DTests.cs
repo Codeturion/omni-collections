@@ -403,6 +403,7 @@ public class HexGrid2DTests
         line[2].Value.Should().Be("end");
     }
 
+#if NET8_0_OR_GREATER
     /// <summary>
     /// Tests that FindPath returns valid hexagonal path between coordinates.
     /// The pathfinding should navigate around blocked cells.
@@ -413,7 +414,7 @@ public class HexGrid2DTests
         var grid = new HexGrid2D<bool>();
         var start = new HexCoord(0, 0);
         var goal = new HexCoord(2, 0);
-        
+
         // Set up some blocked cells
         grid[1, 0] = true; // Block direct path
 
@@ -441,6 +442,7 @@ public class HexGrid2DTests
         reachable.Should().Contain(item => item.coord == start);
         reachable.All(item => item.remainingMovement >= 0).Should().BeTrue();
     }
+#endif
 
     /// <summary>
     /// Tests that ToPixel and FromPixel coordinate conversions work correctly.
