@@ -80,6 +80,40 @@ public class PooledListBenchmarks
         return _baselineMut.Count;
     }
 
+    // ============= Fill (bulk allocation comparison) =============
+    // PooledList rents the backing array from ArrayPool. The realistic-usage
+    // comparison is "PooledList default vs List<T> default" — PooledList rents
+    // pool arrays (alloc trends to zero after warmup as the pool caches arrays);
+    // List<T> heap-allocates each resize.
+
+    private PooledList<string>? _omniFillResult;
+
+    [IterationCleanup(Targets = new[] { nameof(Omni_Fill) })]
+    public void DisposeOmniFill()
+    {
+        _omniFillResult?.Dispose();
+        _omniFillResult = null;
+    }
+
+    /// Claim: PooledList default-cap fill rents arrays from ArrayPool, eliminating GC pressure vs List<T> resizing.
+    [Benchmark, BenchmarkCategory("Fill"), InvocationCount(1)]
+    public PooledList<string> Omni_Fill()
+    {
+        _omniFillResult = new PooledList<string>();
+        for (int i = 0; i < N; i++)
+            _omniFillResult.Add(_values[i]);
+        return _omniFillResult;
+    }
+
+    [Benchmark(Baseline = true), BenchmarkCategory("Fill"), InvocationCount(1)]
+    public List<string> Baseline_Fill()
+    {
+        var c = new List<string>();
+        for (int i = 0; i < N; i++)
+            c.Add(_values[i]);
+        return c;
+    }
+
     /// Claim: PooledList indexer matches List<T> indexer (both wrap a contiguous T[]).
     [Benchmark, BenchmarkCategory("Indexer")]
     public string Omni_Indexer()

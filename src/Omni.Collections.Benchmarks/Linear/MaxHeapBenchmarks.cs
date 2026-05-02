@@ -99,6 +99,36 @@ public class MaxHeapBenchmarks
     [Benchmark(Baseline = true), BenchmarkCategory("ExtractMax"), InvocationCount(OpsPerIteration)]
     public int Baseline_ExtractMax() => _baselineMut.Dequeue();
 
+    // ============= Fill (bulk allocation comparison) =============
+
+    private MaxHeap<int>? _omniFillResult;
+
+    [IterationCleanup(Targets = new[] { nameof(Omni_Fill) })]
+    public void DisposeOmniFill()
+    {
+        _omniFillResult?.Dispose();
+        _omniFillResult = null;
+    }
+
+    /// Claim: MaxHeap default-cap fill builds a heap with fewer or equal allocations vs PriorityQueue growing.
+    [Benchmark, BenchmarkCategory("Fill"), InvocationCount(1)]
+    public MaxHeap<int> Omni_Fill()
+    {
+        _omniFillResult = new MaxHeap<int>();
+        for (int i = 0; i < N; i++)
+            _omniFillResult.Insert(_values[i]);
+        return _omniFillResult;
+    }
+
+    [Benchmark(Baseline = true), BenchmarkCategory("Fill"), InvocationCount(1)]
+    public PriorityQueue<int, int> Baseline_Fill()
+    {
+        var c = new PriorityQueue<int, int>(DescendingComparer);
+        for (int i = 0; i < N; i++)
+            c.Enqueue(_values[i], _values[i]);
+        return c;
+    }
+
     /// Claim: MaxHeap.PeekMax is O(1) and matches PriorityQueue.Peek under descending comparer.
     [Benchmark, BenchmarkCategory("Peek")]
     public int Omni_PeekMax() => _omniFilled.PeekMax();

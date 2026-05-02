@@ -96,6 +96,27 @@ public class FastQueueBenchmarks
     [Benchmark(Baseline = true), BenchmarkCategory("Dequeue"), InvocationCount(OpsPerIteration)]
     public string Baseline_Dequeue() => _baselineMut.Dequeue();
 
+    // ============= Fill (bulk allocation comparison) =============
+
+    /// Claim: FastQueue default-cap fill is faster and allocates less than Queue<T> growing through resizes.
+    [Benchmark, BenchmarkCategory("Fill"), InvocationCount(1)]
+    public FastQueue<string> Omni_Fill()
+    {
+        var c = new FastQueue<string>();
+        for (int i = 0; i < N; i++)
+            c.Enqueue(_values[i]);
+        return c;
+    }
+
+    [Benchmark(Baseline = true), BenchmarkCategory("Fill"), InvocationCount(1)]
+    public Queue<string> Baseline_Fill()
+    {
+        var c = new Queue<string>();
+        for (int i = 0; i < N; i++)
+            c.Enqueue(_values[i]);
+        return c;
+    }
+
     /// Claim: FastQueue.Peek matches Queue<T>.Peek (both read head index).
     [Benchmark, BenchmarkCategory("Peek")]
     public string Omni_Peek() => _omniFilled.Peek();

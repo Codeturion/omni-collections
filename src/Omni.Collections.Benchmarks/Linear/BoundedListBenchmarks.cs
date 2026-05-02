@@ -89,6 +89,31 @@ public class BoundedListBenchmarks
         return _baselineMut.Count;
     }
 
+    // ============= Fill (bulk allocation comparison) =============
+    // Demonstrates the realistic populate cost. BoundedList constructor takes an
+    // explicit capacity so the comparison is "presize vs grow" — the BoundedList
+    // path allocates one array of size N up front; the List path resizes ~log2(N)
+    // times. Allocation column on this benchmark is the value-prop signal.
+
+    /// Claim: BoundedList sized to N allocates one array; List<T>() growing to N allocates ~log2(N) intermediate arrays.
+    [Benchmark, BenchmarkCategory("Fill"), InvocationCount(1)]
+    public BoundedList<string> Omni_Fill()
+    {
+        var c = new BoundedList<string>(N);
+        for (int i = 0; i < N; i++)
+            c.Add(_values[i]);
+        return c;
+    }
+
+    [Benchmark(Baseline = true), BenchmarkCategory("Fill"), InvocationCount(1)]
+    public System.Collections.Generic.List<string> Baseline_Fill()
+    {
+        var c = new System.Collections.Generic.List<string>();
+        for (int i = 0; i < N; i++)
+            c.Add(_values[i]);
+        return c;
+    }
+
     // ============= Indexer (read-only) =============
     // Pre-computed _readIndices avoid Random.Next overhead inside the measured path.
 

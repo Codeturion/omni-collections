@@ -96,6 +96,36 @@ public class PooledStackBenchmarks
     [Benchmark(Baseline = true), BenchmarkCategory("Pop"), InvocationCount(OpsPerIteration)]
     public string Baseline_Pop() => _baselineMut.Pop();
 
+    // ============= Fill (bulk allocation comparison) =============
+
+    private PooledStack<string>? _omniFillResult;
+
+    [IterationCleanup(Targets = new[] { nameof(Omni_Fill) })]
+    public void DisposeOmniFill()
+    {
+        _omniFillResult?.Dispose();
+        _omniFillResult = null;
+    }
+
+    /// Claim: PooledStack default-cap fill rents arrays from ArrayPool, eliminating GC pressure vs Stack<T> resizing.
+    [Benchmark, BenchmarkCategory("Fill"), InvocationCount(1)]
+    public PooledStack<string> Omni_Fill()
+    {
+        _omniFillResult = new PooledStack<string>();
+        for (int i = 0; i < N; i++)
+            _omniFillResult.Push(_values[i]);
+        return _omniFillResult;
+    }
+
+    [Benchmark(Baseline = true), BenchmarkCategory("Fill"), InvocationCount(1)]
+    public Stack<string> Baseline_Fill()
+    {
+        var c = new Stack<string>();
+        for (int i = 0; i < N; i++)
+            c.Push(_values[i]);
+        return c;
+    }
+
     /// Claim: PooledStack.Peek matches Stack<T>.Peek (both O(1) array read).
     [Benchmark, BenchmarkCategory("Peek")]
     public string Omni_Peek() => _omniFilled.Peek();

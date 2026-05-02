@@ -97,6 +97,36 @@ public class MinHeapBenchmarks
     [Benchmark(Baseline = true), BenchmarkCategory("ExtractMin"), InvocationCount(OpsPerIteration)]
     public int Baseline_ExtractMin() => _baselineMut.Dequeue();
 
+    // ============= Fill (bulk allocation comparison) =============
+
+    private MinHeap<int>? _omniFillResult;
+
+    [IterationCleanup(Targets = new[] { nameof(Omni_Fill) })]
+    public void DisposeOmniFill()
+    {
+        _omniFillResult?.Dispose();
+        _omniFillResult = null;
+    }
+
+    /// Claim: MinHeap default-cap fill builds a heap with fewer or equal allocations vs PriorityQueue growing.
+    [Benchmark, BenchmarkCategory("Fill"), InvocationCount(1)]
+    public MinHeap<int> Omni_Fill()
+    {
+        _omniFillResult = new MinHeap<int>();
+        for (int i = 0; i < N; i++)
+            _omniFillResult.Insert(_values[i]);
+        return _omniFillResult;
+    }
+
+    [Benchmark(Baseline = true), BenchmarkCategory("Fill"), InvocationCount(1)]
+    public PriorityQueue<int, int> Baseline_Fill()
+    {
+        var c = new PriorityQueue<int, int>();
+        for (int i = 0; i < N; i++)
+            c.Enqueue(_values[i], _values[i]);
+        return c;
+    }
+
     /// Claim: MinHeap.PeekMin matches PriorityQueue.Peek (both O(1) read of root).
     [Benchmark, BenchmarkCategory("Peek")]
     public int Omni_PeekMin() => _omniFilled.PeekMin();
