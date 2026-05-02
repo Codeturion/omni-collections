@@ -313,6 +313,7 @@ namespace Omni.Collections.Hybrid
         {
             Array.Clear(_buckets, 0, _buckets.Length);
             _frequencyMap.Clear();
+            _nodeToFrequency.Clear();
             _minFrequency = _maxFrequency = null;
             _count = 0;
             _totalAccessCount = 0;
