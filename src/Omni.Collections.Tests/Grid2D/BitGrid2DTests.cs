@@ -484,23 +484,56 @@ public class BitGrid2DTests
     }
 
     /// <summary>
-    /// Tests that GetRowSpan returns boolean data for a row.
-    /// The span should contain accurate row data without side effects.
+    /// Tests that GetRowCopy returns boolean data for a row.
+    /// The array should contain accurate row data without side effects.
     /// </summary>
     [Fact]
-    public void GetRowSpan_ReturnsRowData()
+    public void GetRowCopy_ReturnsRowData()
     {
         var grid = new BitGrid2D(4, 3);
         grid[0, 1] = true;
         grid[2, 1] = true;
 
-        var span = grid.GetRowSpan(1);
+        var row = grid.GetRowCopy(1);
 
-        span.Length.Should().Be(4);
-        span[0].Should().BeTrue();
-        span[1].Should().BeFalse();
-        span[2].Should().BeTrue();
-        span[3].Should().BeFalse();
+        row.Length.Should().Be(4);
+        row[0].Should().BeTrue();
+        row[1].Should().BeFalse();
+        row[2].Should().BeTrue();
+        row[3].Should().BeFalse();
+    }
+
+    /// <summary>
+    /// Tests that CopyRowTo writes row data into a caller-provided buffer.
+    /// </summary>
+    [Fact]
+    public void CopyRowTo_WritesRowDataIntoDestination()
+    {
+        var grid = new BitGrid2D(4, 3);
+        grid[0, 1] = true;
+        grid[2, 1] = true;
+
+        Span<bool> buffer = stackalloc bool[4];
+        grid.CopyRowTo(1, buffer);
+
+        buffer[0].Should().BeTrue();
+        buffer[1].Should().BeFalse();
+        buffer[2].Should().BeTrue();
+        buffer[3].Should().BeFalse();
+    }
+
+    /// <summary>
+    /// Tests that CopyRowTo throws when the destination span is smaller than the row width.
+    /// </summary>
+    [Fact]
+    public void CopyRowTo_ThrowsWhenDestinationTooSmall()
+    {
+        var grid = new BitGrid2D(4, 3);
+        var tooSmall = new bool[3];
+
+        var act = () => grid.CopyRowTo(1, tooSmall);
+
+        act.Should().Throw<ArgumentException>();
     }
 
     /// <summary>

@@ -229,15 +229,24 @@ public class BitGrid2D : IDisposable
         }
     }
 
-    public ReadOnlySpan<bool> GetRowSpan(int y)
+    public void CopyRowTo(int y, Span<bool> destination)
+    {
+        if ((uint)y >= (uint)_height)
+            throw new ArgumentOutOfRangeException(nameof(y));
+        if (destination.Length < _width)
+            throw new ArgumentException("Destination span is too small to hold the row.", nameof(destination));
+        for (int x = 0; x < _width; x++)
+        {
+            destination[x] = this[x, y];
+        }
+    }
+
+    public bool[] GetRowCopy(int y)
     {
         if ((uint)y >= (uint)_height)
             throw new ArgumentOutOfRangeException(nameof(y));
         var rowData = new bool[_width];
-        for (int x = 0; x < _width; x++)
-        {
-            rowData[x] = this[x, y];
-        }
+        CopyRowTo(y, rowData);
         return rowData;
     }
 
