@@ -12,6 +12,8 @@ namespace Omni.Collections.Benchmarks.Linear;
 [MemoryDiagnoser]
 public class PooledListBenchmarks
 {
+    private const int OpsPerIteration = 32768;
+
     [Params(Sizes.Small, Sizes.Medium, Sizes.Large)]
     public int N;
 
@@ -23,13 +25,14 @@ public class PooledListBenchmarks
     private PooledList<string> _omniFilled = null!;
     private List<string> _baselineFilled = null!;
 
-    private PooledList<string> _omniEmpty = null!;
-    private List<string> _baselineEmpty = null!;
+    private PooledList<string> _omniMut = null!;
+    private List<string> _baselineMut = null!;
+    private int _addCounter;
 
     [GlobalSetup]
     public void GlobalSetup()
     {
-        _values = RandomData.Strings(N);
+        _values = RandomData.Strings(N + OpsPerIteration);
         _readIndices = RandomData.IntsInRange(ReadIndexMask + 1, 0, N);
 
         _omniFilled = new PooledList<string>(N);
@@ -45,32 +48,36 @@ public class PooledListBenchmarks
     public void GlobalCleanup()
     {
         _omniFilled.Dispose();
-        _omniEmpty?.Dispose();
+        _omniMut?.Dispose();
     }
 
-    [IterationSetup(Targets = new[] { nameof(Omni_AddN), nameof(Baseline_AddN) })]
+    [IterationSetup(Targets = new[] { nameof(Omni_Add), nameof(Baseline_Add) })]
     public void ResetForAdd()
     {
-        _omniEmpty?.Dispose();
-        _omniEmpty = new PooledList<string>(N);
-        _baselineEmpty = new List<string>(N);
+        _omniMut?.Dispose();
+        _omniMut = new PooledList<string>(N + OpsPerIteration);
+        _baselineMut = new List<string>(N + OpsPerIteration);
+        for (int i = 0; i < N; i++)
+        {
+            _omniMut.Add(_values[i]);
+            _baselineMut.Add(_values[i]);
+        }
+        _addCounter = N;
     }
 
-    /// Claim: PooledList.Add amortizes growth via ArrayPool, eliminating GC pressure vs List.Add resizing.
-    [Benchmark, BenchmarkCategory("Add"), InvocationCount(1)]
-    public PooledList<string> Omni_AddN()
+    /// Claim: PooledList.Add (capacity sufficient) matches List<T>.Add per-op cost.
+    [Benchmark, BenchmarkCategory("Add"), InvocationCount(OpsPerIteration)]
+    public int Omni_Add()
     {
-        for (int i = 0; i < _values.Length; i++)
-            _omniEmpty.Add(_values[i]);
-        return _omniEmpty;
+        _omniMut.Add(_values[_addCounter++]);
+        return _omniMut.Count;
     }
 
-    [Benchmark(Baseline = true), BenchmarkCategory("Add"), InvocationCount(1)]
-    public List<string> Baseline_AddN()
+    [Benchmark(Baseline = true), BenchmarkCategory("Add"), InvocationCount(OpsPerIteration)]
+    public int Baseline_Add()
     {
-        for (int i = 0; i < _values.Length; i++)
-            _baselineEmpty.Add(_values[i]);
-        return _baselineEmpty;
+        _baselineMut.Add(_values[_addCounter++]);
+        return _baselineMut.Count;
     }
 
     /// Claim: PooledList indexer matches List<T> indexer (both wrap a contiguous T[]).

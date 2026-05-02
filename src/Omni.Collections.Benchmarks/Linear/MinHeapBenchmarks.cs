@@ -12,6 +12,8 @@ namespace Omni.Collections.Benchmarks.Linear;
 [MemoryDiagnoser]
 public class MinHeapBenchmarks
 {
+    private const int OpsPerIteration = 32768;
+
     [Params(Sizes.Small, Sizes.Medium, Sizes.Large)]
     public int N;
 
@@ -20,16 +22,14 @@ public class MinHeapBenchmarks
     private MinHeap<int> _omniFilled = null!;
     private PriorityQueue<int, int> _baselineFilled = null!;
 
-    private MinHeap<int> _omniEmpty = null!;
-    private PriorityQueue<int, int> _baselineEmpty = null!;
-
-    private MinHeap<int> _omniDrain = null!;
-    private PriorityQueue<int, int> _baselineDrain = null!;
+    private MinHeap<int> _omniMut = null!;
+    private PriorityQueue<int, int> _baselineMut = null!;
+    private int _opCounter;
 
     [GlobalSetup]
     public void GlobalSetup()
     {
-        _values = RandomData.Ints(N);
+        _values = RandomData.Ints(N + OpsPerIteration);
 
         _omniFilled = new MinHeap<int>(N);
         _baselineFilled = new PriorityQueue<int, int>(N);
@@ -44,66 +44,58 @@ public class MinHeapBenchmarks
     public void GlobalCleanup()
     {
         _omniFilled.Dispose();
-        _omniEmpty?.Dispose();
-        _omniDrain?.Dispose();
+        _omniMut?.Dispose();
     }
 
-    [IterationSetup(Targets = new[] { nameof(Omni_InsertN), nameof(Baseline_InsertN) })]
+    [IterationSetup(Targets = new[] { nameof(Omni_Insert), nameof(Baseline_Insert) })]
     public void ResetForInsert()
     {
-        _omniEmpty?.Dispose();
-        _omniEmpty = new MinHeap<int>(N);
-        _baselineEmpty = new PriorityQueue<int, int>(N);
-    }
-
-    [IterationSetup(Targets = new[] { nameof(Omni_ExtractMinN), nameof(Baseline_ExtractMinN) })]
-    public void RefillForExtract()
-    {
-        _omniDrain?.Dispose();
-        _omniDrain = new MinHeap<int>(N);
-        _baselineDrain = new PriorityQueue<int, int>(N);
+        _omniMut?.Dispose();
+        _omniMut = new MinHeap<int>(N + OpsPerIteration);
+        _baselineMut = new PriorityQueue<int, int>(N + OpsPerIteration);
         for (int i = 0; i < N; i++)
         {
-            _omniDrain.Insert(_values[i]);
-            _baselineDrain.Enqueue(_values[i], _values[i]);
+            _omniMut.Insert(_values[i]);
+            _baselineMut.Enqueue(_values[i], _values[i]);
+        }
+        _opCounter = N;
+    }
+
+    [IterationSetup(Targets = new[] { nameof(Omni_ExtractMin), nameof(Baseline_ExtractMin) })]
+    public void RefillForExtract()
+    {
+        _omniMut?.Dispose();
+        _omniMut = new MinHeap<int>(N + OpsPerIteration);
+        _baselineMut = new PriorityQueue<int, int>(N + OpsPerIteration);
+        for (int i = 0; i < N + OpsPerIteration; i++)
+        {
+            _omniMut.Insert(_values[i]);
+            _baselineMut.Enqueue(_values[i], _values[i]);
         }
     }
 
     /// Claim: MinHeap.Insert is at least as fast as PriorityQueue.Enqueue (both O(log n)).
-    [Benchmark, BenchmarkCategory("Insert"), InvocationCount(1)]
-    public int Omni_InsertN()
+    [Benchmark, BenchmarkCategory("Insert"), InvocationCount(OpsPerIteration)]
+    public int Omni_Insert()
     {
-        for (int i = 0; i < _values.Length; i++)
-            _omniEmpty.Insert(_values[i]);
-        return _omniEmpty.Count;
+        _omniMut.Insert(_values[_opCounter++]);
+        return _omniMut.Count;
     }
 
-    [Benchmark(Baseline = true), BenchmarkCategory("Insert"), InvocationCount(1)]
-    public int Baseline_InsertN()
+    [Benchmark(Baseline = true), BenchmarkCategory("Insert"), InvocationCount(OpsPerIteration)]
+    public int Baseline_Insert()
     {
-        for (int i = 0; i < _values.Length; i++)
-            _baselineEmpty.Enqueue(_values[i], _values[i]);
-        return _baselineEmpty.Count;
+        var v = _values[_opCounter++];
+        _baselineMut.Enqueue(v, v);
+        return _baselineMut.Count;
     }
 
-    /// Claim: MinHeap.ExtractMin is competitive with PriorityQueue.Dequeue draining all elements in order.
-    [Benchmark, BenchmarkCategory("ExtractMin"), InvocationCount(1)]
-    public int Omni_ExtractMinN()
-    {
-        int last = 0;
-        while (_omniDrain.Count > 0)
-            last = _omniDrain.ExtractMin();
-        return last;
-    }
+    /// Claim: MinHeap.ExtractMin is competitive with PriorityQueue.Dequeue (both O(log n)).
+    [Benchmark, BenchmarkCategory("ExtractMin"), InvocationCount(OpsPerIteration)]
+    public int Omni_ExtractMin() => _omniMut.ExtractMin();
 
-    [Benchmark(Baseline = true), BenchmarkCategory("ExtractMin"), InvocationCount(1)]
-    public int Baseline_ExtractMinN()
-    {
-        int last = 0;
-        while (_baselineDrain.Count > 0)
-            last = _baselineDrain.Dequeue();
-        return last;
-    }
+    [Benchmark(Baseline = true), BenchmarkCategory("ExtractMin"), InvocationCount(OpsPerIteration)]
+    public int Baseline_ExtractMin() => _baselineMut.Dequeue();
 
     /// Claim: MinHeap.PeekMin matches PriorityQueue.Peek (both O(1) read of root).
     [Benchmark, BenchmarkCategory("Peek")]

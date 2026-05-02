@@ -11,6 +11,11 @@ namespace Omni.Collections.Benchmarks.Linear;
 [MemoryDiagnoser]
 public class BoundedListBenchmarks
 {
+    // High invocation count puts per-op timing and per-op allocation above BDN's
+    // measurement floor (~400 B for the harness itself). Each iteration runs this
+    // many Add calls; IterationSetup recreates collections + pre-fills N items.
+    private const int OpsPerIteration = 32768;
+
     [Params(Sizes.Small, Sizes.Medium, Sizes.Large)]
     public int N;
 
@@ -22,13 +27,14 @@ public class BoundedListBenchmarks
     private BoundedList<string> _omniFilled = null!;
     private System.Collections.Generic.List<string> _baselineFilled = null!;
 
-    private BoundedList<string> _omniEmpty = null!;
-    private System.Collections.Generic.List<string> _baselineEmpty = null!;
+    private BoundedList<string> _omniMut = null!;
+    private System.Collections.Generic.List<string> _baselineMut = null!;
+    private int _addCounter;
 
     [GlobalSetup]
     public void GlobalSetup()
     {
-        _values = RandomData.Strings(N);
+        _values = RandomData.Strings(N + OpsPerIteration);
         _readIndices = RandomData.IntsInRange(ReadIndexMask + 1, 0, N);
 
         _omniFilled = new BoundedList<string>(N);
@@ -44,37 +50,43 @@ public class BoundedListBenchmarks
     public void GlobalCleanup()
     {
         _omniFilled.Dispose();
-        _omniEmpty?.Dispose();
+        _omniMut?.Dispose();
     }
 
-    // ============= Add (bulk) =============
-    // InvocationCount=1 forces one full bulk-add per iteration.
-    // IterationSetup recreates collections each iteration so state is fresh.
+    // ============= Add (per-op via InvocationCount=32768) =============
+    // IterationSetup creates fresh collections with capacity N + OpsPerIteration,
+    // pre-fills N items, and resets the counter so 32768 Adds fit without resizing.
+    // Mean reported = per-Add cost; Allocated reported = per-Add bytes.
 
-    [IterationSetup(Targets = new[] { nameof(Omni_AddN), nameof(Baseline_AddN) })]
+    [IterationSetup(Targets = new[] { nameof(Omni_Add), nameof(Baseline_Add) })]
     public void ResetForAdd()
     {
-        _omniEmpty?.Dispose();
-        _omniEmpty = new BoundedList<string>(N);
-        _baselineEmpty = new System.Collections.Generic.List<string>(N);
+        _omniMut?.Dispose();
+        _omniMut = new BoundedList<string>(N + OpsPerIteration);
+        _baselineMut = new System.Collections.Generic.List<string>(N + OpsPerIteration);
+        for (int i = 0; i < N; i++)
+        {
+            _omniMut.Add(_values[i]);
+            _baselineMut.Add(_values[i]);
+        }
+        _addCounter = N;
     }
 
-    /// Claim: BoundedList.Add with capacity reserved is competitive with List.Add.
-    [Benchmark, BenchmarkCategory("Add"), InvocationCount(1)]
-    public BoundedList<string> Omni_AddN()
+    /// Claim: BoundedList.Add (capacity sufficient, no resize) matches List<T>.Add per-op cost.
+    [Benchmark, BenchmarkCategory("Add")]
+    [InvocationCount(OpsPerIteration)]
+    public int Omni_Add()
     {
-        for (int i = 0; i < _values.Length; i++)
-            _omniEmpty.Add(_values[i]);
-        return _omniEmpty;
+        _omniMut.Add(_values[_addCounter++]);
+        return _omniMut.Count;
     }
 
-    /// Baseline: List.Add with capacity reserved.
-    [Benchmark(Baseline = true), BenchmarkCategory("Add"), InvocationCount(1)]
-    public System.Collections.Generic.List<string> Baseline_AddN()
+    [Benchmark(Baseline = true), BenchmarkCategory("Add")]
+    [InvocationCount(OpsPerIteration)]
+    public int Baseline_Add()
     {
-        for (int i = 0; i < _values.Length; i++)
-            _baselineEmpty.Add(_values[i]);
-        return _baselineEmpty;
+        _baselineMut.Add(_values[_addCounter++]);
+        return _baselineMut.Count;
     }
 
     // ============= Indexer (read-only) =============

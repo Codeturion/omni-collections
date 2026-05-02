@@ -12,6 +12,8 @@ namespace Omni.Collections.Benchmarks.Linear;
 [MemoryDiagnoser]
 public class PooledStackBenchmarks
 {
+    private const int OpsPerIteration = 32768;
+
     [Params(Sizes.Small, Sizes.Medium, Sizes.Large)]
     public int N;
 
@@ -20,16 +22,14 @@ public class PooledStackBenchmarks
     private PooledStack<string> _omniFilled = null!;
     private Stack<string> _baselineFilled = null!;
 
-    private PooledStack<string> _omniEmpty = null!;
-    private Stack<string> _baselineEmpty = null!;
-
-    private PooledStack<string> _omniDrain = null!;
-    private Stack<string> _baselineDrain = null!;
+    private PooledStack<string> _omniMut = null!;
+    private Stack<string> _baselineMut = null!;
+    private int _opCounter;
 
     [GlobalSetup]
     public void GlobalSetup()
     {
-        _values = RandomData.Strings(N);
+        _values = RandomData.Strings(N + OpsPerIteration);
 
         _omniFilled = new PooledStack<string>(N);
         _baselineFilled = new Stack<string>(N);
@@ -44,68 +44,59 @@ public class PooledStackBenchmarks
     public void GlobalCleanup()
     {
         _omniFilled.Dispose();
-        _omniEmpty?.Dispose();
-        _omniDrain?.Dispose();
+        _omniMut?.Dispose();
     }
 
-    [IterationSetup(Targets = new[] { nameof(Omni_PushN), nameof(Baseline_PushN) })]
+    [IterationSetup(Targets = new[] { nameof(Omni_Push), nameof(Baseline_Push) })]
     public void ResetForPush()
     {
-        _omniEmpty?.Dispose();
-        _omniEmpty = new PooledStack<string>(N);
-        _baselineEmpty = new Stack<string>(N);
-    }
-
-    [IterationSetup(Targets = new[] { nameof(Omni_PopN), nameof(Baseline_PopN) })]
-    public void RefillForPop()
-    {
-        _omniDrain?.Dispose();
-        _omniDrain = new PooledStack<string>(N);
-        _baselineDrain = new Stack<string>(N);
+        _omniMut?.Dispose();
+        _omniMut = new PooledStack<string>(N + OpsPerIteration);
+        _baselineMut = new Stack<string>(N + OpsPerIteration);
         for (int i = 0; i < N; i++)
         {
-            _omniDrain.Push(_values[i]);
-            _baselineDrain.Push(_values[i]);
+            _omniMut.Push(_values[i]);
+            _baselineMut.Push(_values[i]);
+        }
+        _opCounter = N;
+    }
+
+    [IterationSetup(Targets = new[] { nameof(Omni_Pop), nameof(Baseline_Pop) })]
+    public void RefillForPop()
+    {
+        _omniMut?.Dispose();
+        _omniMut = new PooledStack<string>(N + OpsPerIteration);
+        _baselineMut = new Stack<string>(N + OpsPerIteration);
+        for (int i = 0; i < N + OpsPerIteration; i++)
+        {
+            _omniMut.Push(_values[i]);
+            _baselineMut.Push(_values[i]);
         }
     }
 
-    /// Claim: PooledStack.Push amortizes growth via ArrayPool, eliminating GC pressure vs Stack.Push resizing.
-    [Benchmark, BenchmarkCategory("Push"), InvocationCount(1)]
-    public PooledStack<string> Omni_PushN()
+    /// Claim: PooledStack.Push (capacity sufficient) matches Stack<T>.Push per-op cost.
+    [Benchmark, BenchmarkCategory("Push"), InvocationCount(OpsPerIteration)]
+    public int Omni_Push()
     {
-        for (int i = 0; i < _values.Length; i++)
-            _omniEmpty.Push(_values[i]);
-        return _omniEmpty;
+        _omniMut.Push(_values[_opCounter++]);
+        return _omniMut.Count;
     }
 
-    [Benchmark(Baseline = true), BenchmarkCategory("Push"), InvocationCount(1)]
-    public Stack<string> Baseline_PushN()
+    [Benchmark(Baseline = true), BenchmarkCategory("Push"), InvocationCount(OpsPerIteration)]
+    public int Baseline_Push()
     {
-        for (int i = 0; i < _values.Length; i++)
-            _baselineEmpty.Push(_values[i]);
-        return _baselineEmpty;
+        _baselineMut.Push(_values[_opCounter++]);
+        return _baselineMut.Count;
     }
 
-    /// Claim: PooledStack.Pop matches Stack.Pop (both O(1) decrement + array read).
-    [Benchmark, BenchmarkCategory("Pop"), InvocationCount(1)]
-    public string Omni_PopN()
-    {
-        string last = null!;
-        while (_omniDrain.Count > 0)
-            last = _omniDrain.Pop();
-        return last;
-    }
+    /// Claim: PooledStack.Pop matches Stack<T>.Pop (both O(1) decrement + array read).
+    [Benchmark, BenchmarkCategory("Pop"), InvocationCount(OpsPerIteration)]
+    public string Omni_Pop() => _omniMut.Pop();
 
-    [Benchmark(Baseline = true), BenchmarkCategory("Pop"), InvocationCount(1)]
-    public string Baseline_PopN()
-    {
-        string last = null!;
-        while (_baselineDrain.Count > 0)
-            last = _baselineDrain.Pop();
-        return last;
-    }
+    [Benchmark(Baseline = true), BenchmarkCategory("Pop"), InvocationCount(OpsPerIteration)]
+    public string Baseline_Pop() => _baselineMut.Pop();
 
-    /// Claim: PooledStack.Peek matches Stack.Peek (both O(1) array read).
+    /// Claim: PooledStack.Peek matches Stack<T>.Peek (both O(1) array read).
     [Benchmark, BenchmarkCategory("Peek")]
     public string Omni_Peek() => _omniFilled.Peek();
 
