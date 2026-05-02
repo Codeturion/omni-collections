@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace Omni.Collections.Spatial;
@@ -67,25 +66,53 @@ public class OctTree<T> : IDisposable
 
     public void InsertRange(IEnumerable<T> items, OctBounds? bounds = null)
     {
-        T[]? itemArray = items.ToArray();
-        if (itemArray.Length == 0)
+        if (items == null)
+            throw new ArgumentNullException(nameof(items));
+        if (bounds.HasValue)
+        {
+            // Bounds supplied — single pass over the source, no buffering.
+            foreach (var item in items)
+            {
+                Insert(item, bounds);
+            }
             return;
-        if (bounds == null && itemArray.Length > 0)
-        {
-            Vector3[]? positions = itemArray.Select(item => _pointProvider.GetPosition(item)).ToArray();
-            var minX = positions.Min(p => p.X);
-            var minY = positions.Min(p => p.Y);
-            var minZ = positions.Min(p => p.Z);
-            var maxX = positions.Max(p => p.X);
-            var maxY = positions.Max(p => p.Y);
-            var maxZ = positions.Max(p => p.Z);
-            var padding = Math.Max(_minSize * 2, 10.0f);
-            bounds = new OctBounds(minX - padding, minY - padding, minZ - padding,
-                                 maxX + padding, maxY + padding, maxZ + padding);
         }
-        foreach (var item in itemArray)
+        // No bounds provided — walk the source once, tracking min/max position and
+        // buffering items in a single List<T>. Avoids the prior double-allocation
+        // (items.ToArray + positions.Select.ToArray) and the LINQ Min/Max scans.
+        bool hasItems = false;
+        float minX = 0, minY = 0, minZ = 0, maxX = 0, maxY = 0, maxZ = 0;
+        var buffer = new List<T>();
+        foreach (var item in items)
         {
-            Insert(item, bounds);
+            var position = _pointProvider.GetPosition(item);
+            if (!hasItems)
+            {
+                minX = maxX = position.X;
+                minY = maxY = position.Y;
+                minZ = maxZ = position.Z;
+                hasItems = true;
+            }
+            else
+            {
+                if (position.X < minX) minX = position.X;
+                else if (position.X > maxX) maxX = position.X;
+                if (position.Y < minY) minY = position.Y;
+                else if (position.Y > maxY) maxY = position.Y;
+                if (position.Z < minZ) minZ = position.Z;
+                else if (position.Z > maxZ) maxZ = position.Z;
+            }
+            buffer.Add(item);
+        }
+        if (!hasItems)
+            return;
+        var padding = Math.Max(_minSize * 2, 10.0f);
+        var computedBounds = new OctBounds(
+            minX - padding, minY - padding, minZ - padding,
+            maxX + padding, maxY + padding, maxZ + padding);
+        foreach (var item in buffer)
+        {
+            Insert(item, computedBounds);
         }
     }
 
@@ -313,7 +340,9 @@ public class OctTree<T> : IDisposable
     private void FindNearestRecursive(OctNode node, Vector3 target, ref NearestResult3D<T> best)
     {
         var distanceToNode = node.Bounds.DistanceSquaredTo(target);
-        if (distanceToNode >= best.DistanceSquared)
+        // Use strict > so that equally-distant subtrees are still explored — pruning equal-distance
+        // subtrees would drop valid candidates that share the current best bound.
+        if (distanceToNode > best.DistanceSquared)
             return;
         if (node.Items != null)
         {
