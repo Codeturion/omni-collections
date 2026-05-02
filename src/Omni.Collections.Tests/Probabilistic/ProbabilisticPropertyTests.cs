@@ -18,7 +18,7 @@ public class ProbabilisticPropertyTests
     private const int InsertCount = 5000;
     private const int NegativeProbeCount = 5000;
 
-    [Property(MaxTest = 5)]
+    [Property(MaxTest = 50)]
     public Property BloomFilter_FalsePositiveRate_StaysWithinTheoreticalBound()
     {
         return Prop.ForAll(Arb.From<int>(), seed =>
@@ -46,13 +46,14 @@ public class ProbabilisticPropertyTests
             }
 
             double empiricalFpr = (double)falsePositives / NegativeProbeCount;
-            // 3x design FPR is the standard slack — within ~3 sigma for 5000 trials at p=0.01.
-            return (empiricalFpr <= DesignFpr * 3.0)
+            // Bound = 2 × design FPR. Probes=5000 at p=0.01: μ=50, σ≈7, 2× ≈ +7σ.
+            // Per-trial false-fail probability < 1e-6; safe at MaxTest=50.
+            return (empiricalFpr <= DesignFpr * 2.0)
                 .Label($"seed={seed} empiricalFpr={empiricalFpr:F4} designFpr={DesignFpr}");
         });
     }
 
-    [Property(MaxTest = 5)]
+    [Property(MaxTest = 50)]
     public Property HyperLogLog_CardinalityEstimate_WithinFiveStandardErrors()
     {
         return Prop.ForAll(Arb.From<int>(), seed =>
@@ -80,7 +81,7 @@ public class ProbabilisticPropertyTests
         });
     }
 
-    [Property(MaxTest = 5)]
+    [Property(MaxTest = 50)]
     public Property CountMinSketch_EstimateNeverUnderCounts()
     {
         return Prop.ForAll(Arb.From<int>(), seed =>
@@ -111,11 +112,11 @@ public class ProbabilisticPropertyTests
         });
     }
 
-    [Property(MaxTest = 3)]
+    [Property(MaxTest = 30)]
     public Property CountMinSketch_DifferentSeeds_ProduceDifferentTables()
     {
         // Defends against the old Random(42) bug: two CMS instances with different base seeds
-        // must allocate distinct hash families, so per-item estimates don't always agree.
+        // must allocate distinct hash families, so per-item estimates diverge on collision-noise probes.
         return Prop.ForAll(Arb.From<int>(), entropy =>
         {
             var rng = new System.Random(entropy);
@@ -127,15 +128,17 @@ public class ProbabilisticPropertyTests
                 cmsA.Add(x);
                 cmsB.Add(x);
             }
-            // Probe items NOT inserted — their estimates reflect collision noise, which differs across seeds.
+            // Probe items NOT inserted — their estimates reflect collision noise, which must differ across seeds.
             int diverged = 0;
             for (int i = 0; i < 200; i++)
             {
                 long probe = NextLong(rng);
                 if (cmsA.EstimateCount(probe) != cmsB.EstimateCount(probe)) diverged++;
             }
-            // With distinct hash families and small width, at least some collision-noise should differ.
-            return (diverged > 0).Label($"entropy={entropy} diverged={diverged}/200");
+            // Width=256, depth=3, 200 inserts → ~75% collision rate. With distinct seeds,
+            // ≥30/200 probes should diverge. Threshold catches a regression that collapses
+            // divergence (e.g., the previous Random(42) shared-seed bug).
+            return (diverged >= 30).Label($"entropy={entropy} diverged={diverged}/200");
         });
     }
 
