@@ -90,6 +90,34 @@ The suite is intentionally rebuilt from scratch (Phase 1 of the v2.0 effort). Th
 6. **Multi-size `[Params]`** spanning two orders of magnitude. The previous suite used a single 50,000 size, giving no scaling visibility.
 7. **Each `[Benchmark]` documents its claim.** The XML `<summary>` line above every benchmark method states what the comparison is meant to prove. If we can't articulate the claim, the benchmark gets cut.
 
+## Coverage
+
+The suite covers every public Omni.Collections type:
+
+| Category | Classes | Compared against |
+|---|---|---|
+| Linear (6) | BoundedList, FastQueue, MaxHeap, MinHeap, PooledList, PooledStack | List<T>, Queue<T>, PriorityQueue<,>, Stack<T> |
+| Hybrid (9) | LinkedDictionary, QueueDictionary, CounterDictionary, CircularDictionary, DequeDictionary, ConcurrentLinkedDictionary, LinkedMultiMap, GraphDictionary, PredictiveDictionary | Dictionary<K,V>, ConcurrentDictionary, Dictionary<K,List<V>> |
+| Grid (3) | BitGrid2D, HexGrid2D, LayeredGrid2D | bool[,], Dictionary<(q,r),V>, int[,,] |
+| Spatial (6) | QuadTree, SpatialHashGrid, KdTree, OctTree, BloomRTreeDictionary, TemporalSpatialHashGrid | List<T>+linear scan, Dictionary, SpatialHashGrid |
+| Probabilistic (6) | BloomFilter, HyperLogLog, CountMinSketch, BloomDictionary, TDigest, DigestStreamingAnalytics | HashSet<T>, Dictionary<K,V>, sorted double[] |
+| Reactive (2) | ObservableList, ObservableHashSet | ObservableCollection<T>, HashSet<T> |
+| Temporal (1) | TimelineArray | List<(long,T)> |
+
+Total: ~33 benchmark classes producing ~600 individual benchmarks across the three sizes.
+
+## The two measurement patterns
+
+**Per-op pattern** (`InvocationCount(32768)` + state-resetting `[IterationSetup]`)
+
+Used for Add/Remove/Push/Pop/Insert/Extract operations. Each measurement exercises one mutating op against a fresh collection state. Mean reports per-op cost; Allocated reports per-op bytes. Adds ~2 ns of BDN harness overhead which appears in both Omni and Baseline rows, so the Ratio remains meaningful.
+
+**Bulk Fill pattern** (`InvocationCount(1)` + default-or-natural starting capacity)
+
+Used for the `Fill` benchmark category. Creates a collection from default constructor and adds N items. This is the realistic populate-from-scratch scenario where the Allocated column shows resize-amplification cost (e.g., `List<T>` growing to 100k items allocates ~2.1 MB across multiple resize copies, while `BoundedList<T>(N)` allocates a single 800 KB array).
+
+Both patterns coexist: per-op shows steady-state cost, Fill shows realistic populate cost. Read-only operations (Indexer, Lookup, Peek, Enumerate) use BDN's default auto-tuning.
+
 ## Hardware reference
 
 When publishing reference numbers under `docs/perf/`, include a hardware banner that BDN itself generates at the top of every report. Sample:
