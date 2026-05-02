@@ -60,7 +60,7 @@ public class BloomRTreeDictionary<TKey, TValue> : IDisposable, IEnumerable<KeyVa
         if (falsePositiveRate <= 0 || falsePositiveRate >= 1)
             throw new ArgumentOutOfRangeException(nameof(falsePositiveRate));
         _keyToEntry = new Dictionary<TKey, RTreeEntry<TKey, TValue>>(expectedCapacity);
-        _spatialBloomFilter = new BloomFilter<SpatialQuery>(expectedCapacity, falsePositiveRate);
+        _spatialBloomFilter = new BloomFilter<SpatialQuery>(expectedCapacity, falsePositiveRate, SpatialQueryHasher.Instance);
         _count = 0;
         _spatialQueries = 0;
         _bloomFilterHits = 0;

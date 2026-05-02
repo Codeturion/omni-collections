@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using Omni.Collections.Hybrid;
+using Omni.Collections.Core.Hashing;
 using Omni.Collections.Core.Security;
 
 namespace Omni.Collections.Probabilistic
@@ -58,11 +59,16 @@ namespace Omni.Collections.Probabilistic
         }
 
         public BloomDictionary(int capacity, double falsePositiveRate)
-            : this(capacity, falsePositiveRate, null, null)
+            : this(capacity, falsePositiveRate, null, null, null)
         {
         }
 
         public BloomDictionary(int capacity, double falsePositiveRate, IEqualityComparer<TKey>? comparer, SecureHashOptions? hashOptions = null)
+            : this(capacity, falsePositiveRate, comparer, hashOptions, null)
+        {
+        }
+
+        public BloomDictionary(int capacity, double falsePositiveRate, IEqualityComparer<TKey>? comparer, SecureHashOptions? hashOptions, IHasher<TKey>? hasher)
         {
             if (capacity < 0)
                 throw new ArgumentOutOfRangeException(nameof(capacity));
@@ -70,7 +76,7 @@ namespace Omni.Collections.Probabilistic
                 throw new ArgumentOutOfRangeException(nameof(falsePositiveRate), "Must be between 0 and 1");
             capacity = Math.Max(DefaultCapacity, HybridUtils.GetNextPowerOfTwo(capacity));
             _entries = new Entry[capacity];
-            _bloomFilter = new BloomFilter<TKey>(capacity * 2, falsePositiveRate);
+            _bloomFilter = new BloomFilter<TKey>(capacity * 2, falsePositiveRate, hasher ?? Hashers.Default<TKey>());
             _hashOptions = hashOptions ?? SecureHashOptions.Default;
             
             // Use secure comparer if randomized hashing is enabled and no custom comparer provided
@@ -92,13 +98,18 @@ namespace Omni.Collections.Probabilistic
         }
 
         public BloomDictionary(IEnumerable<KeyValuePair<TKey, TValue>> collection, double falsePositiveRate)
+            : this(collection, falsePositiveRate, null)
+        {
+        }
+
+        public BloomDictionary(IEnumerable<KeyValuePair<TKey, TValue>> collection, double falsePositiveRate, IHasher<TKey>? hasher)
         {
             if (collection == null)
                 throw new ArgumentNullException(nameof(collection));
             ICollection<KeyValuePair<TKey, TValue>> items = collection as ICollection<KeyValuePair<TKey, TValue>> ?? collection.ToList();
             var capacity = Math.Max(DefaultCapacity, HybridUtils.GetNextPowerOfTwo(items.Count));
             _entries = new Entry[capacity];
-            _bloomFilter = new BloomFilter<TKey>(capacity * 2, falsePositiveRate);
+            _bloomFilter = new BloomFilter<TKey>(capacity * 2, falsePositiveRate, hasher ?? Hashers.Default<TKey>());
             _hashOptions = SecureHashOptions.Default;
             
             // Use secure comparer if randomized hashing is enabled

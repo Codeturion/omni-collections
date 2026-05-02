@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
+using Omni.Collections.Core.Hashing;
 using Omni.Collections.Probabilistic;
 using Xunit;
 
@@ -536,10 +537,10 @@ public class CountMinSketchTests
     [Fact]
     public void CountMinSketch_HandlesHashCollisionsGracefully()
     {
-        var sketch = new CountMinSketch<TestItem>(64, 4); // Small width to force collisions
-        
+        var sketch = new CountMinSketch<TestItem>(64, 4, new TestItemIdHasher()); // Id-only hash → forced collisions
+
         var item1 = new TestItem(1, "A");
-        var item2 = new TestItem(1, "B"); // Same hash as item1
+        var item2 = new TestItem(1, "B"); // Same Id → same hash as item1
         
         sketch.Add(item1, 10);
         sketch.Add(item2, 5);
@@ -556,6 +557,11 @@ public class CountMinSketchTests
 
     private record TestItem(int Id, string Name)
     {
-        public override int GetHashCode() => Id; // Intentional collision
+        public override int GetHashCode() => Id; // Intentional collision (legacy, no longer used by CMS)
+    }
+
+    private sealed class TestItemIdHasher : IHasher<TestItem>
+    {
+        public ulong Hash(in TestItem value, ulong seed) => (ulong)value.Id ^ seed;
     }
 }

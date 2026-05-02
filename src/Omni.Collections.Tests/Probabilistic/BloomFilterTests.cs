@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
+using Omni.Collections.Core.Hashing;
 using Omni.Collections.Probabilistic;
 using Xunit;
 
@@ -361,13 +362,12 @@ public class BloomFilterTests
     }
 
     /// <summary>
-    /// Tests that BloomFilter handles custom object types correctly.
-    /// Custom objects should use their GetHashCode implementation for hashing.
+    /// Tests that BloomFilter handles custom object types correctly when supplied a custom IHasher.
     /// </summary>
     [Fact]
     public void BloomFilter_WithCustomType_WorksCorrectly()
     {
-        var filter = new BloomFilter<Person>(1000);
+        var filter = new BloomFilter<Person>(1000, falsePositiveRate: 0.01, new PersonHasher());
         var people = new[]
         {
             new Person("Alice", 25),
@@ -473,4 +473,16 @@ public class BloomFilterTests
     }
 
     private record Person(string Name, int Age);
+
+    private sealed class PersonHasher : IHasher<Person>
+    {
+        private static readonly IHasher<string> Strings = Hashers.Default<string>();
+
+        public ulong Hash(in Person value, ulong seed)
+        {
+            ulong h = Strings.Hash(value.Name, seed);
+            h ^= (ulong)value.Age * 0x9E3779B97F4A7C15UL;
+            return h;
+        }
+    }
 }

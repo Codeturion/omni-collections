@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
+using Omni.Collections.Core.Hashing;
 using Omni.Collections.Probabilistic;
 using Xunit;
 
@@ -509,16 +510,16 @@ public class HyperLogLogTests
     }
 
     /// <summary>
-    /// Tests that HyperLogLog handles hash collision scenarios gracefully.
-    /// Items with similar hash codes should still be counted distinctly when possible.
+    /// Tests that HyperLogLog with a weak custom hasher (collision-prone by design) still produces
+    /// the expected distinct-count behavior — items hashing to the same value collapse to one bucket.
     /// </summary>
     [Fact]
     public void HyperLogLog_HandlesHashCollisionsGracefully()
     {
-        var hll = new HyperLogLog<TestItem>(8); // Smaller precision to increase chance of bucket collisions
-        
+        var hll = new HyperLogLog<TestItem>(8, new TestItemIdHasher()); // Id-only hash → forced collisions
+
         var items = Enumerable.Range(0, 100)
-            .Select(i => new TestItem(i % 10, $"Item{i}")) // Force hash collisions
+            .Select(i => new TestItem(i % 10, $"Item{i}")) // 10 distinct Ids, 100 distinct Names
             .ToList();
 
         foreach (var item in items)
@@ -560,6 +561,11 @@ public class HyperLogLogTests
 
     private record TestItem(int Id, string Name)
     {
-        public override int GetHashCode() => Id; // Intentional collision based on Id % 10
+        public override int GetHashCode() => Id; // Intentional collision (legacy, no longer used by HLL)
+    }
+
+    private sealed class TestItemIdHasher : IHasher<TestItem>
+    {
+        public ulong Hash(in TestItem value, ulong seed) => (ulong)value.Id ^ seed;
     }
 }
