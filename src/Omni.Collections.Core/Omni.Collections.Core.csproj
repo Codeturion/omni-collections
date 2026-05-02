@@ -3,9 +3,13 @@
   <PropertyGroup>
     <PackageId>OmniCollections.Core</PackageId>
     <Description>Core utilities and interfaces for Omni.Collections specialized data structures</Description>
-    <PackageTags>collections;core;interfaces;utilities;performance</PackageTags>
+    <PackageTags>collections;core;interfaces;utilities;performance;hashing</PackageTags>
     <PackageReleaseNotes>Core utilities and interfaces for modular Omni.Collections architecture</PackageReleaseNotes>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.IO.Hashing" />
+  </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
     <InternalsVisibleTo Include="Omni.Collections.Grid" />
