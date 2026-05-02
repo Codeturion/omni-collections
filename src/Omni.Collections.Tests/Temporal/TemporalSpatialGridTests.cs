@@ -598,4 +598,153 @@ public class TemporalSpatialGridTests
         replay[1].Timestamp.Should().Be(baseTime + 500);
         replay[2].Timestamp.Should().Be(baseTime + 1000);
     }
+
+    [Fact]
+    public void WereObjectsCollidingAtTime_ObjectsWithinRadius_ReturnsTrue()
+    {
+        var grid = new TemporalSpatialGrid<string>();
+        var baseTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        grid.Insert(10.0f, 10.0f, "a");
+        grid.Insert(13.0f, 14.0f, "b");
+        grid.RecordSnapshot(baseTime);
+
+        var result = grid.WereObjectsCollidingAtTime(baseTime, "a", "b", collisionRadius: 10.0f);
+
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public void WereObjectsCollidingAtTime_ObjectsOutsideRadius_ReturnsFalse()
+    {
+        var grid = new TemporalSpatialGrid<string>();
+        var baseTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        grid.Insert(0.0f, 0.0f, "a");
+        grid.Insert(100.0f, 100.0f, "b");
+        grid.RecordSnapshot(baseTime);
+
+        var result = grid.WereObjectsCollidingAtTime(baseTime, "a", "b", collisionRadius: 5.0f);
+
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public void WereObjectsCollidingAtTime_MissingObject_ReturnsFalse()
+    {
+        var grid = new TemporalSpatialGrid<string>();
+        var baseTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        grid.Insert(0.0f, 0.0f, "a");
+        grid.RecordSnapshot(baseTime);
+
+        var result = grid.WereObjectsCollidingAtTime(baseTime, "a", "missing", collisionRadius: 1000.0f);
+
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public void WereObjectsCollidingAtTime_ExactRadiusBoundary_ReturnsTrue()
+    {
+        var grid = new TemporalSpatialGrid<string>();
+        var baseTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        // Distance = sqrt(3^2 + 4^2) = 5
+        grid.Insert(0.0f, 0.0f, "a");
+        grid.Insert(3.0f, 4.0f, "b");
+        grid.RecordSnapshot(baseTime);
+
+        grid.WereObjectsCollidingAtTime(baseTime, "a", "b", collisionRadius: 5.0f).Should().BeTrue();
+        grid.WereObjectsCollidingAtTime(baseTime, "a", "b", collisionRadius: 4.99f).Should().BeFalse();
+    }
+
+    [Fact]
+    public void WereObjectsCollidingAtTime_NoSnapshotAtTime_ReturnsFalse()
+    {
+        var grid = new TemporalSpatialGrid<string>();
+
+        var result = grid.WereObjectsCollidingAtTime(0L, "a", "b", collisionRadius: 100.0f);
+
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public void TrackObjectMovement_ReturnsTrajectoryAcrossSnapshots()
+    {
+        var grid = new TemporalSpatialGrid<string>();
+        var baseTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        grid.Insert(10.0f, 10.0f, "tracked");
+        grid.Insert(0.0f, 0.0f, "other");
+        grid.RecordSnapshot(baseTime);
+
+        grid.Remove(10.0f, 10.0f, "tracked");
+        grid.Insert(20.0f, 25.0f, "tracked");
+        grid.RecordSnapshot(baseTime + 500);
+
+        grid.Remove(20.0f, 25.0f, "tracked");
+        grid.Insert(30.0f, 40.0f, "tracked");
+        grid.RecordSnapshot(baseTime + 1000);
+
+        var path = grid.TrackObjectMovement("tracked", baseTime, baseTime + 1000);
+
+        path.Should().HaveCount(3);
+        path[0].Should().Be((baseTime, 10.0f, 10.0f));
+        path[1].Should().Be((baseTime + 500, 20.0f, 25.0f));
+        path[2].Should().Be((baseTime + 1000, 30.0f, 40.0f));
+    }
+
+    [Fact]
+    public void TrackObjectMovement_RestrictedRange_ReturnsOnlyMatchingSnapshots()
+    {
+        var grid = new TemporalSpatialGrid<string>();
+        var baseTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        grid.Insert(1.0f, 1.0f, "tracked");
+        grid.RecordSnapshot(baseTime);
+        grid.Remove(1.0f, 1.0f, "tracked");
+        grid.Insert(2.0f, 2.0f, "tracked");
+        grid.RecordSnapshot(baseTime + 100);
+        grid.Remove(2.0f, 2.0f, "tracked");
+        grid.Insert(3.0f, 3.0f, "tracked");
+        grid.RecordSnapshot(baseTime + 200);
+
+        var path = grid.TrackObjectMovement("tracked", baseTime + 100, baseTime + 200);
+
+        path.Should().HaveCount(2);
+        path[0].x.Should().Be(2.0f);
+        path[1].x.Should().Be(3.0f);
+    }
+
+    [Fact]
+    public void TrackObjectMovement_ObjectAbsentFromSomeSnapshots_SkipsThose()
+    {
+        var grid = new TemporalSpatialGrid<string>();
+        var baseTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        grid.Insert(0.0f, 0.0f, "decoy");
+        grid.RecordSnapshot(baseTime);
+
+        grid.Insert(5.0f, 5.0f, "tracked");
+        grid.RecordSnapshot(baseTime + 100);
+
+        grid.Remove(5.0f, 5.0f, "tracked");
+        grid.RecordSnapshot(baseTime + 200);
+
+        var path = grid.TrackObjectMovement("tracked", baseTime, baseTime + 200);
+
+        path.Should().HaveCount(1);
+        path[0].Should().Be((baseTime + 100, 5.0f, 5.0f));
+    }
+
+    [Fact]
+    public void TrackObjectMovement_NoSnapshotsInRange_ReturnsEmpty()
+    {
+        var grid = new TemporalSpatialGrid<string>();
+
+        var path = grid.TrackObjectMovement("nothing", 0L, 1000L);
+
+        path.Should().NotBeNull();
+        path.Should().BeEmpty();
+    }
 }

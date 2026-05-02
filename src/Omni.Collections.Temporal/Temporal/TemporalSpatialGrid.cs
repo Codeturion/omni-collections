@@ -185,8 +185,30 @@ public class TemporalSpatialGrid<T> : IDisposable where T : notnull
         {
             SpatialSnapshot<T>? snapshot = _timeline.GetAtTime(timestamp);
             if (snapshot == null) return false;
-            IEnumerable<(T first, T second)>? collisions = snapshot.Grid.GetPotentialCollisions();
-            return false;
+            var comparer = EqualityComparer<T>.Default;
+            float aX = 0f, aY = 0f, bX = 0f, bY = 0f;
+            bool foundA = false, foundB = false;
+            foreach (var (x, y, item) in snapshot.Grid.GetAllObjects())
+            {
+                if (!foundA && comparer.Equals(item, objectA))
+                {
+                    aX = x;
+                    aY = y;
+                    foundA = true;
+                    if (foundB) break;
+                }
+                else if (!foundB && comparer.Equals(item, objectB))
+                {
+                    bX = x;
+                    bY = y;
+                    foundB = true;
+                    if (foundA) break;
+                }
+            }
+            if (!foundA || !foundB) return false;
+            var dx = aX - bX;
+            var dy = aY - bY;
+            return (dx * dx + dy * dy) <= (collisionRadius * collisionRadius);
         }
     }
 
@@ -214,10 +236,20 @@ public class TemporalSpatialGrid<T> : IDisposable where T : notnull
     public List<(long timestamp, float x, float y)> TrackObjectMovement(T targetObject, long startTime, long endTime)
     {
         var path = new List<(long, float, float)>();
+        var comparer = EqualityComparer<T>.Default;
         lock (_lock)
         {
             foreach (SpatialSnapshot<T>? snapshot in _timeline.Replay(startTime, endTime))
             {
+                if (snapshot?.Grid == null) continue;
+                foreach (var (x, y, item) in snapshot.Grid.GetAllObjects())
+                {
+                    if (comparer.Equals(item, targetObject))
+                    {
+                        path.Add((snapshot.Timestamp, x, y));
+                        break;
+                    }
+                }
             }
         }
         return path;
