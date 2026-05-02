@@ -411,24 +411,17 @@ public class SpatialHashGrid<T> : IDisposable where T : notnull
     {
         if (_useSpatialMode)
         {
-            Span<int> cellCountsBuffer = stackalloc int[Math.Min(_grid!.Count, 1024)];
-            Span<int> cellCounts = _grid.Count <= 1024 ? cellCountsBuffer : new int[_grid.Count];
+            int[] cellCounts = new int[_grid!.Count];
             int index = 0;
             foreach (List<SpatialEntry<T>> cell in _grid.Values)
                 cellCounts[index++] = cell.Count;
-#if NET5_0_OR_GREATER
-            cellCounts.Sort();
-#else
-            int[] sortedArr = cellCounts.ToArray();
-            Array.Sort(sortedArr);
-            cellCounts = sortedArr;
-#endif
+            Array.Sort(cellCounts);
             return new SpatialHashGridStats
             {
                 TotalObjects = _count,
                 OccupiedCells = _grid.Count,
                 AverageObjectsPerCell = _count > 0 ? (float)_count / _grid.Count : 0,
-                MaxObjectsPerCell = cellCounts.Length > 0 ? cellCounts[^1] : 0,
+                MaxObjectsPerCell = cellCounts.Length > 0 ? cellCounts[cellCounts.Length - 1] : 0,
                 MedianObjectsPerCell = cellCounts.Length > 0 ? cellCounts[cellCounts.Length / 2] : 0
             };
         }
