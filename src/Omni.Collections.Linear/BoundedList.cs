@@ -265,14 +265,7 @@ public class BoundedList<T> : IList<T>, IDisposable
     {
         if (_count > 0)
         {
-            if (_usePooling)
-            {
-                Array.Clear(_items, 0, _count);
-            }
-            else
-            {
-                Array.Clear(_items, 0, _count);
-            }
+            Array.Clear(_items, 0, _count);
             _count = 0;
         }
     }

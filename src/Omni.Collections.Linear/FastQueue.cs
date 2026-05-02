@@ -247,7 +247,16 @@ public sealed class FastQueue<T> : IEnumerable<T>, IDisposable
     {
         if (_size > 0)
         {
-            Array.Clear(_buffer, 0, _buffer.Length);
+            if (_head + _size <= _buffer.Length)
+            {
+                Array.Clear(_buffer, _head, _size);
+            }
+            else
+            {
+                int firstSegment = _buffer.Length - _head;
+                Array.Clear(_buffer, _head, firstSegment);
+                Array.Clear(_buffer, 0, _size - firstSegment);
+            }
             _head = 0;
             _tail = 0;
             _size = 0;
