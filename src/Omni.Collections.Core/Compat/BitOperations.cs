@@ -27,5 +27,12 @@ internal static class BitOperations
         if ((value & 0x80000000u) == 0) { count += 1; }
         return count;
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int LeadingZeroCount(ulong value)
+    {
+        uint hi = (uint)(value >> 32);
+        return hi != 0 ? LeadingZeroCount(hi) : 32 + LeadingZeroCount((uint)value);
+    }
 }
 #endif
