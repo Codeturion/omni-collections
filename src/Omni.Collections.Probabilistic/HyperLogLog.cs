@@ -120,7 +120,7 @@ public class HyperLogLog<T> where T : notnull
 
     public void Clear()
     {
-        Array.Clear(_buckets);
+        Array.Clear(_buckets, 0, _buckets.Length);
         _hasSmallRangeCorrection = false;
         _cardinalityDirty = true;
     }

@@ -63,7 +63,11 @@ public class KdTree<T> : IDisposable
     {
         if (_root == null) return;
         var height = EstimateTreeHeight(_root);
+#if NET5_0_OR_GREATER
         var optimalHeight = Math.Log2(_count);
+#else
+        var optimalHeight = Math.Log(_count, 2.0);
+#endif
         if (height > optimalHeight * 2.5)
         {
             T[]? items = GetAllItems().ToArray();

@@ -152,6 +152,7 @@ public class HexGrid2D<T> : IEnumerable<HexCell<T>>
         }
     }
 
+#if NET6_0_OR_GREATER
     public IEnumerable<HexCoord> FindPath(HexCoord start, HexCoord goal,
         Func<HexCoord, bool> isBlocked,
         Func<HexCoord, double>? getCost = null)
@@ -165,6 +166,7 @@ public class HexGrid2D<T> : IEnumerable<HexCell<T>>
     {
         return HexPathfinding.GetReachable(start, movementPoints, isBlocked, getCost ?? (_ => 1.0));
     }
+#endif
 
     public (double x, double y) ToPixel(HexCoord coord) => _layout.ToPixel(coord);
     public HexCoord FromPixel(double x, double y) => _layout.FromPixel(x, y);

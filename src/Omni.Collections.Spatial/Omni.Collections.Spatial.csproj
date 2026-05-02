@@ -1,25 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <LangVersion>latest</LangVersion>
-    <Nullable>enable</Nullable>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
-  </PropertyGroup>
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <PackageId>OmniCollections.Spatial</PackageId>
-    <Version>1.0.1</Version>
-    <Authors>Codeturion</Authors>
     <Description>Spatial data structures (QuadTree, KDTree, SpatialHashGrid) for Omni.Collections</Description>
     <PackageTags>collections;spatial;quadtree;kdtree;performance</PackageTags>
-    <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <RepositoryUrl>https://github.com/Codeturion/omni-collections</RepositoryUrl>
-    <PackageProjectUrl>https://github.com/Codeturion/omni-collections</PackageProjectUrl>
     <PackageReleaseNotes>Spatial data structures: QuadTree, KDTree, SpatialHashGrid, BloomRTreeDictionary</PackageReleaseNotes>
-    <IsPackable>true</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>

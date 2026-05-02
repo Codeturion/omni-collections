@@ -416,7 +416,13 @@ public class SpatialHashGrid<T> : IDisposable where T : notnull
             int index = 0;
             foreach (List<SpatialEntry<T>> cell in _grid.Values)
                 cellCounts[index++] = cell.Count;
+#if NET5_0_OR_GREATER
             cellCounts.Sort();
+#else
+            int[] sortedArr = cellCounts.ToArray();
+            Array.Sort(sortedArr);
+            cellCounts = sortedArr;
+#endif
             return new SpatialHashGridStats
             {
                 TotalObjects = _count,

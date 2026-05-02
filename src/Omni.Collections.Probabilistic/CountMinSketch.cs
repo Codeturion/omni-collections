@@ -109,7 +109,7 @@ public class CountMinSketch<T> where T : notnull
 
     public void Clear()
     {
-        Array.Clear(_table);
+        Array.Clear(_table, 0, _table.Length);
         _totalCount = 0;
     }
 

@@ -1,0 +1,7 @@
+<Project>
+
+  <PropertyGroup Condition="'$(IsPackable)' == 'false'">
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+</Project>
