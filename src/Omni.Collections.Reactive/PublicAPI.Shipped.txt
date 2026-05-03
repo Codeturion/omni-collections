@@ -1,0 +1,139 @@
+#nullable enable
+Omni.Collections.Reactive.FilteredObservableHashSetView<T>
+Omni.Collections.Reactive.FilteredObservableHashSetView<T>.Dispose() -> void
+Omni.Collections.Reactive.FilteredObservableListView<T>
+Omni.Collections.Reactive.IEventArgsPool
+Omni.Collections.Reactive.IEventArgsPool.RentAdd(object? item) -> System.Collections.Specialized.NotifyCollectionChangedEventArgs!
+Omni.Collections.Reactive.IEventArgsPool.RentAdd(object? item, int index) -> System.Collections.Specialized.NotifyCollectionChangedEventArgs!
+Omni.Collections.Reactive.IEventArgsPool.RentAddRange(System.Collections.IList! items) -> System.Collections.Specialized.NotifyCollectionChangedEventArgs!
+Omni.Collections.Reactive.IEventArgsPool.RentAddRange(System.Collections.IList! items, int startIndex) -> System.Collections.Specialized.NotifyCollectionChangedEventArgs!
+Omni.Collections.Reactive.IEventArgsPool.RentCollectionChangedEventArgs(System.Collections.Specialized.NotifyCollectionChangedAction action) -> System.Collections.Specialized.NotifyCollectionChangedEventArgs!
+Omni.Collections.Reactive.IEventArgsPool.RentPropertyChangedEventArgs(string! propertyName) -> System.ComponentModel.PropertyChangedEventArgs!
+Omni.Collections.Reactive.IEventArgsPool.RentRemove(object? item) -> System.Collections.Specialized.NotifyCollectionChangedEventArgs!
+Omni.Collections.Reactive.IEventArgsPool.RentRemove(object? item, int index) -> System.Collections.Specialized.NotifyCollectionChangedEventArgs!
+Omni.Collections.Reactive.IEventArgsPool.RentRemoveRange(System.Collections.IList! items) -> System.Collections.Specialized.NotifyCollectionChangedEventArgs!
+Omni.Collections.Reactive.IEventArgsPool.RentRemoveRange(System.Collections.IList! items, int startIndex) -> System.Collections.Specialized.NotifyCollectionChangedEventArgs!
+Omni.Collections.Reactive.IEventArgsPool.RentReplace(object? newItem, object? oldItem, int index) -> System.Collections.Specialized.NotifyCollectionChangedEventArgs!
+Omni.Collections.Reactive.IEventArgsPool.ReturnCollectionChangedEventArgs(System.Collections.Specialized.NotifyCollectionChangedEventArgs! eventArgs) -> void
+Omni.Collections.Reactive.IEventArgsPool.ReturnPropertyChangedEventArgs(System.ComponentModel.PropertyChangedEventArgs! eventArgs) -> void
+Omni.Collections.Reactive.ObservableHashSet<T>
+Omni.Collections.Reactive.ObservableHashSet<T>.Add(T item) -> bool
+Omni.Collections.Reactive.ObservableHashSet<T>.AddRange(System.Collections.Generic.IEnumerable<T>! items) -> int
+Omni.Collections.Reactive.ObservableHashSet<T>.Clear() -> void
+Omni.Collections.Reactive.ObservableHashSet<T>.CollectionChanged -> System.Collections.Specialized.NotifyCollectionChangedEventHandler?
+Omni.Collections.Reactive.ObservableHashSet<T>.Contains(T item) -> bool
+Omni.Collections.Reactive.ObservableHashSet<T>.CopyTo(T[]! array, int arrayIndex) -> void
+Omni.Collections.Reactive.ObservableHashSet<T>.Count.get -> int
+Omni.Collections.Reactive.ObservableHashSet<T>.CreateSnapshot() -> T[]!
+Omni.Collections.Reactive.ObservableHashSet<T>.ExceptWith(System.Collections.Generic.IEnumerable<T>! other) -> void
+Omni.Collections.Reactive.ObservableHashSet<T>.GetEnumerator() -> System.Collections.Generic.HashSet<T>.Enumerator
+Omni.Collections.Reactive.ObservableHashSet<T>.IntersectWith(System.Collections.Generic.IEnumerable<T>! other) -> void
+Omni.Collections.Reactive.ObservableHashSet<T>.IsProperSubsetOf(System.Collections.Generic.IEnumerable<T>! other) -> bool
+Omni.Collections.Reactive.ObservableHashSet<T>.IsProperSupersetOf(System.Collections.Generic.IEnumerable<T>! other) -> bool
+Omni.Collections.Reactive.ObservableHashSet<T>.IsReadOnly.get -> bool
+Omni.Collections.Reactive.ObservableHashSet<T>.IsSubsetOf(System.Collections.Generic.IEnumerable<T>! other) -> bool
+Omni.Collections.Reactive.ObservableHashSet<T>.IsSupersetOf(System.Collections.Generic.IEnumerable<T>! other) -> bool
+Omni.Collections.Reactive.ObservableHashSet<T>.ItemAdded -> System.Action<T>?
+Omni.Collections.Reactive.ObservableHashSet<T>.ItemRemoved -> System.Action<T>?
+Omni.Collections.Reactive.ObservableHashSet<T>.ObservableHashSet() -> void
+Omni.Collections.Reactive.ObservableHashSet<T>.ObservableHashSet(System.Collections.Generic.IEnumerable<T>! collection) -> void
+Omni.Collections.Reactive.ObservableHashSet<T>.ObservableHashSet(System.Collections.Generic.IEnumerable<T>! collection, System.Collections.Generic.IEqualityComparer<T>? comparer) -> void
+Omni.Collections.Reactive.ObservableHashSet<T>.ObservableHashSet(System.Collections.Generic.IEqualityComparer<T>? comparer) -> void
+Omni.Collections.Reactive.ObservableHashSet<T>.ObservableHashSet(int capacity) -> void
+Omni.Collections.Reactive.ObservableHashSet<T>.Overlaps(System.Collections.Generic.IEnumerable<T>! other) -> bool
+Omni.Collections.Reactive.ObservableHashSet<T>.PropertyChanged -> System.ComponentModel.PropertyChangedEventHandler?
+Omni.Collections.Reactive.ObservableHashSet<T>.Remove(T item) -> bool
+Omni.Collections.Reactive.ObservableHashSet<T>.RemoveWhere(System.Predicate<T>! predicate) -> int
+Omni.Collections.Reactive.ObservableHashSet<T>.SetChanged -> System.Action?
+Omni.Collections.Reactive.ObservableHashSet<T>.SetCleared -> System.Action?
+Omni.Collections.Reactive.ObservableHashSet<T>.SetEquals(System.Collections.Generic.IEnumerable<T>! other) -> bool
+Omni.Collections.Reactive.ObservableHashSet<T>.SymmetricExceptWith(System.Collections.Generic.IEnumerable<T>! other) -> void
+Omni.Collections.Reactive.ObservableHashSet<T>.ToArray() -> T[]!
+Omni.Collections.Reactive.ObservableHashSet<T>.UnionWith(System.Collections.Generic.IEnumerable<T>! other) -> void
+Omni.Collections.Reactive.ObservableHashSet<T>.Version.get -> int
+Omni.Collections.Reactive.ObservableHashSetExtensions
+Omni.Collections.Reactive.ObservableList<T>
+Omni.Collections.Reactive.ObservableList<T>.Add(T item) -> void
+Omni.Collections.Reactive.ObservableList<T>.AddRange(System.Collections.Generic.IEnumerable<T>! items) -> void
+Omni.Collections.Reactive.ObservableList<T>.AddRangeAsync(System.Collections.Generic.IEnumerable<T>! items, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Omni.Collections.Reactive.ObservableList<T>.ArrayEnumerator
+Omni.Collections.Reactive.ObservableList<T>.ArrayEnumerator.ArrayEnumerator() -> void
+Omni.Collections.Reactive.ObservableList<T>.ArrayEnumerator.Current.get -> T
+Omni.Collections.Reactive.ObservableList<T>.ArrayEnumerator.Dispose() -> void
+Omni.Collections.Reactive.ObservableList<T>.ArrayEnumerator.MoveNext() -> bool
+Omni.Collections.Reactive.ObservableList<T>.ArrayEnumerator.Reset() -> void
+Omni.Collections.Reactive.ObservableList<T>.BatchUpdate(System.Action<Omni.Collections.Reactive.ObservableList<T>!>! operations) -> void
+Omni.Collections.Reactive.ObservableList<T>.BatchUpdateAsync(System.Func<Omni.Collections.Reactive.ObservableList<T>!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! operations, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Omni.Collections.Reactive.ObservableList<T>.Capacity.get -> int
+Omni.Collections.Reactive.ObservableList<T>.Capacity.set -> void
+Omni.Collections.Reactive.ObservableList<T>.Clear() -> void
+Omni.Collections.Reactive.ObservableList<T>.CollectionChanged -> System.Collections.Specialized.NotifyCollectionChangedEventHandler?
+Omni.Collections.Reactive.ObservableList<T>.Contains(T item) -> bool
+Omni.Collections.Reactive.ObservableList<T>.CopyTo(T[]! array, int arrayIndex) -> void
+Omni.Collections.Reactive.ObservableList<T>.Count.get -> int
+Omni.Collections.Reactive.ObservableList<T>.CreateSnapshot() -> T[]!
+Omni.Collections.Reactive.ObservableList<T>.FastEnumerator
+Omni.Collections.Reactive.ObservableList<T>.FastEnumerator.Current.get -> T
+Omni.Collections.Reactive.ObservableList<T>.FastEnumerator.Dispose() -> void
+Omni.Collections.Reactive.ObservableList<T>.FastEnumerator.FastEnumerator() -> void
+Omni.Collections.Reactive.ObservableList<T>.FastEnumerator.MoveNext() -> bool
+Omni.Collections.Reactive.ObservableList<T>.FastEnumerator.Reset() -> void
+Omni.Collections.Reactive.ObservableList<T>.Find(System.Predicate<T>! predicate) -> T?
+Omni.Collections.Reactive.ObservableList<T>.FindAll(System.Predicate<T>! predicate) -> System.Collections.Generic.List<T>!
+Omni.Collections.Reactive.ObservableList<T>.GetAsyncEnumerator(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerator<T>!
+Omni.Collections.Reactive.ObservableList<T>.GetEnumerator() -> Omni.Collections.Reactive.ObservableList<T>.FastEnumerator
+Omni.Collections.Reactive.ObservableList<T>.GetUnsafeEnumerator() -> Omni.Collections.Reactive.ObservableList<T>.ArrayEnumerator
+Omni.Collections.Reactive.ObservableList<T>.IndexOf(T item) -> int
+Omni.Collections.Reactive.ObservableList<T>.Insert(int index, T item) -> void
+Omni.Collections.Reactive.ObservableList<T>.InsertRange(int index, System.Collections.Generic.IEnumerable<T>! items) -> void
+Omni.Collections.Reactive.ObservableList<T>.IsReadOnly.get -> bool
+Omni.Collections.Reactive.ObservableList<T>.ItemAdded -> System.Action<T>?
+Omni.Collections.Reactive.ObservableList<T>.ItemInserted -> System.Action<T, int>?
+Omni.Collections.Reactive.ObservableList<T>.ItemRemoved -> System.Action<T>?
+Omni.Collections.Reactive.ObservableList<T>.ItemRemovedAt -> System.Action<T, int>?
+Omni.Collections.Reactive.ObservableList<T>.ItemReplaced -> System.Action<T, T, int>?
+Omni.Collections.Reactive.ObservableList<T>.ListChanged -> System.Action?
+Omni.Collections.Reactive.ObservableList<T>.ListCleared -> System.Action?
+Omni.Collections.Reactive.ObservableList<T>.ObservableList() -> void
+Omni.Collections.Reactive.ObservableList<T>.ObservableList(System.Collections.Generic.IEnumerable<T>! collection) -> void
+Omni.Collections.Reactive.ObservableList<T>.ObservableList(int capacity) -> void
+Omni.Collections.Reactive.ObservableList<T>.PropertyChanged -> System.ComponentModel.PropertyChangedEventHandler?
+Omni.Collections.Reactive.ObservableList<T>.Remove(T item) -> bool
+Omni.Collections.Reactive.ObservableList<T>.RemoveAll(System.Predicate<T>! predicate) -> int
+Omni.Collections.Reactive.ObservableList<T>.RemoveAllAsync(System.Predicate<T>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+Omni.Collections.Reactive.ObservableList<T>.RemoveAt(int index) -> void
+Omni.Collections.Reactive.ObservableList<T>.Reverse() -> void
+Omni.Collections.Reactive.ObservableList<T>.Sort() -> void
+Omni.Collections.Reactive.ObservableList<T>.Sort(System.Collections.Generic.IComparer<T>! comparer) -> void
+Omni.Collections.Reactive.ObservableList<T>.ToArray() -> T[]!
+Omni.Collections.Reactive.ObservableList<T>.Version.get -> int
+Omni.Collections.Reactive.ObservableList<T>.this[int index].get -> T
+Omni.Collections.Reactive.ObservableList<T>.this[int index].set -> void
+Omni.Collections.Reactive.ObservableListExtensions
+Omni.Collections.Reactive.OmniEventArgsPool
+Omni.Collections.Reactive.OmniEventArgsPool.OmniEventArgsPool() -> void
+Omni.Collections.Reactive.OmniEventArgsPool.RentAdd(object? item) -> System.Collections.Specialized.NotifyCollectionChangedEventArgs!
+Omni.Collections.Reactive.OmniEventArgsPool.RentAdd(object? item, int index) -> System.Collections.Specialized.NotifyCollectionChangedEventArgs!
+Omni.Collections.Reactive.OmniEventArgsPool.RentAddRange(System.Collections.IList! items) -> System.Collections.Specialized.NotifyCollectionChangedEventArgs!
+Omni.Collections.Reactive.OmniEventArgsPool.RentAddRange(System.Collections.IList! items, int startIndex) -> System.Collections.Specialized.NotifyCollectionChangedEventArgs!
+Omni.Collections.Reactive.OmniEventArgsPool.RentCollectionChangedEventArgs(System.Collections.Specialized.NotifyCollectionChangedAction action) -> System.Collections.Specialized.NotifyCollectionChangedEventArgs!
+Omni.Collections.Reactive.OmniEventArgsPool.RentPropertyChangedEventArgs(string! propertyName) -> System.ComponentModel.PropertyChangedEventArgs!
+Omni.Collections.Reactive.OmniEventArgsPool.RentRemove(object? item) -> System.Collections.Specialized.NotifyCollectionChangedEventArgs!
+Omni.Collections.Reactive.OmniEventArgsPool.RentRemove(object? item, int index) -> System.Collections.Specialized.NotifyCollectionChangedEventArgs!
+Omni.Collections.Reactive.OmniEventArgsPool.RentRemoveRange(System.Collections.IList! items) -> System.Collections.Specialized.NotifyCollectionChangedEventArgs!
+Omni.Collections.Reactive.OmniEventArgsPool.RentRemoveRange(System.Collections.IList! items, int startIndex) -> System.Collections.Specialized.NotifyCollectionChangedEventArgs!
+Omni.Collections.Reactive.OmniEventArgsPool.RentReplace(object? newItem, object? oldItem, int index) -> System.Collections.Specialized.NotifyCollectionChangedEventArgs!
+Omni.Collections.Reactive.OmniEventArgsPool.ReturnCollectionChangedEventArgs(System.Collections.Specialized.NotifyCollectionChangedEventArgs! eventArgs) -> void
+Omni.Collections.Reactive.OmniEventArgsPool.ReturnPropertyChangedEventArgs(System.ComponentModel.PropertyChangedEventArgs! eventArgs) -> void
+override Omni.Collections.Reactive.FilteredObservableListView<T>.Dispose() -> void
+static Omni.Collections.Reactive.ObservableHashSet<T>.CreateWithEventPooling() -> Omni.Collections.Reactive.ObservableHashSet<T>!
+static Omni.Collections.Reactive.ObservableHashSet<T>.CreateWithEventPooling(System.Collections.Generic.IEnumerable<T>! collection) -> Omni.Collections.Reactive.ObservableHashSet<T>!
+static Omni.Collections.Reactive.ObservableHashSetExtensions.CreateFilteredView<T>(this Omni.Collections.Reactive.ObservableHashSet<T>! source, System.Predicate<T>! predicate) -> Omni.Collections.Reactive.FilteredObservableHashSetView<T>!
+static Omni.Collections.Reactive.ObservableHashSetExtensions.SubscribeToChanges<T>(this Omni.Collections.Reactive.ObservableHashSet<T>! set, System.Action! onChanged) -> void
+static Omni.Collections.Reactive.ObservableHashSetExtensions.SubscribeToItems<T>(this Omni.Collections.Reactive.ObservableHashSet<T>! set, System.Action<T>? onAdded = null, System.Action<T>? onRemoved = null) -> void
+static Omni.Collections.Reactive.ObservableHashSetExtensions.Toggle<T>(this Omni.Collections.Reactive.ObservableHashSet<T>! set, T item) -> bool
+static Omni.Collections.Reactive.ObservableListExtensions.CreateFilteredView<T>(this Omni.Collections.Reactive.ObservableList<T>! source, System.Predicate<T>! predicate) -> Omni.Collections.Reactive.FilteredObservableListView<T>!
+static Omni.Collections.Reactive.ObservableListExtensions.SubscribeToChanges<T>(this Omni.Collections.Reactive.ObservableList<T>! list, System.Action! onChanged) -> void
+static Omni.Collections.Reactive.ObservableListExtensions.SubscribeToItems<T>(this Omni.Collections.Reactive.ObservableList<T>! list, System.Action<T>? onAdded = null, System.Action<T>? onRemoved = null) -> void
+static readonly Omni.Collections.Reactive.OmniEventArgsPool.Shared -> Omni.Collections.Reactive.OmniEventArgsPool!
+virtual Omni.Collections.Reactive.ObservableList<T>.Dispose() -> void

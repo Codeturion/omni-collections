@@ -37,7 +37,7 @@
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
 
-    <Version>1.0.1</Version>
+    <Version>2.0.0</Version>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(_OmniIsBenchmarkAutogen)' != 'true' AND '$(IsPackable)' != 'false'">
@@ -48,9 +48,23 @@
     <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="" Visible="false" />
   </ItemGroup>
 
+  <PropertyGroup Condition="'$(_OmniIsBenchmarkAutogen)' != 'true' AND '$(IsPackable)' != 'false' AND Exists('$(MSBuildThisFileDirectory)README.md')">
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(_OmniIsBenchmarkAutogen)' != 'true' AND '$(IsPackable)' != 'false' AND Exists('$(MSBuildThisFileDirectory)README.md')">
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(_OmniIsBenchmarkAutogen)' != 'true' AND '$(IsPackable)' != 'false'">
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
     <PackageReference Include="PolySharp" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(_OmniIsBenchmarkAutogen)' != 'true' AND '$(IsPackable)' != 'false'">
+    <AdditionalFiles Include="$(MSBuildProjectDirectory)\PublicAPI.Shipped.txt" Condition="Exists('$(MSBuildProjectDirectory)\PublicAPI.Shipped.txt')" />
+    <AdditionalFiles Include="$(MSBuildProjectDirectory)\PublicAPI.Unshipped.txt" Condition="Exists('$(MSBuildProjectDirectory)\PublicAPI.Unshipped.txt')" />
   </ItemGroup>
 
 </Project>

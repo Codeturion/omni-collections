@@ -1,0 +1,172 @@
+#nullable enable
+Omni.Collections.Linear.BoundedList<T>
+Omni.Collections.Linear.BoundedList<T>.Add(T item) -> void
+Omni.Collections.Linear.BoundedList<T>.AddRange(System.Collections.Generic.IEnumerable<T>! items) -> int
+Omni.Collections.Linear.BoundedList<T>.AddRange(System.ReadOnlySpan<T> items) -> int
+Omni.Collections.Linear.BoundedList<T>.AsSpan() -> System.ReadOnlySpan<T>
+Omni.Collections.Linear.BoundedList<T>.AsSpanMutable() -> System.Span<T>
+Omni.Collections.Linear.BoundedList<T>.BoundedList(int capacity) -> void
+Omni.Collections.Linear.BoundedList<T>.BoundedList(int capacity, System.Collections.Generic.IEnumerable<T>! items) -> void
+Omni.Collections.Linear.BoundedList<T>.Capacity.get -> int
+Omni.Collections.Linear.BoundedList<T>.Clear() -> void
+Omni.Collections.Linear.BoundedList<T>.Contains(T item) -> bool
+Omni.Collections.Linear.BoundedList<T>.CopyTo(System.Span<T> destination) -> void
+Omni.Collections.Linear.BoundedList<T>.CopyTo(T[]! array, int arrayIndex) -> void
+Omni.Collections.Linear.BoundedList<T>.Count.get -> int
+Omni.Collections.Linear.BoundedList<T>.Dispose() -> void
+Omni.Collections.Linear.BoundedList<T>.Enumerator
+Omni.Collections.Linear.BoundedList<T>.Enumerator.Current.get -> T
+Omni.Collections.Linear.BoundedList<T>.Enumerator.Dispose() -> void
+Omni.Collections.Linear.BoundedList<T>.Enumerator.Enumerator() -> void
+Omni.Collections.Linear.BoundedList<T>.Enumerator.MoveNext() -> bool
+Omni.Collections.Linear.BoundedList<T>.Enumerator.Reset() -> void
+Omni.Collections.Linear.BoundedList<T>.ForEachRef(Omni.Collections.Linear.RefAction<T>! action) -> void
+Omni.Collections.Linear.BoundedList<T>.GetEnumerator() -> Omni.Collections.Linear.BoundedList<T>.Enumerator
+Omni.Collections.Linear.BoundedList<T>.GetRef(int index) -> T
+Omni.Collections.Linear.BoundedList<T>.IndexOf(T item) -> int
+Omni.Collections.Linear.BoundedList<T>.Insert(int index, T item) -> void
+Omni.Collections.Linear.BoundedList<T>.IsFull.get -> bool
+Omni.Collections.Linear.BoundedList<T>.IsReadOnly.get -> bool
+Omni.Collections.Linear.BoundedList<T>.RemainingCapacity.get -> int
+Omni.Collections.Linear.BoundedList<T>.Remove(T item) -> bool
+Omni.Collections.Linear.BoundedList<T>.RemoveAt(int index) -> void
+Omni.Collections.Linear.BoundedList<T>.RemoveAtSwap(int index) -> void
+Omni.Collections.Linear.BoundedList<T>.RemoveLast() -> T
+Omni.Collections.Linear.BoundedList<T>.Return() -> void
+Omni.Collections.Linear.BoundedList<T>.TryAdd(T item) -> bool
+Omni.Collections.Linear.BoundedList<T>.TryInsert(int index, T item) -> bool
+Omni.Collections.Linear.BoundedList<T>.TryRemoveLast(out T result) -> bool
+Omni.Collections.Linear.BoundedList<T>.this[int index].get -> T
+Omni.Collections.Linear.BoundedList<T>.this[int index].set -> void
+Omni.Collections.Linear.FastQueue<T>
+Omni.Collections.Linear.FastQueue<T>.Capacity.get -> int
+Omni.Collections.Linear.FastQueue<T>.Clear() -> void
+Omni.Collections.Linear.FastQueue<T>.Count.get -> int
+Omni.Collections.Linear.FastQueue<T>.Dequeue() -> T
+Omni.Collections.Linear.FastQueue<T>.DequeueSpan(int count) -> System.ReadOnlySpan<T>
+Omni.Collections.Linear.FastQueue<T>.Dispose() -> void
+Omni.Collections.Linear.FastQueue<T>.Enqueue(T item) -> void
+Omni.Collections.Linear.FastQueue<T>.EnqueueSpan(System.ReadOnlySpan<T> items) -> void
+Omni.Collections.Linear.FastQueue<T>.Enumerator
+Omni.Collections.Linear.FastQueue<T>.Enumerator.Current.get -> T
+Omni.Collections.Linear.FastQueue<T>.Enumerator.Dispose() -> void
+Omni.Collections.Linear.FastQueue<T>.Enumerator.Enumerator() -> void
+Omni.Collections.Linear.FastQueue<T>.Enumerator.MoveNext() -> bool
+Omni.Collections.Linear.FastQueue<T>.Enumerator.Reset() -> void
+Omni.Collections.Linear.FastQueue<T>.FastQueue(int capacity = 16) -> void
+Omni.Collections.Linear.FastQueue<T>.GetEnumerator() -> Omni.Collections.Linear.FastQueue<T>.Enumerator
+Omni.Collections.Linear.FastQueue<T>.Peek() -> T
+Omni.Collections.Linear.FastQueue<T>.Return() -> void
+Omni.Collections.Linear.FastQueue<T>.TryDequeue(out T result) -> bool
+Omni.Collections.Linear.FastQueue<T>.TryPeek(out T result) -> bool
+Omni.Collections.Linear.MaxHeap<T>
+Omni.Collections.Linear.MaxHeap<T>.AsSpan() -> System.ReadOnlySpan<T>
+Omni.Collections.Linear.MaxHeap<T>.Capacity.get -> int
+Omni.Collections.Linear.MaxHeap<T>.Clear() -> void
+Omni.Collections.Linear.MaxHeap<T>.Count.get -> int
+Omni.Collections.Linear.MaxHeap<T>.Dispose() -> void
+Omni.Collections.Linear.MaxHeap<T>.ExtractMax() -> T
+Omni.Collections.Linear.MaxHeap<T>.GetEnumerator() -> System.Collections.Generic.IEnumerator<T>!
+Omni.Collections.Linear.MaxHeap<T>.Insert(T item) -> void
+Omni.Collections.Linear.MaxHeap<T>.InsertRange(System.Collections.Generic.IEnumerable<T>! items) -> void
+Omni.Collections.Linear.MaxHeap<T>.IsEmpty.get -> bool
+Omni.Collections.Linear.MaxHeap<T>.IsValidHeap() -> bool
+Omni.Collections.Linear.MaxHeap<T>.MaxHeap(System.Collections.Generic.IEnumerable<T>! items, int capacity = 16) -> void
+Omni.Collections.Linear.MaxHeap<T>.MaxHeap(int initialCapacity = 16) -> void
+Omni.Collections.Linear.MaxHeap<T>.PeekMax() -> T
+Omni.Collections.Linear.MaxHeap<T>.Return() -> void
+Omni.Collections.Linear.MaxHeap<T>.TryExtractMax(out T result) -> bool
+Omni.Collections.Linear.MaxHeap<T>.TryPeekMax(out T result) -> bool
+Omni.Collections.Linear.MaxHeap<T>.~MaxHeap() -> void
+Omni.Collections.Linear.MinHeap<T>
+Omni.Collections.Linear.MinHeap<T>.AsSpan() -> System.ReadOnlySpan<T>
+Omni.Collections.Linear.MinHeap<T>.Capacity.get -> int
+Omni.Collections.Linear.MinHeap<T>.Clear() -> void
+Omni.Collections.Linear.MinHeap<T>.Count.get -> int
+Omni.Collections.Linear.MinHeap<T>.Dispose() -> void
+Omni.Collections.Linear.MinHeap<T>.Enumerator
+Omni.Collections.Linear.MinHeap<T>.Enumerator.Current.get -> T
+Omni.Collections.Linear.MinHeap<T>.Enumerator.Dispose() -> void
+Omni.Collections.Linear.MinHeap<T>.Enumerator.Enumerator() -> void
+Omni.Collections.Linear.MinHeap<T>.Enumerator.MoveNext() -> bool
+Omni.Collections.Linear.MinHeap<T>.Enumerator.Reset() -> void
+Omni.Collections.Linear.MinHeap<T>.ExtractMin() -> T
+Omni.Collections.Linear.MinHeap<T>.GetEnumerator() -> Omni.Collections.Linear.MinHeap<T>.Enumerator
+Omni.Collections.Linear.MinHeap<T>.Insert(T item) -> void
+Omni.Collections.Linear.MinHeap<T>.InsertRange(System.Collections.Generic.IEnumerable<T>! items) -> void
+Omni.Collections.Linear.MinHeap<T>.IsEmpty.get -> bool
+Omni.Collections.Linear.MinHeap<T>.IsValidHeap() -> bool
+Omni.Collections.Linear.MinHeap<T>.MinHeap(System.Collections.Generic.IEnumerable<T>! items, int capacity = 16) -> void
+Omni.Collections.Linear.MinHeap<T>.MinHeap(int initialCapacity = 16) -> void
+Omni.Collections.Linear.MinHeap<T>.PeekMin() -> T
+Omni.Collections.Linear.MinHeap<T>.Return() -> void
+Omni.Collections.Linear.MinHeap<T>.TryExtractMin(out T result) -> bool
+Omni.Collections.Linear.MinHeap<T>.TryPeekMin(out T result) -> bool
+Omni.Collections.Linear.MinHeap<T>.~MinHeap() -> void
+Omni.Collections.Linear.PooledList<T>
+Omni.Collections.Linear.PooledList<T>.Add(T item) -> void
+Omni.Collections.Linear.PooledList<T>.AddRange(System.Collections.Generic.IEnumerable<T>! items) -> void
+Omni.Collections.Linear.PooledList<T>.AddRange(System.ReadOnlySpan<T> items) -> void
+Omni.Collections.Linear.PooledList<T>.AsSpan() -> System.ReadOnlySpan<T>
+Omni.Collections.Linear.PooledList<T>.AsSpanMutable() -> System.Span<T>
+Omni.Collections.Linear.PooledList<T>.Capacity.get -> int
+Omni.Collections.Linear.PooledList<T>.Clear() -> void
+Omni.Collections.Linear.PooledList<T>.Contains(T item) -> bool
+Omni.Collections.Linear.PooledList<T>.CopyTo(T[]! array, int arrayIndex) -> void
+Omni.Collections.Linear.PooledList<T>.Count.get -> int
+Omni.Collections.Linear.PooledList<T>.Dispose() -> void
+Omni.Collections.Linear.PooledList<T>.Enumerator
+Omni.Collections.Linear.PooledList<T>.Enumerator.Current.get -> T
+Omni.Collections.Linear.PooledList<T>.Enumerator.Dispose() -> void
+Omni.Collections.Linear.PooledList<T>.Enumerator.Enumerator() -> void
+Omni.Collections.Linear.PooledList<T>.Enumerator.MoveNext() -> bool
+Omni.Collections.Linear.PooledList<T>.Enumerator.Reset() -> void
+Omni.Collections.Linear.PooledList<T>.GetEnumerator() -> Omni.Collections.Linear.PooledList<T>.Enumerator
+Omni.Collections.Linear.PooledList<T>.GetRef(int index) -> T
+Omni.Collections.Linear.PooledList<T>.IndexOf(T item) -> int
+Omni.Collections.Linear.PooledList<T>.Insert(int index, T item) -> void
+Omni.Collections.Linear.PooledList<T>.IsReadOnly.get -> bool
+Omni.Collections.Linear.PooledList<T>.PooledList(int initialCapacity = 16) -> void
+Omni.Collections.Linear.PooledList<T>.Remove(T item) -> bool
+Omni.Collections.Linear.PooledList<T>.RemoveAt(int index) -> void
+Omni.Collections.Linear.PooledList<T>.RemoveLast() -> T
+Omni.Collections.Linear.PooledList<T>.TryRemoveLast(out T result) -> bool
+Omni.Collections.Linear.PooledList<T>.this[int index].get -> T
+Omni.Collections.Linear.PooledList<T>.this[int index].set -> void
+Omni.Collections.Linear.PooledStack<T>
+Omni.Collections.Linear.PooledStack<T>.AsSpan() -> System.ReadOnlySpan<T>
+Omni.Collections.Linear.PooledStack<T>.Capacity.get -> int
+Omni.Collections.Linear.PooledStack<T>.Clear() -> void
+Omni.Collections.Linear.PooledStack<T>.Count.get -> int
+Omni.Collections.Linear.PooledStack<T>.Dispose() -> void
+Omni.Collections.Linear.PooledStack<T>.Enumerator
+Omni.Collections.Linear.PooledStack<T>.Enumerator.Current.get -> T
+Omni.Collections.Linear.PooledStack<T>.Enumerator.Dispose() -> void
+Omni.Collections.Linear.PooledStack<T>.Enumerator.Enumerator() -> void
+Omni.Collections.Linear.PooledStack<T>.Enumerator.MoveNext() -> bool
+Omni.Collections.Linear.PooledStack<T>.Enumerator.Reset() -> void
+Omni.Collections.Linear.PooledStack<T>.GetEnumerator() -> Omni.Collections.Linear.PooledStack<T>.Enumerator
+Omni.Collections.Linear.PooledStack<T>.IsEmpty.get -> bool
+Omni.Collections.Linear.PooledStack<T>.Peek() -> T
+Omni.Collections.Linear.PooledStack<T>.PooledStack(int initialCapacity = 16) -> void
+Omni.Collections.Linear.PooledStack<T>.Pop() -> T
+Omni.Collections.Linear.PooledStack<T>.PopSpan(int count) -> System.ReadOnlySpan<T>
+Omni.Collections.Linear.PooledStack<T>.Push(T item) -> void
+Omni.Collections.Linear.PooledStack<T>.PushRange(System.Collections.Generic.IEnumerable<T>! items) -> void
+Omni.Collections.Linear.PooledStack<T>.PushSpan(System.ReadOnlySpan<T> items) -> void
+Omni.Collections.Linear.PooledStack<T>.TryPeek(out T result) -> bool
+Omni.Collections.Linear.PooledStack<T>.TryPop(out T result) -> bool
+Omni.Collections.Linear.RefAction<T>
+static Omni.Collections.Linear.BoundedList<T>.CreateWithArrayPool(int capacity) -> Omni.Collections.Linear.BoundedList<T>!
+static Omni.Collections.Linear.BoundedList<T>.Rent(int capacity) -> Omni.Collections.Linear.BoundedList<T>!
+static Omni.Collections.Linear.FastQueue<T>.CreateWithArrayPool(int capacity = 16) -> Omni.Collections.Linear.FastQueue<T>!
+static Omni.Collections.Linear.FastQueue<T>.Rent(int capacity = 16) -> Omni.Collections.Linear.FastQueue<T>!
+static Omni.Collections.Linear.MaxHeap<T>.BuildHeap(T[]! array) -> Omni.Collections.Linear.MaxHeap<T>!
+static Omni.Collections.Linear.MaxHeap<T>.CreateWithArrayPool(int initialCapacity = 16) -> Omni.Collections.Linear.MaxHeap<T>!
+static Omni.Collections.Linear.MaxHeap<T>.Rent(int initialCapacity = 16) -> Omni.Collections.Linear.MaxHeap<T>!
+static Omni.Collections.Linear.MinHeap<T>.BuildHeap(T[]! array) -> Omni.Collections.Linear.MinHeap<T>!
+static Omni.Collections.Linear.MinHeap<T>.CreateWithArrayPool(int initialCapacity = 16) -> Omni.Collections.Linear.MinHeap<T>!
+static Omni.Collections.Linear.MinHeap<T>.Rent(int initialCapacity = 16) -> Omni.Collections.Linear.MinHeap<T>!
+static Omni.Collections.Linear.PooledList<T>.CreateWithArrayPool(int initialCapacity = 16) -> Omni.Collections.Linear.PooledList<T>!
+static Omni.Collections.Linear.PooledStack<T>.CreateWithArrayPool(int initialCapacity = 16) -> Omni.Collections.Linear.PooledStack<T>!
+virtual Omni.Collections.Linear.RefAction<T>.Invoke(ref T item) -> void

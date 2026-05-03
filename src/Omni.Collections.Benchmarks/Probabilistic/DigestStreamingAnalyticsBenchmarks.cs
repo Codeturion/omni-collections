@@ -15,7 +15,7 @@ public class DigestStreamingAnalyticsBenchmarks
 {
     private const int OpsPerIteration = 8192;
 
-    [Params(Sizes.Small, Sizes.Medium)]
+    [Params(Sizes.Small, Sizes.Medium, Sizes.Large)]
     public int N;
 
     private double[] _values = null!;

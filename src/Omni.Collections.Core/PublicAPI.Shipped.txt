@@ -1,0 +1,74 @@
+#nullable enable
+Omni.Collections.Core.CollectionUtils
+Omni.Collections.Core.Hashing.Hashers
+Omni.Collections.Core.Hashing.IHasher<T>
+Omni.Collections.Core.Hashing.IHasher<T>.Hash(in T value, ulong seed) -> ulong
+Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>
+Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>.AccessData.get -> long
+Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>.AccessData.set -> void
+Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>.HashCode.get -> int
+Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>.HashCode.set -> void
+Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>.Key.get -> TKey
+Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>.Key.set -> void
+Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>.Link0 -> Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>?
+Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>.Link1 -> Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>?
+Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>.Link2 -> Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>?
+Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>.Link3 -> Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>?
+Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>.Metadata0 -> long
+Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>.Metadata1 -> long
+Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>.Next.get -> Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>?
+Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>.Next.set -> void
+Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>.NextOrdering.get -> Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>?
+Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>.NextOrdering.set -> void
+Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>.PrevOrdering.get -> Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>?
+Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>.PrevOrdering.set -> void
+Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>.UniversalDictionaryNode() -> void
+Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>.UniversalDictionaryNode(TKey key, TValue value, int hashCode) -> void
+Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>.Value.get -> TValue
+Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>.Value.set -> void
+Omni.Collections.Core.Node.UniversalNodeHelper
+Omni.Collections.Core.Security.SecureHashHelper
+Omni.Collections.Core.Security.SecureHashOptions
+Omni.Collections.Core.Security.SecureHashOptions.EnableCollisionMonitoring.get -> bool
+Omni.Collections.Core.Security.SecureHashOptions.EnableCollisionMonitoring.set -> void
+Omni.Collections.Core.Security.SecureHashOptions.EnableRandomizedHashing.get -> bool
+Omni.Collections.Core.Security.SecureHashOptions.EnableRandomizedHashing.set -> void
+Omni.Collections.Core.Security.SecureHashOptions.MaxCollisionChainLength.get -> int
+Omni.Collections.Core.Security.SecureHashOptions.MaxCollisionChainLength.set -> void
+Omni.Collections.Core.Security.SecureHashOptions.OnExcessiveCollisions.get -> System.Action<string!>?
+Omni.Collections.Core.Security.SecureHashOptions.OnExcessiveCollisions.set -> void
+Omni.Collections.Core.Security.SecureHashOptions.SecureHashOptions() -> void
+Omni.Collections.Core.Time.IClock
+Omni.Collections.Core.Time.IClock.GetTimestamp() -> long
+Omni.Collections.Core.Time.IClock.UtcNow.get -> System.DateTimeOffset
+Omni.Collections.Core.Time.SystemClock
+Omni.Collections.Core.Time.SystemClock.GetTimestamp() -> long
+Omni.Collections.Core.Time.SystemClock.UtcNow.get -> System.DateTimeOffset
+static Omni.Collections.Core.CollectionUtils.GetNextPowerOfTwo(int n) -> int
+static Omni.Collections.Core.CollectionUtils.GetPrime(int min) -> int
+static Omni.Collections.Core.Hashing.Hashers.Default<T>() -> Omni.Collections.Core.Hashing.IHasher<T>!
+static Omni.Collections.Core.Hashing.Hashers.Murmur3<T>() -> Omni.Collections.Core.Hashing.IHasher<T>!
+static Omni.Collections.Core.Node.UniversalNodeHelper.AssertLfuRole<TKey, TValue>(Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>? node) -> void
+static Omni.Collections.Core.Node.UniversalNodeHelper.AssertLinkedRole<TKey, TValue>(Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>? node) -> void
+static Omni.Collections.Core.Node.UniversalNodeHelper.AssertLruRole<TKey, TValue>(Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>? node) -> void
+static Omni.Collections.Core.Node.UniversalNodeHelper.GetAccessCount<TKey, TValue>(Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>! node) -> long
+static Omni.Collections.Core.Node.UniversalNodeHelper.GetAccessTime<TKey, TValue>(Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>! node) -> long
+static Omni.Collections.Core.Node.UniversalNodeHelper.GetNextInFrequency<TKey, TValue>(Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>! node) -> Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>?
+static Omni.Collections.Core.Node.UniversalNodeHelper.GetNextLru<TKey, TValue>(Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>! node) -> Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>?
+static Omni.Collections.Core.Node.UniversalNodeHelper.GetPrevInFrequency<TKey, TValue>(Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>! node) -> Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>?
+static Omni.Collections.Core.Node.UniversalNodeHelper.GetPrevLru<TKey, TValue>(Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>! node) -> Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>?
+static Omni.Collections.Core.Node.UniversalNodeHelper.SetAccessCount<TKey, TValue>(Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>! node, long count) -> void
+static Omni.Collections.Core.Node.UniversalNodeHelper.SetAccessTime<TKey, TValue>(Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>! node, long timestamp) -> void
+static Omni.Collections.Core.Node.UniversalNodeHelper.SetNextInFrequency<TKey, TValue>(Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>! node, Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>? next) -> void
+static Omni.Collections.Core.Node.UniversalNodeHelper.SetNextLru<TKey, TValue>(Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>! node, Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>? next) -> void
+static Omni.Collections.Core.Node.UniversalNodeHelper.SetPrevInFrequency<TKey, TValue>(Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>! node, Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>? prev) -> void
+static Omni.Collections.Core.Node.UniversalNodeHelper.SetPrevLru<TKey, TValue>(Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>! node, Omni.Collections.Core.Node.UniversalDictionaryNode<TKey, TValue>? prev) -> void
+static Omni.Collections.Core.Security.SecureHashHelper.CombineHashCodes(int h1, int h2) -> int
+static Omni.Collections.Core.Security.SecureHashHelper.CreateSecureComparer<T>() -> System.Collections.Generic.IEqualityComparer<T>!
+static Omni.Collections.Core.Security.SecureHashHelper.CreateSecureComparer<T>(uint seed) -> System.Collections.Generic.IEqualityComparer<T>!
+static Omni.Collections.Core.Security.SecureHashHelper.RandomizeHash(int hashCode, uint seed) -> int
+static Omni.Collections.Core.Security.SecureHashOptions.Default.get -> Omni.Collections.Core.Security.SecureHashOptions!
+static Omni.Collections.Core.Security.SecureHashOptions.Production.get -> Omni.Collections.Core.Security.SecureHashOptions!
+static Omni.Collections.Core.Security.SecureHashOptions.Testing.get -> Omni.Collections.Core.Security.SecureHashOptions!
+static readonly Omni.Collections.Core.CollectionUtils.Primes -> int[]!
+static readonly Omni.Collections.Core.Time.SystemClock.Instance -> Omni.Collections.Core.Time.SystemClock!

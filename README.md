@@ -17,24 +17,52 @@ Some structures emerged from research curiosity, but all maintain production-qua
 
 Comprehensive benchmarks because "trust me, it's faster" isn't engineering. Clean architecture because performance code shouldn't be throwaway code.
 
-## What's New in v1.0.1
+## What's New in v2.0.0
 
-🔧 **Bug Fixes & Improvements**
-- Fixed `CircularDictionary` removal/eviction logic and enumerator for accurate gap handling
-- Fixed `SpatialHashGrid.Remove()` to properly remove entries from all occupied cells (critical bug fix)
-- Added always-on safety checks to `FastQueue`, `PooledStack`, and `PooledList` for consistent bounds validation
-- Improved test coverage with additional edge case testing
+v2.0.0 is a defensible re-foundation of the library. Every public type now justifies its existence on a measurable axis (speed / allocation / memory / predictability / unique capability), proven by the rebuilt benchmark suite or documented honestly when the win is capability rather than speed.
 
-🚀 **Automated Publishing**
-- GitHub Actions workflow now automatically publishes to NuGet on version tags
-- Continuous integration ensures all tests pass before release
+🟢 **Probabilistic correctness rework** ([PR #3](https://github.com/Codeturion/omni-collections/pull/3))
+
+The probabilistic family (`BloomFilter`, `HyperLogLog`, `CountMinSketch`, `BloomDictionary`, `BloomRTreeDictionary`) had a hidden correctness bug: they hashed via `(uint)item.GetHashCode()`, which for randomized-string `GetHashCode` and arbitrary user types destroys the false-positive / cardinality / frequency math. v2.0 introduces a new `Omni.Collections.Core.Hashing.IHasher<T>` abstraction backed by **XxHash3** (default) and **Murmur3-128**, with specialized fast paths for `int`, `uint`, `long`, `ulong`, `string`, `Guid`, `byte[]`, `ReadOnlyMemory<byte>`. `BloomFilter.ContainsHit` is now **26-29% faster** despite doing more cryptographic-grade hashing. `CountMinSketch`'s hardcoded `Random(42)` per-row seeds (a CVE-tier predictability bug) were replaced with deterministic SplitMix64-derived seeds.
+
+🔧 **25 correctness fixes** ([PR #4](https://github.com/Codeturion/omni-collections/pull/4))
+
+Stub methods that returned hardcoded `false`, `else if` short-circuits that masked same-instance collisions, `Resize` paths that didn't clear bucket arrays, `Clear` paths that leaked node references, `KDTree.FindNearest` returning the wrong default for empty trees, R-Tree `FindWorstPair` doing O(n²) repeated sorts, and 18 more. See PR #4 for the full list.
+
+⚡ **Reactive correctness** ([PR #5](https://github.com/Codeturion/omni-collections/pull/5))
+
+`ObservableList` / `ObservableHashSet` filtered views are now `IDisposable` and properly unsubscribe from the source on Dispose (previously leaked indefinitely). Re-entrancy guards block mutations from inside `CollectionChanged` callbacks. Notification doctrine is uniform across batch ops (one `Add` event for batched additions, one `Reset` for non-contiguous removals). The event-args pool routing seam is now in place for future allocation-free notifications.
+
+🧪 **Test coverage rebuild** ([PR #6](https://github.com/Codeturion/omni-collections/pull/6))
+
++209 new tests across `PredictiveDictionary`, `ConcurrentLinkedDictionary` (including 4-thread concurrency stress with `Barrier`-synced start), `LinkedMultiMap`, `GraphDictionary`, `HexPathfinding`, plus FsCheck property tests for the probabilistic types' theoretical bounds (false-positive rate, cardinality SE, frequency upper bound). New `IClock` abstraction lets temporal tests advance time deterministically instead of `Thread.Sleep`. CI now runs the suite under three RNG seeds per PR.
+
+📊 **Multi-target + packaging**
+- Multi-targets `net8.0;netstandard2.1` for libraries, `net8.0;net6.0` for tests, `net8.0` for benchmarks.
+- All sub-packages now pack `README.md` and `LICENSE`.
+- SourceLink + symbol packages (`.snupkg`) for every release.
+- `Microsoft.CodeAnalysis.PublicApiAnalyzers` baselines the public surface so v2.x patch releases can't accidentally break consumers.
+
+### v1.x → v2.0 migration
+
+**Hard breaks** (intentional):
+
+1. **`BloomFilter<T>` etc. for custom types now require an `IHasher<T>`.** Built-in types (`int`/`long`/`string`/`Guid`/etc.) work as before; for your own types, implement `IHasher<T>` and pass it via the new constructor overloads. The error message at runtime names the supported types and points to `IHasher<T>`.
+2. **`BitGrid2D.GetRowSpan(int y)` removed.** It had misleading zero-copy semantics over bit-packed storage. Replaced by `CopyRowTo(int y, Span<bool> destination)` (caller buffer) and `GetRowCopy(int y)` (explicit allocation). `LayeredGrid2D.GetRowSpan` is unchanged — its span is real.
+3. **`ObservableList.RemoveAll` / `RemoveAllAsync` now fire `NotifyCollectionChangedAction.Reset`** instead of `Remove` with a starting index. Non-contiguous removals can't satisfy `INotifyCollectionChanged`'s contiguous-range contract; the previous shape would silently mis-position WPF data bindings. Per-item `ItemRemoved` events still fire on the side channel.
+4. **`BoundingRectangle.Contains(float, float)`** documented convention: closed `[min, max]` interval. The cell-indexing math in `QuadTree`/`SpatialHashGrid`/`BloomRTreeDictionary` uses half-open `[min, max)` internally without going through `Contains`.
+
+If you upgrade and hit a `NotSupportedException` from `Hashers.Default<T>`, that's #1 — implement `IHasher<T>`. If a test asserts `OldStartingIndex` on a `RemoveAll` event, that's #3 — switch to `Reset` handling or count `ItemRemoved` events.
+
+📈 **Benchmarks**: methodology, profiles, and reproduction commands live in [`docs/benchmarks.md`](docs/benchmarks.md). Reference numbers under `docs/perf/<machine>/` will ship with every release after a rigorous run.
 
 ## Table of Contents
 
 <details>
 <summary>📋 Click to expand table of contents</summary>
 
-- [What's New in v1.0.1](#whats-new-in-v101)
+- [What's New in v2.0.0](#whats-new-in-v200)
+  - [v1.x → v2.0 migration](#v1x--v20-migration)
 - [Quick Start](#quick-start)
 - [Complexity Guarantees](#complexity-guarantees)
 - [Performance Results & Benchmarking](#performance-results--benchmarking)

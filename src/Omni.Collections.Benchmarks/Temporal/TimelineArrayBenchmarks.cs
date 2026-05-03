@@ -14,7 +14,7 @@ public class TimelineArrayBenchmarks
 {
     private const int OpsPerIteration = 8192;
 
-    [Params(Sizes.Small, Sizes.Medium)]
+    [Params(Sizes.Small, Sizes.Medium, Sizes.Large)]
     public int N;
 
     private int[] _values = null!;
