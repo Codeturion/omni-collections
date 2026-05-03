@@ -1,0 +1,299 @@
+#nullable enable
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeDictionary<TKey, TValue>
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeDictionary<TKey, TValue>.Add(TKey key, TValue value, Omni.Collections.Spatial.BoundingRectangle bounds) -> void
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeDictionary<TKey, TValue>.Add(TKey key, TValue value, float x, float y) -> void
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeDictionary<TKey, TValue>.AddRange(System.Collections.Generic.IEnumerable<(TKey Key, TValue Value, Omni.Collections.Spatial.BoundingRectangle Bounds)>! entries) -> void
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeDictionary<TKey, TValue>.BloomRTreeDictionary(int expectedCapacity = 10000, double falsePositiveRate = 0.01) -> void
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeDictionary<TKey, TValue>.Clear() -> void
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeDictionary<TKey, TValue>.ContainsKey(TKey key) -> bool
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeDictionary<TKey, TValue>.Count.get -> int
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeDictionary<TKey, TValue>.Dispose() -> void
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeDictionary<TKey, TValue>.FindAtPoint(float x, float y) -> System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, TValue>>!
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeDictionary<TKey, TValue>.FindContained(Omni.Collections.Spatial.BoundingRectangle bounds) -> System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, TValue>>!
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeDictionary<TKey, TValue>.FindIntersecting(Omni.Collections.Spatial.BoundingRectangle bounds) -> System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, TValue>>!
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeDictionary<TKey, TValue>.FindIntersecting(Omni.Collections.Spatial.BoundingRectangle bounds, Omni.Collections.Linear.PooledList<System.Collections.Generic.KeyValuePair<TKey, TValue>>! results) -> int
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeDictionary<TKey, TValue>.GetEnumerator() -> System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<TKey, TValue>>!
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeDictionary<TKey, TValue>.IsEmpty.get -> bool
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeDictionary<TKey, TValue>.Remove(TKey key) -> bool
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeDictionary<TKey, TValue>.Statistics.get -> Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeStats
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeDictionary<TKey, TValue>.TryGetValue(TKey key, out TValue value) -> bool
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeDictionary<TKey, TValue>.this[TKey key].get -> TValue
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeDictionary<TKey, TValue>.this[TKey key].set -> void
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeStats
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeStats.BloomFilterEffectiveness.get -> double
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeStats.BloomFilterEffectiveness.init -> void
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeStats.BloomFilterHits.get -> long
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeStats.BloomFilterHits.init -> void
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeStats.BloomRTreeStats() -> void
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeStats.DictionaryLookups.get -> long
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeStats.DictionaryLookups.init -> void
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeStats.SpatialQueries.get -> long
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeStats.SpatialQueries.init -> void
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeStats.TotalEntries.get -> int
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeStats.TotalEntries.init -> void
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeStats.TreeHeight.get -> int
+Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeStats.TreeHeight.init -> void
+Omni.Collections.Spatial.BloomRTreeDictionary.BoundsCache
+Omni.Collections.Spatial.BloomRTreeDictionary.BoundsCache.BoundsCache() -> void
+Omni.Collections.Spatial.BloomRTreeDictionary.BoundsCache.Clear() -> void
+Omni.Collections.Spatial.BloomRTreeDictionary.BoundsCache.GetCachedAreaIncrease(Omni.Collections.Spatial.BoundingRectangle existing, Omni.Collections.Spatial.BoundingRectangle newBounds) -> float
+Omni.Collections.Spatial.BloomRTreeDictionary.BoundsCache.GetCachedUnion(Omni.Collections.Spatial.BoundingRectangle a, Omni.Collections.Spatial.BoundingRectangle b) -> Omni.Collections.Spatial.BoundingRectangle
+Omni.Collections.Spatial.BoundingRectangle
+Omni.Collections.Spatial.BoundingRectangle.Area.get -> float
+Omni.Collections.Spatial.BoundingRectangle.BoundingRectangle() -> void
+Omni.Collections.Spatial.BoundingRectangle.BoundingRectangle(float minX, float minY, float maxX, float maxY) -> void
+Omni.Collections.Spatial.BoundingRectangle.BoundingRectangle(float x, float y) -> void
+Omni.Collections.Spatial.BoundingRectangle.CalculateAreaIncrease(in Omni.Collections.Spatial.BoundingRectangle other) -> float
+Omni.Collections.Spatial.BoundingRectangle.CenterX.get -> float
+Omni.Collections.Spatial.BoundingRectangle.CenterY.get -> float
+Omni.Collections.Spatial.BoundingRectangle.Contains(float x, float y) -> bool
+Omni.Collections.Spatial.BoundingRectangle.Contains(in Omni.Collections.Spatial.BoundingRectangle other) -> bool
+Omni.Collections.Spatial.BoundingRectangle.Equals(Omni.Collections.Spatial.BoundingRectangle other) -> bool
+Omni.Collections.Spatial.BoundingRectangle.Height.get -> float
+Omni.Collections.Spatial.BoundingRectangle.Intersects(in Omni.Collections.Spatial.BoundingRectangle other) -> bool
+Omni.Collections.Spatial.BoundingRectangle.IsPoint.get -> bool
+Omni.Collections.Spatial.BoundingRectangle.Union(in Omni.Collections.Spatial.BoundingRectangle other) -> Omni.Collections.Spatial.BoundingRectangle
+Omni.Collections.Spatial.BoundingRectangle.Width.get -> float
+Omni.Collections.Spatial.DistanceMetrics.ChebyshevDistance
+Omni.Collections.Spatial.DistanceMetrics.ChebyshevDistance.CalculateDistance(double[]! a, double[]! b) -> double
+Omni.Collections.Spatial.DistanceMetrics.ChebyshevDistance.CalculateDistanceSquared(double[]! a, double[]! b) -> double
+Omni.Collections.Spatial.DistanceMetrics.ChebyshevDistance.ChebyshevDistance() -> void
+Omni.Collections.Spatial.DistanceMetrics.ChebyshevDistance.Name.get -> string!
+Omni.Collections.Spatial.DistanceMetrics.EuclideanDistance
+Omni.Collections.Spatial.DistanceMetrics.EuclideanDistance.CalculateDistance(double[]! a, double[]! b) -> double
+Omni.Collections.Spatial.DistanceMetrics.EuclideanDistance.CalculateDistanceSquared(double[]! a, double[]! b) -> double
+Omni.Collections.Spatial.DistanceMetrics.EuclideanDistance.EuclideanDistance() -> void
+Omni.Collections.Spatial.DistanceMetrics.EuclideanDistance.Name.get -> string!
+Omni.Collections.Spatial.DistanceMetrics.IDistanceMetric
+Omni.Collections.Spatial.DistanceMetrics.IDistanceMetric.CalculateDistance(double[]! a, double[]! b) -> double
+Omni.Collections.Spatial.DistanceMetrics.IDistanceMetric.CalculateDistanceSquared(double[]! a, double[]! b) -> double
+Omni.Collections.Spatial.DistanceMetrics.IDistanceMetric.Name.get -> string!
+Omni.Collections.Spatial.DistanceMetrics.ManhattanDistance
+Omni.Collections.Spatial.DistanceMetrics.ManhattanDistance.CalculateDistance(double[]! a, double[]! b) -> double
+Omni.Collections.Spatial.DistanceMetrics.ManhattanDistance.CalculateDistanceSquared(double[]! a, double[]! b) -> double
+Omni.Collections.Spatial.DistanceMetrics.ManhattanDistance.ManhattanDistance() -> void
+Omni.Collections.Spatial.DistanceMetrics.ManhattanDistance.Name.get -> string!
+Omni.Collections.Spatial.DistanceMetrics.MinkowskiDistance
+Omni.Collections.Spatial.DistanceMetrics.MinkowskiDistance.CalculateDistance(double[]! a, double[]! b) -> double
+Omni.Collections.Spatial.DistanceMetrics.MinkowskiDistance.CalculateDistanceSquared(double[]! a, double[]! b) -> double
+Omni.Collections.Spatial.DistanceMetrics.MinkowskiDistance.MinkowskiDistance(double p) -> void
+Omni.Collections.Spatial.DistanceMetrics.MinkowskiDistance.Name.get -> string!
+Omni.Collections.Spatial.Frustum
+Omni.Collections.Spatial.Frustum.ContainsPoint(Omni.Collections.Spatial.Vector3 point) -> bool
+Omni.Collections.Spatial.Frustum.Frustum(Omni.Collections.Spatial.Plane[]! planes) -> void
+Omni.Collections.Spatial.Frustum.IntersectsBounds(Omni.Collections.Spatial.OctBounds bounds) -> bool
+Omni.Collections.Spatial.IOctPointProvider<T>
+Omni.Collections.Spatial.IOctPointProvider<T>.GetPosition(T item) -> Omni.Collections.Spatial.Vector3
+Omni.Collections.Spatial.KDTree.IKdPointProvider<T>
+Omni.Collections.Spatial.KDTree.IKdPointProvider<T>.GetCoordinates(T item) -> double[]!
+Omni.Collections.Spatial.KDTree.KdPointProvider2D<T>
+Omni.Collections.Spatial.KDTree.KdPointProvider2D<T>.GetCoordinates(T item) -> double[]!
+Omni.Collections.Spatial.KDTree.KdPointProvider2D<T>.KdPointProvider2D(System.Func<T, double>! getX, System.Func<T, double>! getY) -> void
+Omni.Collections.Spatial.KDTree.KdPointProvider3D<T>
+Omni.Collections.Spatial.KDTree.KdPointProvider3D<T>.GetCoordinates(T item) -> double[]!
+Omni.Collections.Spatial.KDTree.KdPointProvider3D<T>.KdPointProvider3D(System.Func<T, double>! getX, System.Func<T, double>! getY, System.Func<T, double>! getZ) -> void
+Omni.Collections.Spatial.KDTree.KdTree<T>
+Omni.Collections.Spatial.KDTree.KdTree<T>.BatchInsert(System.Collections.Generic.IEnumerable<T>! items) -> void
+Omni.Collections.Spatial.KDTree.KdTree<T>.Build(System.Collections.Generic.IEnumerable<T>! items) -> void
+Omni.Collections.Spatial.KDTree.KdTree<T>.Clear() -> void
+Omni.Collections.Spatial.KDTree.KdTree<T>.Count.get -> int
+Omni.Collections.Spatial.KDTree.KdTree<T>.Dimensions.get -> int
+Omni.Collections.Spatial.KDTree.KdTree<T>.Dispose() -> void
+Omni.Collections.Spatial.KDTree.KdTree<T>.FindInRange(double[]! minCoords, double[]! maxCoords) -> System.Collections.Generic.List<T>!
+Omni.Collections.Spatial.KDTree.KdTree<T>.FindInRange(double[]! minCoords, double[]! maxCoords, Omni.Collections.Linear.PooledList<T>! results) -> void
+Omni.Collections.Spatial.KDTree.KdTree<T>.FindNearest(T target) -> T?
+Omni.Collections.Spatial.KDTree.KdTree<T>.FindNearestK(T target, int k) -> System.Collections.Generic.List<T>!
+Omni.Collections.Spatial.KDTree.KdTree<T>.FindNearestK(T target, int k, Omni.Collections.Linear.PooledList<T>! results) -> void
+Omni.Collections.Spatial.KDTree.KdTree<T>.FindWithinRadius(T target, double radius) -> System.Collections.Generic.List<T>!
+Omni.Collections.Spatial.KDTree.KdTree<T>.FindWithinRadius(T target, double radius, Omni.Collections.Linear.PooledList<T>! results) -> void
+Omni.Collections.Spatial.KDTree.KdTree<T>.GetAllItems() -> System.Collections.Generic.IEnumerable<T>!
+Omni.Collections.Spatial.KDTree.KdTree<T>.Insert(T item) -> void
+Omni.Collections.Spatial.KDTree.KdTree<T>.InsertRange(System.Collections.Generic.IEnumerable<T>! items) -> void
+Omni.Collections.Spatial.KDTree.KdTree<T>.KdTree(Omni.Collections.Spatial.KDTree.IKdPointProvider<T>! pointProvider, int dimensions = 2, Omni.Collections.Spatial.DistanceMetrics.IDistanceMetric? distanceMetric = null) -> void
+Omni.Collections.Spatial.OctBounds
+Omni.Collections.Spatial.OctBounds.Center.get -> Omni.Collections.Spatial.Vector3
+Omni.Collections.Spatial.OctBounds.Contains(Omni.Collections.Spatial.Vector3 point) -> bool
+Omni.Collections.Spatial.OctBounds.Depth.get -> float
+Omni.Collections.Spatial.OctBounds.DistanceSquaredTo(Omni.Collections.Spatial.Vector3 point) -> float
+Omni.Collections.Spatial.OctBounds.Height.get -> float
+Omni.Collections.Spatial.OctBounds.Intersects(Omni.Collections.Spatial.OctBounds other) -> bool
+Omni.Collections.Spatial.OctBounds.IntersectsSphere(Omni.Collections.Spatial.Vector3 center, float radiusSquared) -> bool
+Omni.Collections.Spatial.OctBounds.OctBounds() -> void
+Omni.Collections.Spatial.OctBounds.OctBounds(float minX, float minY, float minZ, float maxX, float maxY, float maxZ) -> void
+Omni.Collections.Spatial.OctBounds.Width.get -> float
+Omni.Collections.Spatial.OctPointProvider3D<T>
+Omni.Collections.Spatial.OctPointProvider3D<T>.GetPosition(T item) -> Omni.Collections.Spatial.Vector3
+Omni.Collections.Spatial.OctPointProvider3D<T>.OctPointProvider3D(System.Func<T, float>! getX, System.Func<T, float>! getY, System.Func<T, float>! getZ) -> void
+Omni.Collections.Spatial.OctTree<T>
+Omni.Collections.Spatial.OctTree<T>.Clear() -> void
+Omni.Collections.Spatial.OctTree<T>.Count.get -> int
+Omni.Collections.Spatial.OctTree<T>.Dispose() -> void
+Omni.Collections.Spatial.OctTree<T>.FindCollisions(T item, float radius) -> System.Collections.Generic.List<T>!
+Omni.Collections.Spatial.OctTree<T>.FindInBounds(Omni.Collections.Spatial.OctBounds bounds) -> System.Collections.Generic.List<T>!
+Omni.Collections.Spatial.OctTree<T>.FindInFrustum(Omni.Collections.Spatial.Frustum! frustum) -> System.Collections.Generic.List<T>!
+Omni.Collections.Spatial.OctTree<T>.FindInSphere(Omni.Collections.Spatial.Vector3 center, float radius) -> System.Collections.Generic.List<T>!
+Omni.Collections.Spatial.OctTree<T>.FindNearest(Omni.Collections.Spatial.Vector3 target) -> T?
+Omni.Collections.Spatial.OctTree<T>.GetAllItems() -> System.Collections.Generic.IEnumerable<T>!
+Omni.Collections.Spatial.OctTree<T>.Insert(T item, Omni.Collections.Spatial.OctBounds? bounds = null) -> void
+Omni.Collections.Spatial.OctTree<T>.InsertRange(System.Collections.Generic.IEnumerable<T>! items, Omni.Collections.Spatial.OctBounds? bounds = null) -> void
+Omni.Collections.Spatial.OctTree<T>.MinSize.get -> float
+Omni.Collections.Spatial.OctTree<T>.OctTree(Omni.Collections.Spatial.IOctPointProvider<T>! pointProvider, float minSize = 1) -> void
+Omni.Collections.Spatial.Plane
+Omni.Collections.Spatial.Plane.DistanceTo(Omni.Collections.Spatial.Vector3 point) -> float
+Omni.Collections.Spatial.Plane.Plane() -> void
+Omni.Collections.Spatial.Plane.Plane(Omni.Collections.Spatial.Vector3 normal, float distance) -> void
+Omni.Collections.Spatial.Point
+Omni.Collections.Spatial.Point.Deconstruct(out double X, out double Y) -> void
+Omni.Collections.Spatial.Point.DistanceSquaredTo(Omni.Collections.Spatial.Point other) -> double
+Omni.Collections.Spatial.Point.DistanceTo(Omni.Collections.Spatial.Point other) -> double
+Omni.Collections.Spatial.Point.Equals(Omni.Collections.Spatial.Point other) -> bool
+Omni.Collections.Spatial.Point.Point() -> void
+Omni.Collections.Spatial.Point.Point(double X, double Y) -> void
+Omni.Collections.Spatial.Point.X.get -> double
+Omni.Collections.Spatial.Point.X.init -> void
+Omni.Collections.Spatial.Point.Y.get -> double
+Omni.Collections.Spatial.Point.Y.init -> void
+Omni.Collections.Spatial.QuadTree<T>
+Omni.Collections.Spatial.QuadTree<T>.Bounds.get -> Omni.Collections.Spatial.Rectangle
+Omni.Collections.Spatial.QuadTree<T>.Count.get -> int
+Omni.Collections.Spatial.QuadTree<T>.FindNearest(Omni.Collections.Spatial.Point point) -> T
+Omni.Collections.Spatial.QuadTree<T>.Insert(Omni.Collections.Spatial.Point point, T item) -> void
+Omni.Collections.Spatial.QuadTree<T>.QuadTree(Omni.Collections.Spatial.Rectangle bounds, int maxDepth = 8, int maxItemsPerNode = 16, int spatialThreshold = 5000) -> void
+Omni.Collections.Spatial.QuadTree<T>.Query(Omni.Collections.Spatial.Rectangle region) -> System.Collections.Generic.List<T>!
+Omni.Collections.Spatial.QuadTree<T>.Query(Omni.Collections.Spatial.Rectangle region, System.Action<T>! callback) -> void
+Omni.Collections.Spatial.QuadTree<T>.Query(Omni.Collections.Spatial.Rectangle region, System.Collections.Generic.List<T>! results) -> void
+Omni.Collections.Spatial.QuadTree<T>.Remove(Omni.Collections.Spatial.Point point, T item) -> bool
+Omni.Collections.Spatial.Rectangle
+Omni.Collections.Spatial.Rectangle.Bottom.get -> double
+Omni.Collections.Spatial.Rectangle.Center.get -> Omni.Collections.Spatial.Point
+Omni.Collections.Spatial.Rectangle.Contains(Omni.Collections.Spatial.Point point) -> bool
+Omni.Collections.Spatial.Rectangle.Deconstruct(out double X, out double Y, out double Width, out double Height) -> void
+Omni.Collections.Spatial.Rectangle.DistanceTo(Omni.Collections.Spatial.Point point) -> double
+Omni.Collections.Spatial.Rectangle.Equals(Omni.Collections.Spatial.Rectangle other) -> bool
+Omni.Collections.Spatial.Rectangle.Height.get -> double
+Omni.Collections.Spatial.Rectangle.Height.init -> void
+Omni.Collections.Spatial.Rectangle.Intersects(Omni.Collections.Spatial.Rectangle other) -> bool
+Omni.Collections.Spatial.Rectangle.Rectangle() -> void
+Omni.Collections.Spatial.Rectangle.Rectangle(double X, double Y, double Width, double Height) -> void
+Omni.Collections.Spatial.Rectangle.Right.get -> double
+Omni.Collections.Spatial.Rectangle.Width.get -> double
+Omni.Collections.Spatial.Rectangle.Width.init -> void
+Omni.Collections.Spatial.Rectangle.X.get -> double
+Omni.Collections.Spatial.Rectangle.X.init -> void
+Omni.Collections.Spatial.Rectangle.Y.get -> double
+Omni.Collections.Spatial.Rectangle.Y.init -> void
+Omni.Collections.Spatial.SpatialHashGrid<T>
+Omni.Collections.Spatial.SpatialHashGrid<T>.BuildFromItems(System.Collections.Generic.IEnumerable<(float x, float y, T item)>! items) -> void
+Omni.Collections.Spatial.SpatialHashGrid<T>.CellSize.get -> float
+Omni.Collections.Spatial.SpatialHashGrid<T>.Clear() -> void
+Omni.Collections.Spatial.SpatialHashGrid<T>.Count.get -> int
+Omni.Collections.Spatial.SpatialHashGrid<T>.Dispose() -> void
+Omni.Collections.Spatial.SpatialHashGrid<T>.GetAllObjects() -> System.Collections.Generic.IEnumerable<(float x, float y, T item)>!
+Omni.Collections.Spatial.SpatialHashGrid<T>.GetObjectsAt(float x, float y) -> System.Collections.Generic.IEnumerable<T>!
+Omni.Collections.Spatial.SpatialHashGrid<T>.GetObjectsInRadius(float x, float y, float radius) -> System.Collections.Generic.IEnumerable<T>!
+Omni.Collections.Spatial.SpatialHashGrid<T>.GetObjectsInRectangle(float minX, float minY, float maxX, float maxY) -> System.Collections.Generic.IEnumerable<T>!
+Omni.Collections.Spatial.SpatialHashGrid<T>.GetPotentialCollisions() -> System.Collections.Generic.IEnumerable<(T first, T second)>!
+Omni.Collections.Spatial.SpatialHashGrid<T>.GetPotentialCollisions(Omni.Collections.Linear.PooledList<(T, T)>! results) -> int
+Omni.Collections.Spatial.SpatialHashGrid<T>.GetPotentialCollisions(float x, float y, T? excludeItem = default(T?)) -> System.Collections.Generic.IEnumerable<T>!
+Omni.Collections.Spatial.SpatialHashGrid<T>.GetStats() -> Omni.Collections.Spatial.SpatialHashGridStats
+Omni.Collections.Spatial.SpatialHashGrid<T>.Insert(float x, float y, T item) -> void
+Omni.Collections.Spatial.SpatialHashGrid<T>.InsertBounds(float x, float y, float width, float height, T item) -> void
+Omni.Collections.Spatial.SpatialHashGrid<T>.OccupiedCells.get -> int
+Omni.Collections.Spatial.SpatialHashGrid<T>.Remove(float x, float y, T item) -> bool
+Omni.Collections.Spatial.SpatialHashGrid<T>.SpatialHashGrid(float cellSize = 64, int spatialThreshold = 5000, int expectedItems = 0) -> void
+Omni.Collections.Spatial.SpatialHashGridStats
+Omni.Collections.Spatial.SpatialHashGridStats.AverageObjectsPerCell.get -> float
+Omni.Collections.Spatial.SpatialHashGridStats.AverageObjectsPerCell.init -> void
+Omni.Collections.Spatial.SpatialHashGridStats.MaxObjectsPerCell.get -> int
+Omni.Collections.Spatial.SpatialHashGridStats.MaxObjectsPerCell.init -> void
+Omni.Collections.Spatial.SpatialHashGridStats.MedianObjectsPerCell.get -> int
+Omni.Collections.Spatial.SpatialHashGridStats.MedianObjectsPerCell.init -> void
+Omni.Collections.Spatial.SpatialHashGridStats.OccupiedCells.get -> int
+Omni.Collections.Spatial.SpatialHashGridStats.OccupiedCells.init -> void
+Omni.Collections.Spatial.SpatialHashGridStats.SpatialHashGridStats() -> void
+Omni.Collections.Spatial.SpatialHashGridStats.TotalObjects.get -> int
+Omni.Collections.Spatial.SpatialHashGridStats.TotalObjects.init -> void
+Omni.Collections.Spatial.SpatialQuery
+Omni.Collections.Spatial.SpatialQuery.Equals(Omni.Collections.Spatial.SpatialQuery other) -> bool
+Omni.Collections.Spatial.SpatialQuery.SpatialQuery() -> void
+Omni.Collections.Spatial.SpatialQuery.SpatialQuery(Omni.Collections.Spatial.BoundingRectangle bounds, Omni.Collections.Spatial.SpatialQueryType queryType = Omni.Collections.Spatial.SpatialQueryType.Intersection) -> void
+Omni.Collections.Spatial.SpatialQueryType
+Omni.Collections.Spatial.SpatialQueryType.Contains = 1 -> Omni.Collections.Spatial.SpatialQueryType
+Omni.Collections.Spatial.SpatialQueryType.Intersection = 0 -> Omni.Collections.Spatial.SpatialQueryType
+Omni.Collections.Spatial.SpatialQueryType.Point = 2 -> Omni.Collections.Spatial.SpatialQueryType
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.CellSize.get -> float
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.Clear() -> void
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.CurrentObjectCount.get -> int
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.Dispose() -> void
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.GetAllObjectsWithVelocity() -> System.Collections.Generic.IEnumerable<Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.SpatialObject>!
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.GetObjectTrajectory(T obj, System.TimeSpan lookBack) -> System.Collections.Generic.IEnumerable<(System.DateTime time, float x, float y)>!
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.GetObjectsAlongPath(float startX, float startY, float endX, float endY, float pathWidth) -> System.Collections.Generic.IEnumerable<T>!
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.GetObjectsInRadius(float x, float y, float radius) -> System.Collections.Generic.IEnumerable<T>!
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.GetObjectsInRadiusAtTime(float x, float y, float radius, System.DateTime time) -> System.Collections.Generic.IEnumerable<T>!
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.GetObjectsInRectangle(float minX, float minY, float maxX, float maxY) -> System.Collections.Generic.IEnumerable<T>!
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.GetPredictedObjectsInRadius(float x, float y, float radius, System.TimeSpan lookAhead) -> System.Collections.Generic.IEnumerable<(T obj, float predictedX, float predictedY)>!
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.RemoveObject(T obj) -> bool
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.SnapshotCount.get -> int
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.SpatialObject
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.SpatialObject.LastUpdate.get -> System.DateTime
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.SpatialObject.LastUpdate.set -> void
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.SpatialObject.Object.get -> T
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.SpatialObject.Object.set -> void
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.SpatialObject.SpatialObject() -> void
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.SpatialObject.SpatialObject(float x, float y, T obj) -> void
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.SpatialObject.VelocityX.get -> float
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.SpatialObject.VelocityX.set -> void
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.SpatialObject.VelocityY.get -> float
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.SpatialObject.VelocityY.set -> void
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.SpatialObject.X.get -> float
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.SpatialObject.X.set -> void
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.SpatialObject.Y.get -> float
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.SpatialObject.Y.set -> void
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.TemporalSpatialHashGrid() -> void
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.TemporalSpatialHashGrid(float cellSize, System.TimeSpan snapshotInterval, System.TimeSpan historyRetention) -> void
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.UpdateObject(T obj, float x, float y, float velocityX = 0, float velocityY = 0) -> void
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.UpdatePosition(T obj, float x, float y) -> void
+Omni.Collections.Spatial.TemporalSpatialHashGrid<T>.UpdatePositionWithVelocity(T obj, float x, float y, float velocityX, float velocityY) -> void
+Omni.Collections.Spatial.Vector3
+Omni.Collections.Spatial.Vector3.Vector3() -> void
+Omni.Collections.Spatial.Vector3.Vector3(float x, float y, float z) -> void
+override Omni.Collections.Spatial.BloomRTreeDictionary.BloomRTreeStats.ToString() -> string!
+override Omni.Collections.Spatial.BoundingRectangle.Equals(object? obj) -> bool
+override Omni.Collections.Spatial.BoundingRectangle.GetHashCode() -> int
+override Omni.Collections.Spatial.BoundingRectangle.ToString() -> string!
+override Omni.Collections.Spatial.Point.GetHashCode() -> int
+override Omni.Collections.Spatial.Rectangle.GetHashCode() -> int
+override Omni.Collections.Spatial.SpatialQuery.Equals(object? obj) -> bool
+override Omni.Collections.Spatial.SpatialQuery.GetHashCode() -> int
+override Omni.Collections.Spatial.SpatialQuery.ToString() -> string!
+readonly Omni.Collections.Spatial.BoundingRectangle.MaxX -> float
+readonly Omni.Collections.Spatial.BoundingRectangle.MaxY -> float
+readonly Omni.Collections.Spatial.BoundingRectangle.MinX -> float
+readonly Omni.Collections.Spatial.BoundingRectangle.MinY -> float
+readonly Omni.Collections.Spatial.OctBounds.MaxX -> float
+readonly Omni.Collections.Spatial.OctBounds.MaxY -> float
+readonly Omni.Collections.Spatial.OctBounds.MaxZ -> float
+readonly Omni.Collections.Spatial.OctBounds.MinX -> float
+readonly Omni.Collections.Spatial.OctBounds.MinY -> float
+readonly Omni.Collections.Spatial.OctBounds.MinZ -> float
+readonly Omni.Collections.Spatial.Plane.Distance -> float
+readonly Omni.Collections.Spatial.Plane.Normal -> Omni.Collections.Spatial.Vector3
+readonly Omni.Collections.Spatial.SpatialQuery.Bounds -> Omni.Collections.Spatial.BoundingRectangle
+readonly Omni.Collections.Spatial.SpatialQuery.QueryType -> Omni.Collections.Spatial.SpatialQueryType
+readonly Omni.Collections.Spatial.Vector3.X -> float
+readonly Omni.Collections.Spatial.Vector3.Y -> float
+readonly Omni.Collections.Spatial.Vector3.Z -> float
+static Omni.Collections.Spatial.KDTree.KdTree<T>.Create2D(System.Func<T, double>! getX, System.Func<T, double>! getY, Omni.Collections.Spatial.DistanceMetrics.IDistanceMetric? distanceMetric = null) -> Omni.Collections.Spatial.KDTree.KdTree<T>!
+static Omni.Collections.Spatial.KDTree.KdTree<T>.Create3D(System.Func<T, double>! getX, System.Func<T, double>! getY, System.Func<T, double>! getZ, Omni.Collections.Spatial.DistanceMetrics.IDistanceMetric? distanceMetric = null) -> Omni.Collections.Spatial.KDTree.KdTree<T>!
+static Omni.Collections.Spatial.OctTree<T>.Create3D(System.Func<T, float>! getX, System.Func<T, float>! getY, System.Func<T, float>! getZ, float minSize = 1) -> Omni.Collections.Spatial.OctTree<T>!
+static Omni.Collections.Spatial.Point.operator !=(Omni.Collections.Spatial.Point left, Omni.Collections.Spatial.Point right) -> bool
+static Omni.Collections.Spatial.Point.operator ==(Omni.Collections.Spatial.Point left, Omni.Collections.Spatial.Point right) -> bool
+static Omni.Collections.Spatial.Rectangle.operator !=(Omni.Collections.Spatial.Rectangle left, Omni.Collections.Spatial.Rectangle right) -> bool
+static Omni.Collections.Spatial.Rectangle.operator ==(Omni.Collections.Spatial.Rectangle left, Omni.Collections.Spatial.Rectangle right) -> bool
+static Omni.Collections.Spatial.Vector3.Zero.get -> Omni.Collections.Spatial.Vector3
+static readonly Omni.Collections.Spatial.Rectangle.Empty -> Omni.Collections.Spatial.Rectangle
+~override Omni.Collections.Spatial.Point.Equals(object obj) -> bool
+~override Omni.Collections.Spatial.Point.ToString() -> string
+~override Omni.Collections.Spatial.Rectangle.Equals(object obj) -> bool
+~override Omni.Collections.Spatial.Rectangle.ToString() -> string

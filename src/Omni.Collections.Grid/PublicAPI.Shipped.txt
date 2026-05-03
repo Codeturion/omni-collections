@@ -1,0 +1,144 @@
+#nullable enable
+Omni.Collections.Grid2D.BitGrid2D
+Omni.Collections.Grid2D.BitGrid2D.And(Omni.Collections.Grid2D.BitGrid2D! other) -> void
+Omni.Collections.Grid2D.BitGrid2D.BitGrid2D(int width, int height) -> void
+Omni.Collections.Grid2D.BitGrid2D.ClearArea(int x, int y, int width, int height) -> void
+Omni.Collections.Grid2D.BitGrid2D.CopyRowTo(int y, System.Span<bool> destination) -> void
+Omni.Collections.Grid2D.BitGrid2D.Count.get -> int
+Omni.Collections.Grid2D.BitGrid2D.CountSetBits() -> int
+Omni.Collections.Grid2D.BitGrid2D.Dispose() -> void
+Omni.Collections.Grid2D.BitGrid2D.EnumerateAll() -> System.Collections.Generic.IEnumerable<(int x, int y, bool value)>!
+Omni.Collections.Grid2D.BitGrid2D.EnumerateArea(int x, int y, int width, int height) -> System.Collections.Generic.IEnumerable<(int x, int y, bool value)>!
+Omni.Collections.Grid2D.BitGrid2D.EnumerateSetBits() -> System.Collections.Generic.IEnumerable<(int x, int y)>!
+Omni.Collections.Grid2D.BitGrid2D.FillArea(int x, int y, int width, int height, bool value) -> void
+Omni.Collections.Grid2D.BitGrid2D.GetColumn(int x) -> System.Collections.Generic.IEnumerable<bool>!
+Omni.Collections.Grid2D.BitGrid2D.GetNeighbors(int x, int y, bool includeDiagonals = false) -> System.Collections.Generic.IEnumerable<bool>!
+Omni.Collections.Grid2D.BitGrid2D.GetNeighborsNonAlloc(int x, int y, System.Span<bool> buffer, bool includeDiagonals = false) -> int
+Omni.Collections.Grid2D.BitGrid2D.GetRow(int y) -> System.Collections.Generic.IEnumerable<bool>!
+Omni.Collections.Grid2D.BitGrid2D.GetRowCopy(int y) -> bool[]!
+Omni.Collections.Grid2D.BitGrid2D.Height.get -> int
+Omni.Collections.Grid2D.BitGrid2D.IsInBounds(int x, int y) -> bool
+Omni.Collections.Grid2D.BitGrid2D.Or(Omni.Collections.Grid2D.BitGrid2D! other) -> void
+Omni.Collections.Grid2D.BitGrid2D.ProcessNeighbors(int x, int y, System.Action<bool>! processor, bool includeDiagonals = false) -> void
+Omni.Collections.Grid2D.BitGrid2D.SetAll(bool value) -> void
+Omni.Collections.Grid2D.BitGrid2D.SwapElements(int x1, int y1, int x2, int y2) -> void
+Omni.Collections.Grid2D.BitGrid2D.Toggle(int x, int y) -> void
+Omni.Collections.Grid2D.BitGrid2D.Width.get -> int
+Omni.Collections.Grid2D.BitGrid2D.Xor(Omni.Collections.Grid2D.BitGrid2D! other) -> void
+Omni.Collections.Grid2D.BitGrid2D.this[int x, int y].get -> bool
+Omni.Collections.Grid2D.BitGrid2D.this[int x, int y].set -> void
+Omni.Collections.Grid2D.HexGrid.HexCell<T>
+Omni.Collections.Grid2D.HexGrid.HexCell<T>.Deconstruct(out Omni.Collections.Grid2D.HexGrid.HexCoord coord, out T value) -> void
+Omni.Collections.Grid2D.HexGrid.HexCell<T>.HexCell() -> void
+Omni.Collections.Grid2D.HexGrid.HexCell<T>.HexCell(Omni.Collections.Grid2D.HexGrid.HexCoord coord, T value) -> void
+Omni.Collections.Grid2D.HexGrid.HexCoord
+Omni.Collections.Grid2D.HexGrid.HexCoord.DistanceTo(Omni.Collections.Grid2D.HexGrid.HexCoord other) -> int
+Omni.Collections.Grid2D.HexGrid.HexCoord.Equals(Omni.Collections.Grid2D.HexGrid.HexCoord other) -> bool
+Omni.Collections.Grid2D.HexGrid.HexCoord.GetLineTo(Omni.Collections.Grid2D.HexGrid.HexCoord end) -> System.Collections.Generic.IEnumerable<Omni.Collections.Grid2D.HexGrid.HexCoord>!
+Omni.Collections.Grid2D.HexGrid.HexCoord.GetNeighbor(int direction) -> Omni.Collections.Grid2D.HexGrid.HexCoord
+Omni.Collections.Grid2D.HexGrid.HexCoord.GetNeighbors() -> System.Collections.Generic.IEnumerable<Omni.Collections.Grid2D.HexGrid.HexCoord>!
+Omni.Collections.Grid2D.HexGrid.HexCoord.GetRing(int distance) -> System.Collections.Generic.IEnumerable<Omni.Collections.Grid2D.HexGrid.HexCoord>!
+Omni.Collections.Grid2D.HexGrid.HexCoord.GetWithinDistance(int distance) -> System.Collections.Generic.IEnumerable<Omni.Collections.Grid2D.HexGrid.HexCoord>!
+Omni.Collections.Grid2D.HexGrid.HexCoord.HexCoord() -> void
+Omni.Collections.Grid2D.HexGrid.HexCoord.HexCoord(int q, int r) -> void
+Omni.Collections.Grid2D.HexGrid.HexCoord.S.get -> int
+Omni.Collections.Grid2D.HexGrid.HexCoord.ToCube() -> (int x, int y, int z)
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.Clear() -> void
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.Contains(Omni.Collections.Grid2D.HexGrid.HexCoord coord) -> bool
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.Count.get -> int
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.FillHexagon(Omni.Collections.Grid2D.HexGrid.HexCoord center, int radius, T value) -> void
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.FillRectangle(int left, int right, int top, int bottom, T value) -> void
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.FillRing(Omni.Collections.Grid2D.HexGrid.HexCoord center, int radius, T value) -> void
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.FromPixel(double x, double y) -> Omni.Collections.Grid2D.HexGrid.HexCoord
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.GetBounds() -> (Omni.Collections.Grid2D.HexGrid.HexCoord min, Omni.Collections.Grid2D.HexGrid.HexCoord max)
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.GetCells() -> System.Collections.Generic.IEnumerable<Omni.Collections.Grid2D.HexGrid.HexCell<T>>!
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.GetCoordinates() -> System.Collections.Generic.IEnumerable<Omni.Collections.Grid2D.HexGrid.HexCoord>!
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.GetEnumerator() -> System.Collections.Generic.IEnumerator<Omni.Collections.Grid2D.HexGrid.HexCell<T>>!
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.GetLine(Omni.Collections.Grid2D.HexGrid.HexCoord start, Omni.Collections.Grid2D.HexGrid.HexCoord end, bool includeEmpty = false) -> System.Collections.Generic.IEnumerable<Omni.Collections.Grid2D.HexGrid.HexCell<T>>!
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.GetNeighbors(Omni.Collections.Grid2D.HexGrid.HexCoord coord, bool includeEmpty = false) -> System.Collections.Generic.IEnumerable<Omni.Collections.Grid2D.HexGrid.HexCell<T>>!
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.GetRing(Omni.Collections.Grid2D.HexGrid.HexCoord center, int distance, bool includeEmpty = false) -> System.Collections.Generic.IEnumerable<Omni.Collections.Grid2D.HexGrid.HexCell<T>>!
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.GetValues() -> System.Collections.Generic.IEnumerable<T>!
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.GetWithinDistance(Omni.Collections.Grid2D.HexGrid.HexCoord center, int distance, bool includeEmpty = false) -> System.Collections.Generic.IEnumerable<Omni.Collections.Grid2D.HexGrid.HexCell<T>>!
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.HexGrid2D() -> void
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.HexGrid2D(Omni.Collections.Grid2D.HexGrid.HexLayout! layout) -> void
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.HexGrid2D(int capacity) -> void
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.HexGrid2D(int capacity, Omni.Collections.Grid2D.HexGrid.HexLayout! layout) -> void
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.Layout.get -> Omni.Collections.Grid2D.HexGrid.HexLayout!
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.Remove(Omni.Collections.Grid2D.HexGrid.HexCoord coord) -> bool
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.Set(Omni.Collections.Grid2D.HexGrid.HexCoord coord, T value) -> void
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.Set(int q, int r, T value) -> void
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.ToPixel(Omni.Collections.Grid2D.HexGrid.HexCoord coord) -> (double x, double y)
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.TryGetValue(Omni.Collections.Grid2D.HexGrid.HexCoord coord, out T value) -> bool
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.Version.get -> int
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.this[Omni.Collections.Grid2D.HexGrid.HexCoord coord].get -> T
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.this[Omni.Collections.Grid2D.HexGrid.HexCoord coord].set -> void
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.this[int q, int r].get -> T
+Omni.Collections.Grid2D.HexGrid.HexGrid2D<T>.this[int q, int r].set -> void
+Omni.Collections.Grid2D.HexGrid.HexLayout
+Omni.Collections.Grid2D.HexGrid.HexLayout.FromPixel(double x, double y) -> Omni.Collections.Grid2D.HexGrid.HexCoord
+Omni.Collections.Grid2D.HexGrid.HexLayout.HexLayout(Omni.Collections.Grid2D.HexGrid.HexOrientation! orientation, (double width, double height) size, (double x, double y) origin) -> void
+Omni.Collections.Grid2D.HexGrid.HexLayout.Orientation.get -> Omni.Collections.Grid2D.HexGrid.HexOrientation!
+Omni.Collections.Grid2D.HexGrid.HexLayout.Origin.get -> (double x, double y)
+Omni.Collections.Grid2D.HexGrid.HexLayout.Size.get -> (double width, double height)
+Omni.Collections.Grid2D.HexGrid.HexLayout.ToPixel(Omni.Collections.Grid2D.HexGrid.HexCoord coord) -> (double x, double y)
+Omni.Collections.Grid2D.HexGrid.HexOrientation
+Omni.Collections.Grid2D.HexGrid.HexOrientation.ForwardMatrix.get -> (double f0, double f1, double f2, double f3)
+Omni.Collections.Grid2D.HexGrid.HexOrientation.InverseMatrix.get -> (double b0, double b1, double b2, double b3)
+Omni.Collections.Grid2D.HexGrid.HexOrientation.StartAngle.get -> double
+Omni.Collections.Grid2D.LayeredGrid2D<T>
+Omni.Collections.Grid2D.LayeredGrid2D<T>.ClearAllLayersArea(int x, int y, int width, int height) -> void
+Omni.Collections.Grid2D.LayeredGrid2D<T>.ClearArea(int x, int y, int width, int height) -> void
+Omni.Collections.Grid2D.LayeredGrid2D<T>.ClearLayer(int layer) -> void
+Omni.Collections.Grid2D.LayeredGrid2D<T>.CopyLayer(int sourceLayer, int destinationLayer) -> void
+Omni.Collections.Grid2D.LayeredGrid2D<T>.Count.get -> int
+Omni.Collections.Grid2D.LayeredGrid2D<T>.Dispose() -> void
+Omni.Collections.Grid2D.LayeredGrid2D<T>.EnumerateAll() -> System.Collections.Generic.IEnumerable<(int x, int y, T value)>!
+Omni.Collections.Grid2D.LayeredGrid2D<T>.EnumerateAllLayers() -> System.Collections.Generic.IEnumerable<(int x, int y, int layer, T value)>!
+Omni.Collections.Grid2D.LayeredGrid2D<T>.EnumerateArea(int x, int y, int width, int height) -> System.Collections.Generic.IEnumerable<(int x, int y, T value)>!
+Omni.Collections.Grid2D.LayeredGrid2D<T>.FillArea(int x, int y, int width, int height, T value) -> void
+Omni.Collections.Grid2D.LayeredGrid2D<T>.FillLayer(int layer, T value) -> void
+Omni.Collections.Grid2D.LayeredGrid2D<T>.FillLayerArea(int layer, int x, int y, int width, int height, T value) -> void
+Omni.Collections.Grid2D.LayeredGrid2D<T>.GetColumn(int x) -> System.Collections.Generic.IEnumerable<T>!
+Omni.Collections.Grid2D.LayeredGrid2D<T>.GetLayerRow(int layer, int y) -> System.Collections.Generic.IEnumerable<T>!
+Omni.Collections.Grid2D.LayeredGrid2D<T>.GetLayerRowSpan(int layer, int y) -> System.ReadOnlySpan<T>
+Omni.Collections.Grid2D.LayeredGrid2D<T>.GetNeighbors(int x, int y, bool includeDiagonals = false) -> System.Collections.Generic.IEnumerable<T>!
+Omni.Collections.Grid2D.LayeredGrid2D<T>.GetNeighborsAllLayers(int x, int y, bool includeDiagonals = false) -> System.Collections.Generic.IEnumerable<T>!
+Omni.Collections.Grid2D.LayeredGrid2D<T>.GetNeighborsNonAlloc(int x, int y, System.Span<T> buffer, bool includeDiagonals = false) -> int
+Omni.Collections.Grid2D.LayeredGrid2D<T>.GetRow(int y) -> System.Collections.Generic.IEnumerable<T>!
+Omni.Collections.Grid2D.LayeredGrid2D<T>.GetRowSpan(int y) -> System.ReadOnlySpan<T>
+Omni.Collections.Grid2D.LayeredGrid2D<T>.Height.get -> int
+Omni.Collections.Grid2D.LayeredGrid2D<T>.IsInBounds(int x, int y) -> bool
+Omni.Collections.Grid2D.LayeredGrid2D<T>.LayerCount.get -> int
+Omni.Collections.Grid2D.LayeredGrid2D<T>.LayeredGrid2D(int width, int height, int layerCount) -> void
+Omni.Collections.Grid2D.LayeredGrid2D<T>.ProcessNeighbors(int x, int y, System.Action<T>! processor, bool includeDiagonals = false) -> void
+Omni.Collections.Grid2D.LayeredGrid2D<T>.ProcessNeighborsInLayer(int layer, int x, int y, System.Action<T>! processor, bool includeDiagonals = false) -> void
+Omni.Collections.Grid2D.LayeredGrid2D<T>.SwapElements(int x1, int y1, int x2, int y2) -> void
+Omni.Collections.Grid2D.LayeredGrid2D<T>.SwapElementsAcrossLayers(int layer1, int x1, int y1, int layer2, int x2, int y2) -> void
+Omni.Collections.Grid2D.LayeredGrid2D<T>.SwapElementsInLayer(int layer, int x1, int y1, int x2, int y2) -> void
+Omni.Collections.Grid2D.LayeredGrid2D<T>.Width.get -> int
+Omni.Collections.Grid2D.LayeredGrid2D<T>.this[int layer, int x, int y].get -> T
+Omni.Collections.Grid2D.LayeredGrid2D<T>.this[int layer, int x, int y].set -> void
+Omni.Collections.Grid2D.LayeredGrid2D<T>.this[int x, int y].get -> T
+Omni.Collections.Grid2D.LayeredGrid2D<T>.this[int x, int y].set -> void
+override Omni.Collections.Grid2D.HexGrid.HexCell<T>.ToString() -> string!
+override Omni.Collections.Grid2D.HexGrid.HexCoord.Equals(object? obj) -> bool
+override Omni.Collections.Grid2D.HexGrid.HexCoord.GetHashCode() -> int
+override Omni.Collections.Grid2D.HexGrid.HexCoord.ToString() -> string!
+readonly Omni.Collections.Grid2D.HexGrid.HexCell<T>.Coord -> Omni.Collections.Grid2D.HexGrid.HexCoord
+readonly Omni.Collections.Grid2D.HexGrid.HexCell<T>.Value -> T
+readonly Omni.Collections.Grid2D.HexGrid.HexCoord.Q -> int
+readonly Omni.Collections.Grid2D.HexGrid.HexCoord.R -> int
+static Omni.Collections.Grid2D.BitGrid2D.CreateWithArrayPool(int width, int height) -> Omni.Collections.Grid2D.BitGrid2D!
+static Omni.Collections.Grid2D.HexGrid.HexCoord.FromCube(int x, int y, int z) -> Omni.Collections.Grid2D.HexGrid.HexCoord
+static Omni.Collections.Grid2D.HexGrid.HexCoord.Origin.get -> Omni.Collections.Grid2D.HexGrid.HexCoord
+static Omni.Collections.Grid2D.HexGrid.HexCoord.operator !=(Omni.Collections.Grid2D.HexGrid.HexCoord left, Omni.Collections.Grid2D.HexGrid.HexCoord right) -> bool
+static Omni.Collections.Grid2D.HexGrid.HexCoord.operator *(Omni.Collections.Grid2D.HexGrid.HexCoord coord, int scalar) -> Omni.Collections.Grid2D.HexGrid.HexCoord
+static Omni.Collections.Grid2D.HexGrid.HexCoord.operator +(Omni.Collections.Grid2D.HexGrid.HexCoord a, Omni.Collections.Grid2D.HexGrid.HexCoord b) -> Omni.Collections.Grid2D.HexGrid.HexCoord
+static Omni.Collections.Grid2D.HexGrid.HexCoord.operator -(Omni.Collections.Grid2D.HexGrid.HexCoord a, Omni.Collections.Grid2D.HexGrid.HexCoord b) -> Omni.Collections.Grid2D.HexGrid.HexCoord
+static Omni.Collections.Grid2D.HexGrid.HexCoord.operator ==(Omni.Collections.Grid2D.HexGrid.HexCoord left, Omni.Collections.Grid2D.HexGrid.HexCoord right) -> bool
+static Omni.Collections.Grid2D.HexGrid.HexLayout.FlatTop(double size = 1) -> Omni.Collections.Grid2D.HexGrid.HexLayout!
+static Omni.Collections.Grid2D.HexGrid.HexLayout.PointyTop(double size = 1) -> Omni.Collections.Grid2D.HexGrid.HexLayout!
+static Omni.Collections.Grid2D.HexGrid.HexOrientation.FlatTop.get -> Omni.Collections.Grid2D.HexGrid.HexOrientation!
+static Omni.Collections.Grid2D.HexGrid.HexOrientation.PointyTop.get -> Omni.Collections.Grid2D.HexGrid.HexOrientation!
+static Omni.Collections.Grid2D.LayeredGrid2D<T>.CreateWithArrayPool(int width, int height, int layerCount) -> Omni.Collections.Grid2D.LayeredGrid2D<T>!
