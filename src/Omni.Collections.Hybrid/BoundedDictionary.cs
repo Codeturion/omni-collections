@@ -6,12 +6,17 @@ using Omni.Collections.Core.Security;
 namespace Omni.Collections.Hybrid
 {
     /// <summary>
-    /// A fixed-capacity dictionary that automatically evicts oldest entries when full, implementing LRU-like behavior.
-    /// Guarantees O(1) Add/Remove/Contains operations with automatic memory bounds through circular eviction strategy.
-    /// Ideal for asset caches, recently accessed item storage, texture/sound caches in games, or any scenario
-    /// requiring bounded O(1) performance with automatic cleanup.
+    /// A fixed-capacity dictionary that auto-evicts the oldest entry on overflow (FIFO eviction order
+    /// by insert time, not LRU access-order). Use this when you need a bounded keyed cache where the
+    /// oldest insert is the cull target. For LRU access-order eviction use
+    /// <see cref="LinkedDictionary.LinkedDictionary{TKey, TValue}"/>; for an unbounded
+    /// insertion-ordered keyed queue use <see cref="QueueDictionary.QueueDictionary{TKey, TValue}"/>.
     /// </summary>
-    public class CircularDictionary<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>, IDisposable
+    /// <remarks>
+    /// Cost is ~1.1× <see cref="System.Collections.Generic.Dictionary{TKey, TValue}"/> on Add and ~2× on
+    /// Lookup at large N — the bounded-capacity guarantee is the value, not raw speed.
+    /// </remarks>
+    public class BoundedDictionary<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>, IDisposable
         where TKey : notnull
     {
         #region Entry
@@ -41,7 +46,7 @@ namespace Omni.Collections.Hybrid
         public int Count => _count;
         public bool IsFull => _count == _capacity;
         public bool IsEmpty => _count == 0;
-        public CircularDictionary(int capacity, IEqualityComparer<TKey>? comparer = null, SecureHashOptions? hashOptions = null)
+        public BoundedDictionary(int capacity, IEqualityComparer<TKey>? comparer = null, SecureHashOptions? hashOptions = null)
         {
             if (capacity <= 0)
                 throw new ArgumentOutOfRangeException(nameof(capacity));
@@ -97,7 +102,7 @@ namespace Omni.Collections.Hybrid
                 {
                     _collisionCount++;
                     _hashOptions.OnExcessiveCollisions?.Invoke(
-                        $"CircularDictionary: Excessive collision chain length ({chainLength}) detected for key: {key}");
+                        $"BoundedDictionary: Excessive collision chain length ({chainLength}) detected for key: {key}");
                 }
             }
             if (_count == _capacity)
@@ -305,7 +310,7 @@ namespace Omni.Collections.Hybrid
                     return index;
                 index = (index + 1) % _capacity;
             }
-            throw new InvalidOperationException("CircularDictionary: no free slot available for insertion.");
+            throw new InvalidOperationException("BoundedDictionary: no free slot available for insertion.");
         }
 
         private int FindNextOccupiedIndex(int startIndex)
@@ -317,7 +322,7 @@ namespace Omni.Collections.Hybrid
                     return index;
                 index = (index + 1) % _capacity;
             }
-            throw new InvalidOperationException("CircularDictionary: failed to locate next occupied entry.");
+            throw new InvalidOperationException("BoundedDictionary: failed to locate next occupied entry.");
         }
 
         private void RemoveEntryAtIndex(int index)
@@ -386,7 +391,7 @@ namespace Omni.Collections.Hybrid
                     return index;
                 index = (index - 1 + _capacity) % _capacity;
             }
-            throw new InvalidOperationException("CircularDictionary: failed to locate previous occupied entry.");
+            throw new InvalidOperationException("BoundedDictionary: failed to locate previous occupied entry.");
         }
         #endregion
         #region IEnumerable Implementation
@@ -405,13 +410,13 @@ namespace Omni.Collections.Hybrid
 
         public struct Enumerator : IEnumerator<KeyValuePair<TKey, TValue>>
         {
-            private readonly CircularDictionary<TKey, TValue> _dictionary;
+            private readonly BoundedDictionary<TKey, TValue> _dictionary;
             private readonly int _version;
             private int _index;
             private int _probedCount;
             private int _returnedCount;
             private KeyValuePair<TKey, TValue> _current;
-            internal Enumerator(CircularDictionary<TKey, TValue> dictionary)
+            internal Enumerator(BoundedDictionary<TKey, TValue> dictionary)
             {
                 _dictionary = dictionary;
                 _version = dictionary._version;

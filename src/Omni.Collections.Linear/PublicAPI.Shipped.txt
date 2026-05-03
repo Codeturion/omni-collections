@@ -38,27 +38,6 @@ Omni.Collections.Linear.BoundedList<T>.TryInsert(int index, T item) -> bool
 Omni.Collections.Linear.BoundedList<T>.TryRemoveLast(out T result) -> bool
 Omni.Collections.Linear.BoundedList<T>.this[int index].get -> T
 Omni.Collections.Linear.BoundedList<T>.this[int index].set -> void
-Omni.Collections.Linear.FastQueue<T>
-Omni.Collections.Linear.FastQueue<T>.Capacity.get -> int
-Omni.Collections.Linear.FastQueue<T>.Clear() -> void
-Omni.Collections.Linear.FastQueue<T>.Count.get -> int
-Omni.Collections.Linear.FastQueue<T>.Dequeue() -> T
-Omni.Collections.Linear.FastQueue<T>.DequeueSpan(int count) -> System.ReadOnlySpan<T>
-Omni.Collections.Linear.FastQueue<T>.Dispose() -> void
-Omni.Collections.Linear.FastQueue<T>.Enqueue(T item) -> void
-Omni.Collections.Linear.FastQueue<T>.EnqueueSpan(System.ReadOnlySpan<T> items) -> void
-Omni.Collections.Linear.FastQueue<T>.Enumerator
-Omni.Collections.Linear.FastQueue<T>.Enumerator.Current.get -> T
-Omni.Collections.Linear.FastQueue<T>.Enumerator.Dispose() -> void
-Omni.Collections.Linear.FastQueue<T>.Enumerator.Enumerator() -> void
-Omni.Collections.Linear.FastQueue<T>.Enumerator.MoveNext() -> bool
-Omni.Collections.Linear.FastQueue<T>.Enumerator.Reset() -> void
-Omni.Collections.Linear.FastQueue<T>.FastQueue(int capacity = 16) -> void
-Omni.Collections.Linear.FastQueue<T>.GetEnumerator() -> Omni.Collections.Linear.FastQueue<T>.Enumerator
-Omni.Collections.Linear.FastQueue<T>.Peek() -> T
-Omni.Collections.Linear.FastQueue<T>.Return() -> void
-Omni.Collections.Linear.FastQueue<T>.TryDequeue(out T result) -> bool
-Omni.Collections.Linear.FastQueue<T>.TryPeek(out T result) -> bool
 Omni.Collections.Linear.MaxHeap<T>
 Omni.Collections.Linear.MaxHeap<T>.AsSpan() -> System.ReadOnlySpan<T>
 Omni.Collections.Linear.MaxHeap<T>.Capacity.get -> int
@@ -133,6 +112,27 @@ Omni.Collections.Linear.PooledList<T>.RemoveLast() -> T
 Omni.Collections.Linear.PooledList<T>.TryRemoveLast(out T result) -> bool
 Omni.Collections.Linear.PooledList<T>.this[int index].get -> T
 Omni.Collections.Linear.PooledList<T>.this[int index].set -> void
+Omni.Collections.Linear.PooledQueue<T>
+Omni.Collections.Linear.PooledQueue<T>.Capacity.get -> int
+Omni.Collections.Linear.PooledQueue<T>.Clear() -> void
+Omni.Collections.Linear.PooledQueue<T>.Count.get -> int
+Omni.Collections.Linear.PooledQueue<T>.Dequeue() -> T
+Omni.Collections.Linear.PooledQueue<T>.DequeueSpan(int count) -> System.ReadOnlySpan<T>
+Omni.Collections.Linear.PooledQueue<T>.Dispose() -> void
+Omni.Collections.Linear.PooledQueue<T>.Enqueue(T item) -> void
+Omni.Collections.Linear.PooledQueue<T>.EnqueueSpan(System.ReadOnlySpan<T> items) -> void
+Omni.Collections.Linear.PooledQueue<T>.Enumerator
+Omni.Collections.Linear.PooledQueue<T>.Enumerator.Current.get -> T
+Omni.Collections.Linear.PooledQueue<T>.Enumerator.Dispose() -> void
+Omni.Collections.Linear.PooledQueue<T>.Enumerator.Enumerator() -> void
+Omni.Collections.Linear.PooledQueue<T>.Enumerator.MoveNext() -> bool
+Omni.Collections.Linear.PooledQueue<T>.Enumerator.Reset() -> void
+Omni.Collections.Linear.PooledQueue<T>.GetEnumerator() -> Omni.Collections.Linear.PooledQueue<T>.Enumerator
+Omni.Collections.Linear.PooledQueue<T>.Peek() -> T
+Omni.Collections.Linear.PooledQueue<T>.PooledQueue(int capacity = 16) -> void
+Omni.Collections.Linear.PooledQueue<T>.Return() -> void
+Omni.Collections.Linear.PooledQueue<T>.TryDequeue(out T result) -> bool
+Omni.Collections.Linear.PooledQueue<T>.TryPeek(out T result) -> bool
 Omni.Collections.Linear.PooledStack<T>
 Omni.Collections.Linear.PooledStack<T>.AsSpan() -> System.ReadOnlySpan<T>
 Omni.Collections.Linear.PooledStack<T>.Capacity.get -> int
@@ -159,8 +159,6 @@ Omni.Collections.Linear.PooledStack<T>.TryPop(out T result) -> bool
 Omni.Collections.Linear.RefAction<T>
 static Omni.Collections.Linear.BoundedList<T>.CreateWithArrayPool(int capacity) -> Omni.Collections.Linear.BoundedList<T>!
 static Omni.Collections.Linear.BoundedList<T>.Rent(int capacity) -> Omni.Collections.Linear.BoundedList<T>!
-static Omni.Collections.Linear.FastQueue<T>.CreateWithArrayPool(int capacity = 16) -> Omni.Collections.Linear.FastQueue<T>!
-static Omni.Collections.Linear.FastQueue<T>.Rent(int capacity = 16) -> Omni.Collections.Linear.FastQueue<T>!
 static Omni.Collections.Linear.MaxHeap<T>.BuildHeap(T[]! array) -> Omni.Collections.Linear.MaxHeap<T>!
 static Omni.Collections.Linear.MaxHeap<T>.CreateWithArrayPool(int initialCapacity = 16) -> Omni.Collections.Linear.MaxHeap<T>!
 static Omni.Collections.Linear.MaxHeap<T>.Rent(int initialCapacity = 16) -> Omni.Collections.Linear.MaxHeap<T>!
@@ -168,5 +166,7 @@ static Omni.Collections.Linear.MinHeap<T>.BuildHeap(T[]! array) -> Omni.Collecti
 static Omni.Collections.Linear.MinHeap<T>.CreateWithArrayPool(int initialCapacity = 16) -> Omni.Collections.Linear.MinHeap<T>!
 static Omni.Collections.Linear.MinHeap<T>.Rent(int initialCapacity = 16) -> Omni.Collections.Linear.MinHeap<T>!
 static Omni.Collections.Linear.PooledList<T>.CreateWithArrayPool(int initialCapacity = 16) -> Omni.Collections.Linear.PooledList<T>!
+static Omni.Collections.Linear.PooledQueue<T>.CreateWithArrayPool(int capacity = 16) -> Omni.Collections.Linear.PooledQueue<T>!
+static Omni.Collections.Linear.PooledQueue<T>.Rent(int capacity = 16) -> Omni.Collections.Linear.PooledQueue<T>!
 static Omni.Collections.Linear.PooledStack<T>.CreateWithArrayPool(int initialCapacity = 16) -> Omni.Collections.Linear.PooledStack<T>!
 virtual Omni.Collections.Linear.RefAction<T>.Invoke(ref T item) -> void

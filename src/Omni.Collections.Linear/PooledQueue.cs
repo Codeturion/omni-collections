@@ -8,12 +8,19 @@ using System.Runtime.CompilerServices;
 namespace Omni.Collections.Linear;
 
 /// <summary>
-/// A high-performance circular buffer queue that significantly outperforms standard Queue in throughput scenarios.
-/// Provides O(1) amortized Enqueue/Dequeue operations with microsecond-level performance through intelligent circular buffer design.
-/// Perfect for high-throughput producer-consumer patterns where consistent O(1) operations and minimal GC pressure
-/// are critical for maintaining system responsiveness.
+/// A queue backed by a power-of-two ring buffer with optional <see cref="ArrayPool{T}"/> rental for the
+/// backing storage. Use this when you have many short-lived queues in a hot path and want to amortize
+/// the buffer allocation cost across queue lifetimes — pair with <see cref="Rent(int)"/> /
+/// <see cref="Return"/> for instance pooling, or <see cref="CreateWithArrayPool(int)"/> to rent the
+/// internal array. Provides span-based batch operations (<see cref="EnqueueSpan"/>,
+/// <see cref="DequeueSpan"/>) that <see cref="System.Collections.Generic.Queue{T}"/> does not.
 /// </summary>
-public sealed class FastQueue<T> : IEnumerable<T>, IDisposable
+/// <remarks>
+/// Per-op cost is ~1.35× <see cref="System.Collections.Generic.Queue{T}"/> at small N due to mandatory
+/// dispose-state validation; parity at large N. The win is the pool integration and batch APIs, not
+/// raw per-op throughput.
+/// </remarks>
+public sealed class PooledQueue<T> : IEnumerable<T>, IDisposable
 {
     private T[] _buffer;
     private readonly ArrayPool<T>? _arrayPool;
@@ -23,14 +30,14 @@ public sealed class FastQueue<T> : IEnumerable<T>, IDisposable
     private int _size;
     private int _mask;
     private bool _disposed;
-    static private readonly ConcurrentQueue<FastQueue<T>> InstancePool = new ConcurrentQueue<FastQueue<T>>();
+    static private readonly ConcurrentQueue<PooledQueue<T>> InstancePool = new ConcurrentQueue<PooledQueue<T>>();
     public int Count => _size;
     public int Capacity => _buffer.Length;
     private bool IsEmpty => _size == 0;
     private bool IsFull => _size == _buffer.Length;
-    public FastQueue(int capacity = 16) : this(capacity, arrayPool: null) { }
+    public PooledQueue(int capacity = 16) : this(capacity, arrayPool: null) { }
 
-    private FastQueue(int capacity, ArrayPool<T>? arrayPool)
+    private PooledQueue(int capacity, ArrayPool<T>? arrayPool)
     {
         if (capacity <= 0)
             throw new ArgumentOutOfRangeException(nameof(capacity));
@@ -52,19 +59,19 @@ public sealed class FastQueue<T> : IEnumerable<T>, IDisposable
         _size = 0;
     }
 
-    public static FastQueue<T> CreateWithArrayPool(int capacity = 16)
+    public static PooledQueue<T> CreateWithArrayPool(int capacity = 16)
     {
-        return new FastQueue<T>(capacity, ArrayPool<T>.Shared);
+        return new PooledQueue<T>(capacity, ArrayPool<T>.Shared);
     }
 
-    public static FastQueue<T> Rent(int capacity = 16)
+    public static PooledQueue<T> Rent(int capacity = 16)
     {
-        if (InstancePool.TryDequeue(out FastQueue<T>? instance))
+        if (InstancePool.TryDequeue(out PooledQueue<T>? instance))
         {
             instance.ResetForReuse(capacity);
             return instance;
         }
-        return new FastQueue<T>(capacity);
+        return new PooledQueue<T>(capacity);
     }
 
     public void Return()
@@ -296,7 +303,7 @@ public sealed class FastQueue<T> : IEnumerable<T>, IDisposable
         _head = 0;
         _tail = _size;
     }
-    ~FastQueue()
+    ~PooledQueue()
     {
         DisposeCore(false);
     }
@@ -323,7 +330,7 @@ public sealed class FastQueue<T> : IEnumerable<T>, IDisposable
     private void ThrowIfDisposed()
     {
         if (_disposed)
-            throw new ObjectDisposedException(nameof(FastQueue<T>));
+            throw new ObjectDisposedException(nameof(PooledQueue<T>));
     }
 
     static private int RoundUpToPowerOfTwo(int value)
@@ -339,10 +346,10 @@ public sealed class FastQueue<T> : IEnumerable<T>, IDisposable
 
     public struct Enumerator : IEnumerator<T>
     {
-        private readonly FastQueue<T> _queue;
+        private readonly PooledQueue<T> _queue;
         private int _index;
         private T _current;
-        internal Enumerator(FastQueue<T> queue)
+        internal Enumerator(PooledQueue<T> queue)
         {
             _queue = queue;
             _index = 0;

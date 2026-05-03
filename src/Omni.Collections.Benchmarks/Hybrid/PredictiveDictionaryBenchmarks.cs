@@ -40,7 +40,7 @@ public class PredictiveDictionaryBenchmarks
         _values = RandomData.Ints(N + OpsPerIteration);
         _readIndices = RandomData.IntsInRange(ReadIndexMask + 1, 0, N);
 
-        _omniFilled = new PredictiveDictionary<string, int>(PatternLength, MaxPatterns, N, 0.7, TimeSpan.FromMinutes(10));
+        _omniFilled = new PredictiveDictionary<string, int>(PatternLength, MaxPatterns, N, 0.7);
         _baselineFilled = new Dictionary<string, int>(N);
         for (int i = 0; i < N; i++)
         {
@@ -52,7 +52,7 @@ public class PredictiveDictionaryBenchmarks
     [IterationSetup(Targets = new[] { nameof(Omni_Add), nameof(Baseline_Add) })]
     public void ResetForAdd()
     {
-        _omniMut = new PredictiveDictionary<string, int>(PatternLength, MaxPatterns, N + OpsPerIteration, 0.7, TimeSpan.FromMinutes(10));
+        _omniMut = new PredictiveDictionary<string, int>(PatternLength, MaxPatterns, N + OpsPerIteration, 0.7);
         _baselineMut = new Dictionary<string, int>(N + OpsPerIteration);
         for (int i = 0; i < N; i++)
         {
@@ -98,7 +98,7 @@ public class PredictiveDictionaryBenchmarks
     [Benchmark, BenchmarkCategory("Fill"), InvocationCount(1)]
     public PredictiveDictionary<string, int> Omni_Fill()
     {
-        var c = new PredictiveDictionary<string, int>(PatternLength, MaxPatterns, 16, 0.7, TimeSpan.FromMinutes(10));
+        var c = new PredictiveDictionary<string, int>(PatternLength, MaxPatterns, 16, 0.7);
         for (int i = 0; i < N; i++)
             c.AddOrUpdate(_keys[i], _values[i]);
         return c;

@@ -10,7 +10,7 @@ namespace Omni.Collections.Benchmarks.Linear;
 [GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
 [CategoriesColumn]
 [MemoryDiagnoser]
-public class FastQueueBenchmarks
+public class PooledQueueBenchmarks
 {
     private const int OpsPerIteration = 32768;
 
@@ -19,10 +19,10 @@ public class FastQueueBenchmarks
 
     private string[] _values = null!;
 
-    private FastQueue<string> _omniFilled = null!;
+    private PooledQueue<string> _omniFilled = null!;
     private Queue<string> _baselineFilled = null!;
 
-    private FastQueue<string> _omniMut = null!;
+    private PooledQueue<string> _omniMut = null!;
     private Queue<string> _baselineMut = null!;
     private int _opCounter;
 
@@ -31,7 +31,7 @@ public class FastQueueBenchmarks
     {
         _values = RandomData.Strings(N + OpsPerIteration);
 
-        _omniFilled = new FastQueue<string>(N);
+        _omniFilled = new PooledQueue<string>(N);
         _baselineFilled = new Queue<string>(N);
         for (int i = 0; i < N; i++)
         {
@@ -51,7 +51,7 @@ public class FastQueueBenchmarks
     public void ResetForEnqueue()
     {
         _omniMut?.Dispose();
-        _omniMut = new FastQueue<string>(N + OpsPerIteration);
+        _omniMut = new PooledQueue<string>(N + OpsPerIteration);
         _baselineMut = new Queue<string>(N + OpsPerIteration);
         for (int i = 0; i < N; i++)
         {
@@ -65,7 +65,7 @@ public class FastQueueBenchmarks
     public void RefillForDequeue()
     {
         _omniMut?.Dispose();
-        _omniMut = new FastQueue<string>(N + OpsPerIteration);
+        _omniMut = new PooledQueue<string>(N + OpsPerIteration);
         _baselineMut = new Queue<string>(N + OpsPerIteration);
         for (int i = 0; i < N + OpsPerIteration; i++)
         {
@@ -74,7 +74,7 @@ public class FastQueueBenchmarks
         }
     }
 
-    /// Claim: FastQueue.Enqueue (capacity sufficient) is at least as fast as Queue.Enqueue.
+    /// Claim: PooledQueue.Enqueue (capacity sufficient) is at least as fast as Queue.Enqueue.
     [Benchmark, BenchmarkCategory("Enqueue"), InvocationCount(OpsPerIteration)]
     public int Omni_Enqueue()
     {
@@ -89,7 +89,7 @@ public class FastQueueBenchmarks
         return _baselineMut.Count;
     }
 
-    /// Claim: FastQueue.Dequeue is at least as fast as Queue.Dequeue.
+    /// Claim: PooledQueue.Dequeue is at least as fast as Queue.Dequeue.
     [Benchmark, BenchmarkCategory("Dequeue"), InvocationCount(OpsPerIteration)]
     public string Omni_Dequeue() => _omniMut.Dequeue();
 
@@ -98,11 +98,11 @@ public class FastQueueBenchmarks
 
     // ============= Fill (bulk allocation comparison) =============
 
-    /// Claim: FastQueue default-cap fill is faster and allocates less than Queue<T> growing through resizes.
+    /// Claim: PooledQueue default-cap fill is faster and allocates less than Queue<T> growing through resizes.
     [Benchmark, BenchmarkCategory("Fill"), InvocationCount(1)]
-    public FastQueue<string> Omni_Fill()
+    public PooledQueue<string> Omni_Fill()
     {
-        var c = new FastQueue<string>();
+        var c = new PooledQueue<string>();
         for (int i = 0; i < N; i++)
             c.Enqueue(_values[i]);
         return c;
@@ -117,14 +117,14 @@ public class FastQueueBenchmarks
         return c;
     }
 
-    /// Claim: FastQueue.Peek matches Queue<T>.Peek (both read head index).
+    /// Claim: PooledQueue.Peek matches Queue<T>.Peek (both read head index).
     [Benchmark, BenchmarkCategory("Peek")]
     public string Omni_Peek() => _omniFilled.Peek();
 
     [Benchmark(Baseline = true), BenchmarkCategory("Peek")]
     public string Baseline_Peek() => _baselineFilled.Peek();
 
-    /// Claim: FastQueue struct enumerator is at least as fast as Queue<T>.GetEnumerator.
+    /// Claim: PooledQueue struct enumerator is at least as fast as Queue<T>.GetEnumerator.
     [Benchmark, BenchmarkCategory("Enumerate")]
     public int Omni_Enumerate()
     {
