@@ -301,6 +301,7 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
         if (items == null) throw new ArgumentNullException(nameof(items));
 
         ThrowIfDisposed();
+        ThrowIfNotifying();
 
         var itemsList = items.ToList();
         if (itemsList.Count == 0) return;
@@ -349,6 +350,7 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
         if (predicate == null) throw new ArgumentNullException(nameof(predicate));
 
         ThrowIfDisposed();
+        ThrowIfNotifying();
 
         var removedItems = new List<T>();
         var lowestIndex = -1;
@@ -800,6 +802,12 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
 /// item events on construction; <see cref="Dispose"/> unsubscribes those handlers so the source
 /// no longer holds a reference to this view.
 /// </summary>
+/// <remarks>
+/// Direct mutation of the view (e.g., <c>view.Add(item)</c>) modifies the view in isolation —
+/// the source is unaffected, and a subsequent source-side mutation that the predicate filters
+/// can overwrite the view's local change. Treat the view as a read projection driven by the
+/// source; mutate the source instead.
+/// </remarks>
 public sealed class FilteredObservableListView<T> : ObservableList<T>
 {
     private ObservableList<T>? _source;

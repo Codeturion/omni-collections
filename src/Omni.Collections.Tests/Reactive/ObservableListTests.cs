@@ -1276,6 +1276,32 @@ public class ObservableListTests
         removed.Should().BeEquivalentTo(new[] { 2, 4 });
     }
 
+    /// <summary>
+    /// Async batch mutators must also be guarded by the re-entrancy flag.
+    /// </summary>
+    [Fact]
+    public void AddRangeAsync_DuringCollectionChangedHandler_Throws()
+    {
+        var list = new ObservableList<int> { 1 };
+        list.CollectionChanged += (_, _) => list.AddRangeAsync(new[] { 99 }).GetAwaiter().GetResult();
+
+        Action act = () => list.Add(2);
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*notification callback*");
+    }
+
+    [Fact]
+    public void RemoveAllAsync_DuringCollectionChangedHandler_Throws()
+    {
+        var list = new ObservableList<int> { 1, 2, 3 };
+        list.CollectionChanged += (_, _) => list.RemoveAllAsync(x => x == 1).GetAwaiter().GetResult();
+
+        Action act = () => list.Add(4);
+
+        act.Should().Throw<InvalidOperationException>();
+    }
+
     #endregion
 
     private record Person(string Name, int Age);

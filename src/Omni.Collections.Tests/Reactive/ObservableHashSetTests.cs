@@ -878,6 +878,32 @@ public class ObservableHashSetTests
         removed.Should().BeEquivalentTo(new[] { 2, 4 });
     }
 
+    /// <summary>
+    /// Set-algebra mutators must also be guarded by the re-entrancy flag.
+    /// </summary>
+    [Fact]
+    public void UnionWith_DuringCollectionChangedHandler_Throws()
+    {
+        var set = new ObservableHashSet<int> { 1 };
+        set.CollectionChanged += (_, _) => set.UnionWith(new[] { 99 });
+
+        Action act = () => set.Add(2);
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*notification callback*");
+    }
+
+    [Fact]
+    public void IntersectWith_DuringCollectionChangedHandler_Throws()
+    {
+        var set = new ObservableHashSet<int> { 1, 2, 3 };
+        set.CollectionChanged += (_, _) => set.IntersectWith(new[] { 1 });
+
+        Action act = () => set.Add(4);
+
+        act.Should().Throw<InvalidOperationException>();
+    }
+
     #endregion
 
     private record Person(string Name, int Age);

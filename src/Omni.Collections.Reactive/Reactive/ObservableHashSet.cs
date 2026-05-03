@@ -184,6 +184,7 @@ public class ObservableHashSet<T> : ISet<T>, INotifyCollectionChanged, INotifyPr
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     public void UnionWith(IEnumerable<T> other)
     {
+        ThrowIfNotifying();
         var addedItems = new List<T>();
         foreach (var item in other)
         {
@@ -206,6 +207,7 @@ public class ObservableHashSet<T> : ISet<T>, INotifyCollectionChanged, INotifyPr
 
     public void IntersectWith(IEnumerable<T> other)
     {
+        ThrowIfNotifying();
         HashSet<T>? otherSet = other as HashSet<T> ?? [..other];
         var removedItems = new List<T>();
         foreach (var item in _items.ToArray())
@@ -230,6 +232,7 @@ public class ObservableHashSet<T> : ISet<T>, INotifyCollectionChanged, INotifyPr
 
     public void ExceptWith(IEnumerable<T> other)
     {
+        ThrowIfNotifying();
         var removedItems = new List<T>();
         foreach (var item in other)
         {
@@ -252,6 +255,7 @@ public class ObservableHashSet<T> : ISet<T>, INotifyCollectionChanged, INotifyPr
 
     public void SymmetricExceptWith(IEnumerable<T> other)
     {
+        ThrowIfNotifying();
         HashSet<T>? otherSet = other as HashSet<T> ?? [..other];
         var originalItems = new HashSet<T>(_items);
         var addedItems = new List<T>();
@@ -337,15 +341,15 @@ public class ObservableHashSet<T> : ISet<T>, INotifyCollectionChanged, INotifyPr
     {
         if (PropertyChanged != null && propertyName != null)
         {
-            if (_useEventPooling)
+            var pool = _eventArgsPool ?? OmniEventArgsPool.Shared;
+            var eventArgs = pool.RentPropertyChangedEventArgs(propertyName);
+            try
             {
-                var eventArgs = _eventArgsPool!.RentPropertyChangedEventArgs(propertyName);
                 PropertyChanged.Invoke(this, eventArgs);
-                _eventArgsPool.ReturnPropertyChangedEventArgs(eventArgs);
             }
-            else
+            finally
             {
-                PropertyChanged.Invoke(this, new PropertyChangedEventArgs(propertyName));
+                pool.ReturnPropertyChangedEventArgs(eventArgs);
             }
         }
     }
@@ -427,6 +431,12 @@ public class ObservableHashSet<T> : ISet<T>, INotifyCollectionChanged, INotifyPr
 /// item events on construction; <see cref="Dispose"/> unsubscribes those handlers so the source
 /// no longer holds a reference to this view.
 /// </summary>
+/// <remarks>
+/// Direct mutation of the view (e.g., <c>view.Add(item)</c>) modifies the view in isolation —
+/// the source is unaffected, and a subsequent source-side mutation that the predicate filters
+/// can overwrite the view's local change. Treat the view as a read projection driven by the
+/// source; mutate the source instead.
+/// </remarks>
 public sealed class FilteredObservableHashSetView<T> : ObservableHashSet<T>, IDisposable
 {
     private ObservableHashSet<T>? _source;
