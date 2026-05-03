@@ -3,6 +3,17 @@ using System.Runtime.CompilerServices;
 
 namespace Omni.Collections.Spatial;
 
+/// <summary>
+/// Axis-aligned bounding rectangle. Uses the half-open convention <c>[min, max)</c>
+/// for point membership: a point at exactly <see cref="MaxX"/> or <see cref="MaxY"/>
+/// is NOT considered inside. This matches the cell-boundary semantics used by
+/// <c>QuadTree</c>, <c>SpatialHashGrid</c>, and <c>BloomRTreeDictionary</c>, so
+/// boundary points belong to exactly one rectangle in a tiling.
+///
+/// Rectangle containment (<see cref="Contains(in BoundingRectangle)"/>) remains
+/// inclusive on the max edge — a fully-aligned inner rectangle is considered
+/// contained.
+/// </summary>
 public readonly struct BoundingRectangle : IEquatable<BoundingRectangle>
 {
     public readonly float MinX;
@@ -45,7 +56,8 @@ public readonly struct BoundingRectangle : IEquatable<BoundingRectangle>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Contains(float x, float y)
     {
-        return x >= MinX && x <= MaxX && y >= MinY && y <= MaxY;
+        // Half-open convention [min, max): a point at MaxX or MaxY is NOT inside.
+        return x >= MinX && x < MaxX && y >= MinY && y < MaxY;
     }
 
     public BoundingRectangle Union(in BoundingRectangle other)
