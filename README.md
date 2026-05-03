@@ -7,7 +7,7 @@
 [![GitHub Last Commit](https://img.shields.io/github/last-commit/Codeturion/omni-collections)](https://github.com/Codeturion/omni-collections)
 [![License: PolyForm Noncommercial](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-blue.svg)](https://polyformproject.org/licenses/noncommercial/1.0.0/)
 
-**33 specialized .NET data structures addressing algorithmic bottlenecks**
+**32 specialized .NET data structures addressing algorithmic bottlenecks**
 
 When .NET's built-in collections hit their limits — spatial indexing, priority processing, bounded memory, streaming analytics — these structures provide the missing pieces. Every type wins on one of five axes: speed, allocation, memory, predictability, or unique capability. Numbers and trade-offs live in [`docs/perf/`](docs/perf/).
 
@@ -17,7 +17,7 @@ v2.0.0 is a defensible re-foundation. Every public type now justifies its existe
 
 🟢 **Probabilistic correctness rework** ([PR #3](https://github.com/Codeturion/omni-collections/pull/3))
 
-The probabilistic family (`BloomFilter`, `HyperLogLog`, `CountMinSketch`, `BloomDictionary`, `BloomRTreeDictionary`) had a hidden correctness bug: they hashed via `(uint)item.GetHashCode()`, which for randomized-string `GetHashCode` and arbitrary user types destroys the false-positive / cardinality / frequency math. v2.0 introduces a new `Omni.Collections.Core.Hashing.IHasher<T>` abstraction backed by **XxHash3** (default) and **Murmur3-128**, with specialized fast paths for `int`, `uint`, `long`, `ulong`, `string`, `Guid`, `byte[]`, `ReadOnlyMemory<byte>`. The math now actually holds — empirical false-positive rate stays within 2× design FPR across 50 random seeds, verified by FsCheck property tests. Speed-wise `BloomFilter.Contains` is ~2× slower than `HashSet<T>.Contains` under rigorous benchmarks; the win is the fixed-size memory budget regardless of N. `CountMinSketch`'s hardcoded `Random(42)` per-row seeds (a CVE-tier predictability bug) were replaced with deterministic SplitMix64-derived seeds.
+The probabilistic family (`BloomFilter`, `HyperLogLog`, `CountMinSketch`, `BloomRTreeDictionary`) had a hidden correctness bug: they hashed via `(uint)item.GetHashCode()`, which for randomized-string `GetHashCode` and arbitrary user types destroys the false-positive / cardinality / frequency math. v2.0 introduces a new `Omni.Collections.Core.Hashing.IHasher<T>` abstraction backed by **XxHash3** (default) and **Murmur3-128**, with specialized fast paths for `int`, `uint`, `long`, `ulong`, `string`, `Guid`, `byte[]`, `ReadOnlyMemory<byte>`. The math now actually holds — empirical false-positive rate stays within 2× design FPR across 50 random seeds, verified by FsCheck property tests. Speed-wise `BloomFilter.Contains` is ~2× slower than `HashSet<T>.Contains` under rigorous benchmarks; the win is the fixed-size memory budget regardless of N. `CountMinSketch`'s hardcoded `Random(42)` per-row seeds (a CVE-tier predictability bug) were replaced with deterministic SplitMix64-derived seeds.
 
 🔧 **25 correctness fixes** ([PR #4](https://github.com/Codeturion/omni-collections/pull/4))
 
@@ -47,6 +47,7 @@ Stub methods that returned hardcoded `false`, `else if` short-circuits that mask
 4. **`FastQueue<T>` renamed to `PooledQueue<T>`**, **`CircularDictionary<K,V>` renamed to `BoundedDictionary<K,V>`**. Mechanical search-and-replace. The `PooledQueue` rename also drops the "fast" claim from its XML doc — Phase 3's `ThrowIfDisposed` brought it to parity with `Queue<T>` at large N (slower at small N). The value-prop is the `ArrayPool` rental and `Span<T>` batch APIs, not raw per-op throughput.
 5. **`PredictiveDictionary<K,V>` scope-narrowed**: removed `Statistics`, `GetConfidence`, `UpdateModel`, `EvictStalePatterns`, the `IClock`-injected and `SecureHashOptions`-overloaded constructors, and the time-based pattern eviction. Kept the prediction surface (`GetPredictions`, `PrefetchLikely`).
 6. **`BoundingRectangle.Contains(float, float)`** documented convention: closed `[min, max]` interval. The cell-indexing math in `QuadTree`/`SpatialHashGrid`/`BloomRTreeDictionary` uses half-open `[min, max)` internally without going through `Contains`.
+7. **`BloomDictionary<TKey, TValue>` removed.** The capability claim "fast miss-path short-circuit" doesn't hold under fair miss-heavy benchmarks: bloom pre-screen costs ~30 ns per lookup; the Dictionary miss probe it skips costs ~17 ns. Bloom adds latency without saving any. Memory was also worse (bloom + dict, not bloom alone). Use `BloomFilter<T>` + a separate `Dictionary<K,V>` if you genuinely need a bloom-pre-screened keyed cache and your workload profile somehow makes the math work — the library doesn't justify shipping the combo.
 
 If you upgrade and hit a `NotSupportedException` from `Hashers.Default<T>`, that's #1 — implement `IHasher<T>`. If a test asserts `OldStartingIndex` on a `RemoveAll` event, that's #3 — switch to `Reset` handling or count `ItemRemoved` events.
 
@@ -81,7 +82,7 @@ If you upgrade and hit a `NotSupportedException` from `Hashers.Default<T>`, that
 - [Core Data Structures](#core-data-structures)
   - [Linear Collections](#linear-collections) (6 structures)
   - [Spatial Structures](#spatial-structures) (6 structures)
-  - [Hybrid Structures](#hybrid-structures) (10 structures)
+  - [Hybrid Structures](#hybrid-structures) (9 structures)
   - [Probabilistic Structures](#probabilistic-structures) (5 structures)
   - [Grid Structures](#grid-structures) (3 structures)
   - [Reactive Structures](#reactive-structures) (2 structures)
@@ -167,7 +168,6 @@ cache["key"] = data; // Auto-evicts oldest insert when full
 | ConcurrentLinkedDictionary | O(1) | O(1) | O(1) | Thread-safe LRU |
 | LinkedMultiMap | O(1) | O(1) | O(1) | GetValues: O(k) |
 | GraphDictionary | O(1) | O(1) | O(1) | AddEdge: O(1), ShortestPath: O(V+E) |
-| BloomDictionary | O(k) | O(k) | O(k) | Bloom-prescreened lookup |
 | PredictiveDictionary | O(1) | O(1) | O(1) | GetPredictions: O(1) |
 | **Probabilistic** |
 | BloomFilter | O(k) | - | O(k) | Zero false negatives |
@@ -349,7 +349,7 @@ var stats     = spatialDict.Statistics;                       // bloom hit-rate 
 ### Hybrid Structures
 
 <details>
-<summary>CounterDictionary, LinkedDictionary, QueueDictionary, BoundedDictionary, DequeDictionary, ConcurrentLinkedDictionary, LinkedMultiMap, GraphDictionary, BloomDictionary, PredictiveDictionary (10 structures)</summary>
+<summary>CounterDictionary, LinkedDictionary, QueueDictionary, BoundedDictionary, DequeDictionary, ConcurrentLinkedDictionary, LinkedMultiMap, GraphDictionary, PredictiveDictionary (9 structures)</summary>
 
 > **All Hybrid types are slower than `Dictionary<K,V>` on basic Add/Lookup.** They ship as capability plays — LRU, LFU, FIFO, multi-value, graph, pattern-prediction, thread-safe LRU. The added structure is the value, not raw speed.
 
@@ -429,15 +429,6 @@ var hot = counter.GetMostFrequent(10);     // KeyValuePair<TKey, (TValue, long c
 ```
 - **Slower than `Dictionary<K,V>`:** Add ratio 5.88×, Lookup ratio 6.59× at N=100k.
 - **Capability:** integrated frequency counter — LFU semantics, "top-K most frequent" without a side dictionary.
-
-#### BloomDictionary&lt;TKey, TValue&gt;
-```csharp
-var bloomDict = new BloomDictionary<string, Data>(capacity: 10_000, falsePositiveRate: 0.01);
-bloomDict.Add("key", data);
-if (bloomDict.ContainsKey("missing")) { … } // bloom rejects misses without dict probe
-```
-- **Cost vs `Dictionary<K,V>`:** Add ratio 3.60×, LookupHit ratio 3.12×, **LookupMiss ratio 1.31×** at N=100k.
-- **Capability:** bloom-pre-screened lookups — payoff is on the miss path. If your workload hits more than it misses, plain `Dictionary` wins.
 
 #### PredictiveDictionary&lt;TKey, TValue&gt;
 ```csharp
