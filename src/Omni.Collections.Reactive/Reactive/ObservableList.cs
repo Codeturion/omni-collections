@@ -30,11 +30,13 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
     private Action? _listCleared;
     private Action? _listChanged;
     private bool _disposed;
-    static private readonly PropertyChangedEventArgs CountChangedArgs = new PropertyChangedEventArgs("Count");
-    static private readonly PropertyChangedEventArgs CapacityChangedArgs = new PropertyChangedEventArgs("Capacity");
-    static private readonly NotifyCollectionChangedEventArgs ResetArgs = new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset);
-    // Note: Add, Remove, Replace, and Move actions require specific items/indices, 
-    // so we can't create static instances - they must be created per operation
+    private bool _isNotifying;
+    private static readonly PropertyChangedEventArgs CountChangedArgs = new PropertyChangedEventArgs("Count");
+    private static readonly PropertyChangedEventArgs CapacityChangedArgs = new PropertyChangedEventArgs("Capacity");
+    // Reset args have no per-call state and are safely shared via OmniEventArgsPool.Shared.
+    // Add / Remove / Replace / Move args carry per-call state (items, indices) and cannot be
+    // reused; OmniEventArgsPool.RentXxx allocates fresh instances for those — see IEventArgsPool docs.
+    private static readonly IEventArgsPool _eventArgsPool = OmniEventArgsPool.Shared;
     public event NotifyCollectionChangedEventHandler? CollectionChanged
     {
         add => _collectionChanged += value;
@@ -125,6 +127,7 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
         get => _items[index];
         set
         {
+            ThrowIfNotifying();
             var oldItem = _items[index];
             _items[index] = value;
             IncrementVersion();
@@ -137,6 +140,7 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
     public void Add(T item)
     {
         ThrowIfDisposed();
+        ThrowIfNotifying();
         var index = _items.Count;
         _items.Add(item);
         IncrementVersion();
@@ -149,25 +153,29 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
 
     public void AddRange(IEnumerable<T> items)
     {
+        ThrowIfNotifying();
         var startIndex = _items.Count;
         IList<T>? itemsList = items as IList<T> ?? items.ToList();
         if (itemsList.Count == 0) return;
         _items.AddRange(itemsList);
         IncrementVersion();
-        
+
         // Fire ItemAdded events for each item
         foreach (T item in itemsList)
         {
             OnItemAdded(item);
         }
-        
+
         OnPropertyChanged(nameof(Count));
-        OnCollectionChanged(NotifyCollectionChangedAction.Add, itemsList, startIndex);
+        // Materialize as a non-generic IList so OnCollectionChanged binds to the (action, IList, int)
+        // overload — not the (action, object, int) overload, which would box the whole list as a single item.
+        OnCollectionChanged(NotifyCollectionChangedAction.Add, AsNonGenericList(itemsList), startIndex);
         OnListChanged();
     }
 
     public void Insert(int index, T item)
     {
+        ThrowIfNotifying();
         _items.Insert(index, item);
         IncrementVersion();
         OnItemAdded(item);
@@ -179,17 +187,20 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
 
     public void InsertRange(int index, IEnumerable<T> items)
     {
+        ThrowIfNotifying();
         IList<T>? itemsList = items as IList<T> ?? items.ToList();
         if (itemsList.Count == 0) return;
         _items.InsertRange(index, itemsList);
         IncrementVersion();
         OnPropertyChanged(nameof(Count));
-        OnCollectionChanged(NotifyCollectionChangedAction.Add, itemsList, index);
+        // Materialize as non-generic IList — see AddRange comment.
+        OnCollectionChanged(NotifyCollectionChangedAction.Add, AsNonGenericList(itemsList), index);
         OnListChanged();
     }
 
     public bool Remove(T item)
     {
+        ThrowIfNotifying();
         var index = _items.IndexOf(item);
         if (index >= 0)
         {
@@ -201,6 +212,7 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
 
     public void RemoveAt(int index)
     {
+        ThrowIfNotifying();
         var item = _items[index];
         _items.RemoveAt(index);
         IncrementVersion();
@@ -213,6 +225,7 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
 
     public int RemoveAll(Predicate<T> predicate)
     {
+        ThrowIfNotifying();
         var removedItems = new List<T>();
         var removedIndices = new List<int>();
         for (int i = _items.Count - 1; i >= 0; i--)
@@ -240,6 +253,7 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
     public void Clear()
     {
         ThrowIfDisposed();
+        ThrowIfNotifying();
         if (_items.Count > 0)
         {
             _items.Clear();
@@ -279,67 +293,82 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
 
     /// <summary>
     /// Asynchronously adds a range of items with cancellation support.
+    /// Fires a single batch <see cref="NotifyCollectionChangedAction.Add"/> notification with all items
+    /// and the starting index, matching the synchronous <see cref="AddRange"/> contract.
     /// </summary>
     public async Task AddRangeAsync(IEnumerable<T> items, CancellationToken cancellationToken = default)
     {
         if (items == null) throw new ArgumentNullException(nameof(items));
-        
+
         ThrowIfDisposed();
-        
+        ThrowIfNotifying();
+
         var itemsList = items.ToList();
         if (itemsList.Count == 0) return;
 
         // Check for cancellation before starting
         cancellationToken.ThrowIfCancellationRequested();
-        
+
         // Add items in batches to allow cancellation checks
         const int batchSize = 1000;
         var startIndex = _items.Count;
-        
+
         for (int i = 0; i < itemsList.Count; i += batchSize)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            
+
             var batch = itemsList.Skip(i).Take(batchSize);
             _items.AddRange(batch);
-            
+
             // Yield control periodically for long operations
             if (i > 0 && i % (batchSize * 10) == 0)
             {
                 await Task.Yield();
             }
         }
-        
+
         IncrementVersion();
+
+        // Fire per-item ItemAdded events for fine-grained subscribers (separate channel from CollectionChanged).
+        foreach (T item in itemsList)
+        {
+            OnItemAdded(item);
+        }
+
         OnPropertyChanged(nameof(Count));
-        OnCollectionChanged(NotifyCollectionChangedAction.Reset);
+        OnCollectionChanged(NotifyCollectionChangedAction.Add, itemsList, startIndex);
         OnListChanged();
     }
 
     /// <summary>
     /// Asynchronously removes all items matching the predicate with cancellation support.
+    /// Fires a single batch <see cref="NotifyCollectionChangedAction.Remove"/> notification with all
+    /// removed items and the lowest removed index, matching the synchronous <see cref="RemoveAll"/> contract.
     /// </summary>
     public async Task<int> RemoveAllAsync(Predicate<T> predicate, CancellationToken cancellationToken = default)
     {
         if (predicate == null) throw new ArgumentNullException(nameof(predicate));
-        
+
         ThrowIfDisposed();
-        
+        ThrowIfNotifying();
+
         var removedItems = new List<T>();
+        var lowestIndex = -1;
         var removedCount = 0;
-        
-        // Process in batches to allow cancellation
+
+        // Process from highest index down so RemoveAt's index is stable for each step.
         for (int i = _items.Count - 1; i >= 0; i--)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            
+
             if (predicate(_items[i]))
             {
                 var item = _items[i];
                 _items.RemoveAt(i);
                 removedItems.Add(item);
+                lowestIndex = i; // Each later assignment overwrites with a smaller i; final value is the lowest.
                 removedCount++;
-                
+
                 // Yield control periodically
                 if (removedCount % 1000 == 0)
                 {
@@ -347,15 +376,26 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
                 }
             }
         }
-        
+
         if (removedCount > 0)
         {
             IncrementVersion();
+
+            // removedItems was built in descending-index order; reverse so the OldItems list
+            // reads in ascending-index order, which is the natural shape consumers expect.
+            removedItems.Reverse();
+
+            // Fire per-item ItemRemoved events for fine-grained subscribers.
+            foreach (T item in removedItems)
+            {
+                OnItemRemoved(item);
+            }
+
             OnPropertyChanged(nameof(Count));
-            OnCollectionChanged(NotifyCollectionChangedAction.Reset);
+            OnCollectionChanged(NotifyCollectionChangedAction.Remove, removedItems, lowestIndex);
             OnListChanged();
         }
-        
+
         return removedCount;
     }
 
@@ -572,6 +612,22 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
         _version++;
     }
 
+    /// <summary>
+    /// Returns the supplied generic list as a non-generic <see cref="IList"/> so that
+    /// <see cref="OnCollectionChanged(NotifyCollectionChangedAction, IList, int)"/> binds correctly.
+    /// <c>IList&lt;T&gt;</c> has no implicit conversion to non-generic <see cref="IList"/>; without
+    /// this cast the compiler picks the (object, int) overload and the entire list ends up as a
+    /// single boxed entry in <c>NewItems</c>.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static IList AsNonGenericList(IList<T> items)
+    {
+        // Both List<T> and T[] (the producers in this class) implement the non-generic IList,
+        // so the cast is a free reference conversion. Fall back to copying for exotic IList<T>
+        // implementations that don't also implement IList.
+        return items as IList ?? new List<T>(items);
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void OnItemAdded(T item)
     {
@@ -634,33 +690,89 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
     {
         if (_collectionChanged != null)
         {
-            // Only Reset action can be created without items/indices
-            var eventArgs = action == NotifyCollectionChangedAction.Reset 
-                ? ResetArgs 
-                : new NotifyCollectionChangedEventArgs(action);
-            _collectionChanged.Invoke(this, eventArgs);
+            var eventArgs = _eventArgsPool.RentCollectionChangedEventArgs(action);
+            _isNotifying = true;
+            try
+            {
+                _collectionChanged.Invoke(this, eventArgs);
+            }
+            finally
+            {
+                _isNotifying = false;
+                _eventArgsPool.ReturnCollectionChangedEventArgs(eventArgs);
+            }
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void OnCollectionChanged(NotifyCollectionChangedAction action, object? item, int index)
     {
-        _collectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(action, item, index));
+        if (_collectionChanged != null)
+        {
+            NotifyCollectionChangedEventArgs eventArgs = action == NotifyCollectionChangedAction.Add
+                ? _eventArgsPool.RentAdd(item, index)
+                : _eventArgsPool.RentRemove(item, index);
+            _isNotifying = true;
+            try
+            {
+                _collectionChanged.Invoke(this, eventArgs);
+            }
+            finally
+            {
+                _isNotifying = false;
+                _eventArgsPool.ReturnCollectionChangedEventArgs(eventArgs);
+            }
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void OnCollectionChanged(NotifyCollectionChangedAction action, object? newItem, object? oldItem, int index)
     {
-        _collectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(action, newItem, oldItem, index));
+        if (_collectionChanged != null)
+        {
+            var eventArgs = _eventArgsPool.RentReplace(newItem, oldItem, index);
+            _isNotifying = true;
+            try
+            {
+                _collectionChanged.Invoke(this, eventArgs);
+            }
+            finally
+            {
+                _isNotifying = false;
+                _eventArgsPool.ReturnCollectionChangedEventArgs(eventArgs);
+            }
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void OnCollectionChanged(NotifyCollectionChangedAction action, IList items, int startingIndex)
     {
-        _collectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(action, items, startingIndex));
+        if (_collectionChanged != null)
+        {
+            NotifyCollectionChangedEventArgs eventArgs = action == NotifyCollectionChangedAction.Add
+                ? _eventArgsPool.RentAddRange(items, startingIndex)
+                : _eventArgsPool.RentRemoveRange(items, startingIndex);
+            _isNotifying = true;
+            try
+            {
+                _collectionChanged.Invoke(this, eventArgs);
+            }
+            finally
+            {
+                _isNotifying = false;
+                _eventArgsPool.ReturnCollectionChangedEventArgs(eventArgs);
+            }
+        }
     }
 
-    public void Dispose()
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void ThrowIfNotifying()
+    {
+        if (_isNotifying)
+            throw new InvalidOperationException("Cannot mutate the collection during a notification callback.");
+    }
+
+    public virtual void Dispose()
     {
         if (!_disposed)
         {
@@ -685,6 +797,53 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
     }
 }
 
+/// <summary>
+/// A live filtered view over an <see cref="ObservableList{T}"/>. Subscribes to the source's
+/// item events on construction; <see cref="Dispose"/> unsubscribes those handlers so the source
+/// no longer holds a reference to this view.
+/// </summary>
+/// <remarks>
+/// Direct mutation of the view (e.g., <c>view.Add(item)</c>) modifies the view in isolation —
+/// the source is unaffected, and a subsequent source-side mutation that the predicate filters
+/// can overwrite the view's local change. Treat the view as a read projection driven by the
+/// source; mutate the source instead.
+/// </remarks>
+public sealed class FilteredObservableListView<T> : ObservableList<T>
+{
+    private ObservableList<T>? _source;
+    private readonly Action<T> _onSourceItemAdded;
+    private readonly Action<T> _onSourceItemRemoved;
+    private readonly Action _onSourceListCleared;
+
+    internal FilteredObservableListView(ObservableList<T> source, Predicate<T> predicate)
+        : base(source.FindAll(predicate))
+    {
+        _source = source;
+        _onSourceItemAdded = item =>
+        {
+            if (predicate(item))
+                Add(item);
+        };
+        _onSourceItemRemoved = item => Remove(item);
+        _onSourceListCleared = () => Clear();
+        source.ItemAdded += _onSourceItemAdded;
+        source.ItemRemoved += _onSourceItemRemoved;
+        source.ListCleared += _onSourceListCleared;
+    }
+
+    public override void Dispose()
+    {
+        if (_source != null)
+        {
+            _source.ItemAdded -= _onSourceItemAdded;
+            _source.ItemRemoved -= _onSourceItemRemoved;
+            _source.ListCleared -= _onSourceListCleared;
+            _source = null;
+        }
+        base.Dispose();
+    }
+}
+
 public static class ObservableListExtensions
 {
     public static void SubscribeToChanges<T>(this ObservableList<T> list, Action onChanged)
@@ -700,19 +859,13 @@ public static class ObservableListExtensions
             list.ItemRemoved += onRemoved;
     }
 
-    public static ObservableList<T> CreateFilteredView<T>(this ObservableList<T> source, Predicate<T> predicate)
+    /// <summary>
+    /// Creates a live filtered view over <paramref name="source"/>. The returned view subscribes
+    /// to the source's item events; dispose the view to release those subscriptions and prevent
+    /// the source from keeping the view alive.
+    /// </summary>
+    public static FilteredObservableListView<T> CreateFilteredView<T>(this ObservableList<T> source, Predicate<T> predicate)
     {
-        var filtered = new ObservableList<T>(source.FindAll(predicate));
-        source.ItemAdded += item =>
-        {
-            if (predicate(item))
-                filtered.Add(item);
-        };
-        source.ItemRemoved += item =>
-        {
-            filtered.Remove(item);
-        };
-        source.ListCleared += () => filtered.Clear();
-        return filtered;
+        return new FilteredObservableListView<T>(source, predicate);
     }
 }
