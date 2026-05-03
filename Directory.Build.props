@@ -48,6 +48,14 @@
     <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="" Visible="false" />
   </ItemGroup>
 
+  <PropertyGroup Condition="'$(_OmniIsBenchmarkAutogen)' != 'true' AND '$(IsPackable)' != 'false' AND Exists('$(MSBuildThisFileDirectory)README.md')">
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(_OmniIsBenchmarkAutogen)' != 'true' AND '$(IsPackable)' != 'false' AND Exists('$(MSBuildThisFileDirectory)README.md')">
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(_OmniIsBenchmarkAutogen)' != 'true' AND '$(IsPackable)' != 'false'">
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
     <PackageReference Include="PolySharp" PrivateAssets="all" />
