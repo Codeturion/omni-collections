@@ -355,23 +355,17 @@ public class ObservableHashSet<T> : ISet<T>, INotifyCollectionChanged, INotifyPr
     {
         if (CollectionChanged != null)
         {
+            var pool = _eventArgsPool ?? OmniEventArgsPool.Shared;
+            var eventArgs = pool.RentCollectionChangedEventArgs(action);
             _isNotifying = true;
             try
             {
-                if (_useEventPooling && action == NotifyCollectionChangedAction.Reset)
-                {
-                    var eventArgs = _eventArgsPool!.RentCollectionChangedEventArgs(action);
-                    CollectionChanged.Invoke(this, eventArgs);
-                    _eventArgsPool.ReturnCollectionChangedEventArgs(eventArgs);
-                }
-                else
-                {
-                    CollectionChanged.Invoke(this, new NotifyCollectionChangedEventArgs(action));
-                }
+                CollectionChanged.Invoke(this, eventArgs);
             }
             finally
             {
                 _isNotifying = false;
+                pool.ReturnCollectionChangedEventArgs(eventArgs);
             }
         }
     }
@@ -381,14 +375,19 @@ public class ObservableHashSet<T> : ISet<T>, INotifyCollectionChanged, INotifyPr
     {
         if (CollectionChanged != null)
         {
+            var pool = _eventArgsPool ?? OmniEventArgsPool.Shared;
+            NotifyCollectionChangedEventArgs eventArgs = action == NotifyCollectionChangedAction.Add
+                ? pool.RentAdd(item)
+                : pool.RentRemove(item);
             _isNotifying = true;
             try
             {
-                CollectionChanged.Invoke(this, new NotifyCollectionChangedEventArgs(action, item));
+                CollectionChanged.Invoke(this, eventArgs);
             }
             finally
             {
                 _isNotifying = false;
+                pool.ReturnCollectionChangedEventArgs(eventArgs);
             }
         }
     }
@@ -398,14 +397,19 @@ public class ObservableHashSet<T> : ISet<T>, INotifyCollectionChanged, INotifyPr
     {
         if (CollectionChanged != null)
         {
+            var pool = _eventArgsPool ?? OmniEventArgsPool.Shared;
+            NotifyCollectionChangedEventArgs eventArgs = action == NotifyCollectionChangedAction.Add
+                ? pool.RentAddRange(items)
+                : pool.RentRemoveRange(items);
             _isNotifying = true;
             try
             {
-                CollectionChanged.Invoke(this, new NotifyCollectionChangedEventArgs(action, items));
+                CollectionChanged.Invoke(this, eventArgs);
             }
             finally
             {
                 _isNotifying = false;
+                pool.ReturnCollectionChangedEventArgs(eventArgs);
             }
         }
     }

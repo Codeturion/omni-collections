@@ -1130,5 +1130,153 @@ public class ObservableListTests
 
     #endregion
 
+    #region Batch Notification Consistency (4.3)
+
+    /// <summary>
+    /// Tests that AddRange fires exactly one CollectionChanged event with action Add,
+    /// all added items in NewItems, and the correct starting index.
+    /// </summary>
+    [Fact]
+    public void AddRange_FiresExactlyOneCollectionChangedEventWithAllItems()
+    {
+        var list = new ObservableList<int> { 10 };
+        var events = new List<NotifyCollectionChangedEventArgs>();
+        list.CollectionChanged += (_, e) => events.Add(e);
+
+        list.AddRange(new[] { 20, 30, 40 });
+
+        events.Should().HaveCount(1);
+        events[0].Action.Should().Be(NotifyCollectionChangedAction.Add);
+        events[0].NewItems!.Cast<int>().Should().Equal(new[] { 20, 30, 40 });
+        events[0].NewStartingIndex.Should().Be(1);
+    }
+
+    /// <summary>
+    /// Tests that InsertRange fires exactly one CollectionChanged event with action Add,
+    /// all inserted items in NewItems, and the correct insertion index.
+    /// </summary>
+    [Fact]
+    public void InsertRange_FiresExactlyOneCollectionChangedEventWithAllItems()
+    {
+        var list = new ObservableList<int> { 1, 4 };
+        var events = new List<NotifyCollectionChangedEventArgs>();
+        list.CollectionChanged += (_, e) => events.Add(e);
+
+        list.InsertRange(1, new[] { 2, 3 });
+
+        events.Should().HaveCount(1);
+        events[0].Action.Should().Be(NotifyCollectionChangedAction.Add);
+        events[0].NewItems!.Cast<int>().Should().Equal(new[] { 2, 3 });
+        events[0].NewStartingIndex.Should().Be(1);
+    }
+
+    /// <summary>
+    /// Tests that RemoveAll fires exactly one CollectionChanged event with action Remove
+    /// containing all removed items and the lowest removed index.
+    /// </summary>
+    [Fact]
+    public void RemoveAll_FiresExactlyOneCollectionChangedEventWithAllItems()
+    {
+        var list = new ObservableList<int> { 1, 2, 3, 4, 5 };
+        var events = new List<NotifyCollectionChangedEventArgs>();
+        list.CollectionChanged += (_, e) => events.Add(e);
+
+        list.RemoveAll(x => x % 2 == 0); // remove 2, 4
+
+        events.Should().HaveCount(1);
+        events[0].Action.Should().Be(NotifyCollectionChangedAction.Remove);
+        events[0].OldItems!.Count.Should().Be(2);
+        events[0].OldItems!.Cast<int>().Should().BeEquivalentTo(new[] { 2, 4 });
+        events[0].OldStartingIndex.Should().Be(1); // lowest index of removed items
+    }
+
+    /// <summary>
+    /// Tests that AddRangeAsync fires exactly one CollectionChanged event with action Add
+    /// (matching the synchronous AddRange contract — no Reset).
+    /// </summary>
+    [Fact]
+    public async Task AddRangeAsync_FiresExactlyOneAddEventNotReset()
+    {
+        var list = new ObservableList<int> { 100 };
+        var events = new List<NotifyCollectionChangedEventArgs>();
+        list.CollectionChanged += (_, e) => events.Add(e);
+
+        await list.AddRangeAsync(new[] { 1, 2, 3 });
+
+        events.Should().HaveCount(1);
+        events[0].Action.Should().Be(NotifyCollectionChangedAction.Add);
+        events[0].NewItems!.Cast<int>().Should().Equal(new[] { 1, 2, 3 });
+        events[0].NewStartingIndex.Should().Be(1);
+    }
+
+    /// <summary>
+    /// Tests that RemoveAllAsync fires exactly one CollectionChanged event with action Remove
+    /// containing all removed items and the lowest removed index (matching the synchronous
+    /// RemoveAll contract — no Reset).
+    /// </summary>
+    [Fact]
+    public async Task RemoveAllAsync_FiresExactlyOneRemoveEventNotReset()
+    {
+        var list = new ObservableList<int> { 1, 2, 3, 4, 5 };
+        var events = new List<NotifyCollectionChangedEventArgs>();
+        list.CollectionChanged += (_, e) => events.Add(e);
+
+        await list.RemoveAllAsync(x => x % 2 == 0); // remove 2, 4
+
+        events.Should().HaveCount(1);
+        events[0].Action.Should().Be(NotifyCollectionChangedAction.Remove);
+        events[0].OldItems!.Count.Should().Be(2);
+        events[0].OldItems!.Cast<int>().Should().BeEquivalentTo(new[] { 2, 4 });
+        events[0].OldStartingIndex.Should().Be(1);
+    }
+
+    /// <summary>
+    /// Tests that AddRange still fires per-item ItemAdded events for fine-grained subscribers
+    /// (the item-level event channel is independent of the CollectionChanged batch channel).
+    /// </summary>
+    [Fact]
+    public void AddRange_FiresPerItemItemAddedEvents()
+    {
+        var list = new ObservableList<int>();
+        var added = new List<int>();
+        list.ItemAdded += added.Add;
+
+        list.AddRange(new[] { 1, 2, 3 });
+
+        added.Should().Equal(new[] { 1, 2, 3 });
+    }
+
+    /// <summary>
+    /// Tests that AddRangeAsync still fires per-item ItemAdded events.
+    /// </summary>
+    [Fact]
+    public async Task AddRangeAsync_FiresPerItemItemAddedEvents()
+    {
+        var list = new ObservableList<int>();
+        var added = new List<int>();
+        list.ItemAdded += added.Add;
+
+        await list.AddRangeAsync(new[] { 1, 2, 3 });
+
+        added.Should().Equal(new[] { 1, 2, 3 });
+    }
+
+    /// <summary>
+    /// Tests that RemoveAllAsync still fires per-item ItemRemoved events.
+    /// </summary>
+    [Fact]
+    public async Task RemoveAllAsync_FiresPerItemItemRemovedEvents()
+    {
+        var list = new ObservableList<int> { 1, 2, 3, 4, 5 };
+        var removed = new List<int>();
+        list.ItemRemoved += removed.Add;
+
+        await list.RemoveAllAsync(x => x % 2 == 0);
+
+        removed.Should().BeEquivalentTo(new[] { 2, 4 });
+    }
+
+    #endregion
+
     private record Person(string Name, int Age);
 }

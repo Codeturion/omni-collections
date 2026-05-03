@@ -759,5 +759,126 @@ public class ObservableHashSetTests
 
     #endregion
 
+    #region Batch Notification Consistency (4.3)
+
+    /// <summary>
+    /// Tests that AddRange fires exactly one CollectionChanged event with action Add
+    /// containing all added items.
+    /// </summary>
+    [Fact]
+    public void AddRange_FiresExactlyOneCollectionChangedEventWithAllItems()
+    {
+        var set = new ObservableHashSet<int> { 0 };
+        var events = new List<NotifyCollectionChangedEventArgs>();
+        set.CollectionChanged += (_, e) => events.Add(e);
+
+        set.AddRange(new[] { 1, 2, 3 });
+
+        events.Should().HaveCount(1);
+        events[0].Action.Should().Be(NotifyCollectionChangedAction.Add);
+        events[0].NewItems!.Cast<int>().Should().BeEquivalentTo(new[] { 1, 2, 3 });
+    }
+
+    /// <summary>
+    /// Tests that RemoveWhere fires exactly one CollectionChanged event with action Remove
+    /// containing all removed items.
+    /// </summary>
+    [Fact]
+    public void RemoveWhere_FiresExactlyOneCollectionChangedEventWithAllItems()
+    {
+        var set = new ObservableHashSet<int> { 1, 2, 3, 4, 5 };
+        var events = new List<NotifyCollectionChangedEventArgs>();
+        set.CollectionChanged += (_, e) => events.Add(e);
+
+        set.RemoveWhere(x => x % 2 == 0); // remove 2, 4
+
+        events.Should().HaveCount(1);
+        events[0].Action.Should().Be(NotifyCollectionChangedAction.Remove);
+        events[0].OldItems!.Cast<int>().Should().BeEquivalentTo(new[] { 2, 4 });
+    }
+
+    /// <summary>
+    /// Tests that UnionWith fires exactly one CollectionChanged event when items are added.
+    /// </summary>
+    [Fact]
+    public void UnionWith_FiresExactlyOneCollectionChangedEventWithAddedItems()
+    {
+        var set = new ObservableHashSet<int> { 1, 2 };
+        var events = new List<NotifyCollectionChangedEventArgs>();
+        set.CollectionChanged += (_, e) => events.Add(e);
+
+        set.UnionWith(new[] { 2, 3, 4 });
+
+        events.Should().HaveCount(1);
+        events[0].Action.Should().Be(NotifyCollectionChangedAction.Add);
+        events[0].NewItems!.Cast<int>().Should().BeEquivalentTo(new[] { 3, 4 });
+    }
+
+    /// <summary>
+    /// Tests that IntersectWith fires exactly one CollectionChanged event when items are removed.
+    /// </summary>
+    [Fact]
+    public void IntersectWith_FiresExactlyOneCollectionChangedEventWithRemovedItems()
+    {
+        var set = new ObservableHashSet<int> { 1, 2, 3, 4 };
+        var events = new List<NotifyCollectionChangedEventArgs>();
+        set.CollectionChanged += (_, e) => events.Add(e);
+
+        set.IntersectWith(new[] { 2, 3, 5 });
+
+        events.Should().HaveCount(1);
+        events[0].Action.Should().Be(NotifyCollectionChangedAction.Remove);
+        events[0].OldItems!.Cast<int>().Should().BeEquivalentTo(new[] { 1, 4 });
+    }
+
+    /// <summary>
+    /// Tests that ExceptWith fires exactly one CollectionChanged event when items are removed.
+    /// </summary>
+    [Fact]
+    public void ExceptWith_FiresExactlyOneCollectionChangedEventWithRemovedItems()
+    {
+        var set = new ObservableHashSet<int> { 1, 2, 3, 4 };
+        var events = new List<NotifyCollectionChangedEventArgs>();
+        set.CollectionChanged += (_, e) => events.Add(e);
+
+        set.ExceptWith(new[] { 2, 3, 5 });
+
+        events.Should().HaveCount(1);
+        events[0].Action.Should().Be(NotifyCollectionChangedAction.Remove);
+        events[0].OldItems!.Cast<int>().Should().BeEquivalentTo(new[] { 2, 3 });
+    }
+
+    /// <summary>
+    /// Tests that AddRange still fires per-item ItemAdded events for fine-grained subscribers.
+    /// </summary>
+    [Fact]
+    public void AddRange_FiresPerItemItemAddedEvents()
+    {
+        var set = new ObservableHashSet<int>();
+        var added = new List<int>();
+        set.ItemAdded += added.Add;
+
+        set.AddRange(new[] { 1, 2, 3 });
+
+        added.Should().BeEquivalentTo(new[] { 1, 2, 3 });
+    }
+
+    /// <summary>
+    /// Tests that RemoveWhere still fires per-item ItemRemoved events.
+    /// </summary>
+    [Fact]
+    public void RemoveWhere_FiresPerItemItemRemovedEvents()
+    {
+        var set = new ObservableHashSet<int> { 1, 2, 3, 4, 5 };
+        var removed = new List<int>();
+        set.ItemRemoved += removed.Add;
+
+        set.RemoveWhere(x => x % 2 == 0);
+
+        removed.Should().BeEquivalentTo(new[] { 2, 4 });
+    }
+
+    #endregion
+
     private record Person(string Name, int Age);
 }
