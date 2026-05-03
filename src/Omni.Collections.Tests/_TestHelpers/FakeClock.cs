@@ -11,6 +11,11 @@ namespace Omni.Collections.Tests._TestHelpers;
 /// the Unix epoch and the monotonic timestamp at zero — call <see cref="Advance(TimeSpan)"/>
 /// to push both forward.
 /// </summary>
+/// <remarks>
+/// Not thread-safe. Tests that share a <c>FakeClock</c> across threads must either advance
+/// it before starting the worker threads, or wrap accesses in their own lock — concurrent
+/// <c>Advance</c> calls and concurrent reads of <see cref="UtcNow"/> are not coordinated.
+/// </remarks>
 internal sealed class FakeClock : IClock
 {
     private long _timestamp;
