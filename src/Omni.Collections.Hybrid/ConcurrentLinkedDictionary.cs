@@ -99,7 +99,7 @@ namespace Omni.Collections.Hybrid
         private readonly IEqualityComparer<TKey> _comparer;
         private readonly SecureHashOptions _hashOptions;
         private readonly IClock _clock;
-        private readonly ReaderWriterLockSlim _lruLock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+        private readonly ReaderWriterLockSlim _lruLock = new ReaderWriterLockSlim();
         public int Count => _count;
         public CapacityMode Mode => _capacityMode;
         public ConcurrentLinkedDictionary() : this(1024)
@@ -281,21 +281,29 @@ namespace Omni.Collections.Hybrid
             _lruLock.EnterWriteLock();
             try
             {
-                UniversalDictionaryNode<TKey, TValue>? prev = UniversalNodeHelper.GetPrevLru(node);
-                UniversalDictionaryNode<TKey, TValue>? next = UniversalNodeHelper.GetNextLru(node);
-                if (prev != null)
-                    UniversalNodeHelper.SetNextLru(prev, next);
-                else
-                    _lruHead = next;
-                if (next != null)
-                    UniversalNodeHelper.SetPrevLru(next, prev);
-                else
-                    _lruTail = prev;
+                RemoveFromLruNoLock(node);
             }
             finally
             {
                 _lruLock.ExitWriteLock();
             }
+        }
+
+        // Caller MUST hold the LRU write lock. Lets EvictLru splice the tail without
+        // re-entering its own lock (the SupportsRecursion policy was previously masking
+        // a self-recursion bug that fired on every Fixed-mode overflow).
+        private void RemoveFromLruNoLock(UniversalDictionaryNode<TKey, TValue> node)
+        {
+            UniversalDictionaryNode<TKey, TValue>? prev = UniversalNodeHelper.GetPrevLru(node);
+            UniversalDictionaryNode<TKey, TValue>? next = UniversalNodeHelper.GetNextLru(node);
+            if (prev != null)
+                UniversalNodeHelper.SetNextLru(prev, next);
+            else
+                _lruHead = next;
+            if (next != null)
+                UniversalNodeHelper.SetPrevLru(next, prev);
+            else
+                _lruTail = prev;
         }
 
         private void EvictLru()
@@ -309,7 +317,7 @@ namespace Omni.Collections.Hybrid
                 var bucket = _buckets[hashCode % _buckets.Length];
                 if (bucket.TryRemove(nodeToEvict.Key, hashCode, _comparer, out _))
                 {
-                    RemoveFromLru(nodeToEvict);
+                    RemoveFromLruNoLock(nodeToEvict);
                     Interlocked.Decrement(ref _count);
                 }
             }

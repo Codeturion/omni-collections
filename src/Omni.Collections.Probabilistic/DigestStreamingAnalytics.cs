@@ -246,18 +246,12 @@ public class DigestStreamingAnalytics<T> : IDisposable
         }
         if (removedCount > 0)
         {
-            if ((currentTime - _lastRebuildTime) > MinRebuildIntervalMs &&
-                (removedCount > _valueBuffer.Count * RebuildThresholdPercentage || _valueBuffer.Count == 0))
-            {
-                RebuildDigestOptimized();
-                _lastRebuildTime = currentTime;
-            }
-            else
-            {
-                // Values were expired but rebuild conditions not met
-                // Force rebuild to ensure accurate percentiles
-                RebuildDigestOptimized();
-            }
+            // The original code had a throttle here that was always bypassed by an else
+            // branch that called RebuildDigestOptimized anyway — structurally dead. Test
+            // coverage shows percentile accuracy depends on rebuilding on every expiration,
+            // so the gate collapses to: any expiration → rebuild + update timestamp.
+            RebuildDigestOptimized();
+            _lastRebuildTime = currentTime;
         }
     }
 
