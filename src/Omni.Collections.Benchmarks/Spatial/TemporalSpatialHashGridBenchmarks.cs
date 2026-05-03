@@ -19,7 +19,7 @@ public class TemporalSpatialHashGridBenchmarks
     private const float QueryRadius = 50f;
     private const int OpsPerIteration = 8192;
 
-    [Params(Sizes.Small, Sizes.Medium)]
+    [Params(Sizes.Small, Sizes.Medium, Sizes.Large)]
     public int N;
 
     private (float x, float y, int id)[] _points = null!;
