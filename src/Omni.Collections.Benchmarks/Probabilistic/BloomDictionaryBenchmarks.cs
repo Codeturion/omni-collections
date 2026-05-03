@@ -20,6 +20,7 @@ public class BloomDictionaryBenchmarks
     private string[] _keys = null!;
     private int[] _values = null!;
     private string[] _missingKeys = null!;
+    private string[] _missHeavyKeys = null!;
     private int[] _readIndices = null!;
     private const int ReadIndexMask = 1023;
     private int _readCounter;
@@ -38,6 +39,18 @@ public class BloomDictionaryBenchmarks
         _values = RandomData.Ints(N + OpsPerIteration);
         _missingKeys = RandomData.Strings(ReadIndexMask + 1, seed: RandomData.Seed + 1);
         _readIndices = RandomData.IntsInRange(ReadIndexMask + 1, 0, N);
+
+        // 80% miss / 20% hit. Cycled with the same power-of-two mask the existing
+        // benchmarks use, so per-op overhead is comparable. The miss bucket uses
+        // a different seed than _missingKeys so the bloom filter saturation/false
+        // positive distribution differs from the LookupMiss benchmark.
+        _missHeavyKeys = new string[ReadIndexMask + 1];
+        var hitPool = RandomData.IntsInRange(ReadIndexMask + 1, 0, N, seed: RandomData.Seed + 2);
+        var missPool = RandomData.Strings(ReadIndexMask + 1, seed: RandomData.Seed + 3);
+        for (int i = 0; i < _missHeavyKeys.Length; i++)
+        {
+            _missHeavyKeys[i] = (i % 5) == 0 ? _keys[hitPool[i]] : missPool[i]; // 20% hit / 80% miss
+        }
 
         _omniFilled = new BloomDictionary<string, int>(N);
         _baselineFilled = new Dictionary<string, int>(N);
@@ -89,6 +102,21 @@ public class BloomDictionaryBenchmarks
     public bool Baseline_LookupMiss()
     {
         return _baselineFilled.TryGetValue(_missingKeys[_readCounter++ & ReadIndexMask], out _);
+    }
+
+    /// Claim: under a miss-heavy workload (80% miss / 20% hit), the BloomDictionary
+    /// pre-screen short-circuits the bulk of lookups faster than Dictionary.TryGetValue,
+    /// which has to compute the hash and probe the bucket on every call.
+    [Benchmark, BenchmarkCategory("LookupMissHeavy")]
+    public bool Omni_LookupMissHeavy()
+    {
+        return _omniFilled.TryGetValue(_missHeavyKeys[_readCounter++ & ReadIndexMask], out _);
+    }
+
+    [Benchmark(Baseline = true), BenchmarkCategory("LookupMissHeavy")]
+    public bool Baseline_LookupMissHeavy()
+    {
+        return _baselineFilled.TryGetValue(_missHeavyKeys[_readCounter++ & ReadIndexMask], out _);
     }
 
     [Benchmark, BenchmarkCategory("LookupHit")]

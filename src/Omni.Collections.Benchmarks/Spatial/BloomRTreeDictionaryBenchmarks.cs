@@ -27,6 +27,16 @@ public class BloomRTreeDictionaryBenchmarks
     private int _readCounter;
     private int _addCounter;
 
+    // FindIntersectingEmpty fixture: entries clustered in left half (x < 0),
+    // queries split 70% left half / 30% right half. The right-half queries are
+    // the bloom layer's job to short-circuit.
+    private const int QueryBoxCount = 1024; // power-of-two for masked cycling
+    private const int QueryBoxMask = QueryBoxCount - 1;
+    private BloomRTreeDictionary<string, int> _omniClustered = null!;
+    private (BoundingRectangle Box, string Key, int Value)[] _baselineClustered = null!;
+    private BoundingRectangle[] _queryBoxes = null!;
+    private int _queryCounter;
+
     private BloomRTreeDictionary<string, int> _omniFilled = null!;
     private Dictionary<string, int> _baselineFilled = null!;
 
@@ -47,6 +57,33 @@ public class BloomRTreeDictionaryBenchmarks
         {
             _omniFilled.Add(_keys[i], _values[i], _points[i].x, _points[i].y);
             _baselineFilled.Add(_keys[i], _values[i]);
+        }
+
+        // Clustered fixture: all entries placed in the LEFT half of the world (x < 0).
+        // 30% of the query boxes target the RIGHT (empty) half — those are pure
+        // bloom-screen candidates. 70% target the LEFT (populated) half — the bloom
+        // can't short-circuit, so the tree is traversed.
+        _omniClustered = new BloomRTreeDictionary<string, int>(N);
+        _baselineClustered = new (BoundingRectangle, string, int)[N];
+        var clusterPoints = RandomData.Points2D(N, -WorldHalf, 0f, seed: RandomData.Seed + 11); // left half only
+        for (int i = 0; i < N; i++)
+        {
+            _omniClustered.Add(_keys[i], _values[i], clusterPoints[i].x, clusterPoints[i].y);
+            _baselineClustered[i] = (new BoundingRectangle(clusterPoints[i].x, clusterPoints[i].y), _keys[i], _values[i]);
+        }
+
+        _queryBoxes = new BoundingRectangle[QueryBoxCount];
+        var qrng = new System.Random(RandomData.Seed + 12);
+        const float boxHalf = 50f; // small query boxes
+        for (int i = 0; i < QueryBoxCount; i++)
+        {
+            // i % 10 < 3 → right (empty) half, otherwise left (populated). 30/70 split.
+            bool empty = (i % 10) < 3;
+            float cx = empty
+                ? (float)(qrng.NextDouble() * WorldHalf) // [0, WorldHalf]
+                : -(float)(qrng.NextDouble() * WorldHalf); // [-WorldHalf, 0]
+            float cy = (float)(qrng.NextDouble() * (2 * WorldHalf) - WorldHalf);
+            _queryBoxes[i] = new BoundingRectangle(cx - boxHalf, cy - boxHalf, cx + boxHalf, cy + boxHalf);
         }
     }
 
@@ -112,5 +149,40 @@ public class BloomRTreeDictionaryBenchmarks
         for (int i = 0; i < N; i++)
             c.Add(_keys[i], _values[i]);
         return c;
+    }
+
+    /// Claim: when ~30% of FindIntersecting queries target known-empty regions,
+    /// the spatial bloom filter short-circuits them in O(1), beating a naive
+    /// linear scan over all entries. If the wall-time win is below 5%, the bloom
+    /// layer's value-prop on this op doesn't survive.
+    [Benchmark, BenchmarkCategory("FindIntersectingEmpty")]
+    public int Omni_FindIntersectingEmpty()
+    {
+        var box = _queryBoxes[_queryCounter++ & QueryBoxMask];
+        int count = 0;
+        foreach (var kv in _omniClustered.FindIntersecting(box))
+        {
+            count++;
+            // consume to prevent dead-code elimination
+            if (kv.Value == int.MinValue) return -1;
+        }
+        return count;
+    }
+
+    [Benchmark(Baseline = true), BenchmarkCategory("FindIntersectingEmpty")]
+    public int Baseline_FindIntersectingEmpty()
+    {
+        var box = _queryBoxes[_queryCounter++ & QueryBoxMask];
+        int count = 0;
+        var entries = _baselineClustered;
+        for (int i = 0; i < entries.Length; i++)
+        {
+            if (entries[i].Box.Intersects(box))
+            {
+                count++;
+                if (entries[i].Value == int.MinValue) return -1;
+            }
+        }
+        return count;
     }
 }

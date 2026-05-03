@@ -147,4 +147,44 @@ public class PooledListBenchmarks
             sum += s.Length;
         return sum;
     }
+
+    // ============= FillAndDrain (sustained reuse — pool win surfaces here) =============
+    // The plain Fill benchmark captures cold first-allocation only. This variant
+    // builds + drains a container, then disposes the pooled instance — its buffer
+    // returns to the ArrayPool. Subsequent iterations rent the cached buffer, so
+    // the Allocated column trends toward zero for the pooled type while List<T>
+    // re-grows from default capacity each cycle.
+
+    /// Claim: PooledList.CreateWithArrayPool sustained fill+drain reuses pooled
+    /// buffers — Allocated should drop near-zero past the first warmup iteration.
+    /// List<T> doing the same cycle re-allocates ~log2(N) intermediate arrays each time.
+    [Benchmark, BenchmarkCategory("FillAndDrain"), InvocationCount(1)]
+    public int Omni_FillAndDrain()
+    {
+        var c = PooledList<string>.CreateWithArrayPool();
+        for (int i = 0; i < N; i++)
+            c.Add(_values[i]);
+        int sum = 0;
+        while (c.Count > 0)
+        {
+            sum += c.RemoveLast().Length;
+        }
+        c.Dispose();
+        return sum;
+    }
+
+    [Benchmark(Baseline = true), BenchmarkCategory("FillAndDrain"), InvocationCount(1)]
+    public int Baseline_FillAndDrain()
+    {
+        var c = new List<string>();
+        for (int i = 0; i < N; i++)
+            c.Add(_values[i]);
+        int sum = 0;
+        for (int i = c.Count - 1; i >= 0; i--)
+        {
+            sum += c[i].Length;
+            c.RemoveAt(i);
+        }
+        return sum;
+    }
 }

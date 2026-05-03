@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
+using Microsoft.Extensions.Caching.Memory;
 using Omni.Collections.Benchmarks.Common;
 using Omni.Collections.Hybrid;
 
@@ -28,9 +29,13 @@ public class ConcurrentLinkedDictionaryBenchmarks
 
     private ConcurrentLinkedDictionary<string, int> _omniFilled = null!;
     private ConcurrentDictionary<string, int> _baselineFilled = null!;
+    private Dictionary<string, int> _dictFilled = null!;
+    private MemoryCache _memCacheFilled = null!;
 
     private ConcurrentLinkedDictionary<string, int> _omniMut = null!;
     private ConcurrentDictionary<string, int> _baselineMut = null!;
+    private Dictionary<string, int> _dictMut = null!;
+    private MemoryCache _memCacheMut = null!;
     private int _addCounter;
 
     [GlobalSetup]
@@ -42,22 +47,58 @@ public class ConcurrentLinkedDictionaryBenchmarks
 
         _omniFilled = new ConcurrentLinkedDictionary<string, int>(N);
         _baselineFilled = new ConcurrentDictionary<string, int>();
+        _dictFilled = new Dictionary<string, int>(N);
+        _memCacheFilled = NewMemoryCache(N);
         for (int i = 0; i < N; i++)
         {
             _omniFilled.AddOrUpdate(_keys[i], _values[i]);
             _baselineFilled.TryAdd(_keys[i], _values[i]);
+            _dictFilled[_keys[i]] = _values[i];
+            SetMemoryCache(_memCacheFilled, _keys[i], _values[i]);
         }
     }
 
-    [IterationSetup(Targets = new[] { nameof(Omni_Add), nameof(Baseline_Add) })]
+    private static MemoryCache NewMemoryCache(int sizeLimit)
+    {
+        return new MemoryCache(new MemoryCacheOptions
+        {
+            SizeLimit = sizeLimit
+        });
+    }
+
+    private static void SetMemoryCache(MemoryCache cache, string key, int value)
+    {
+        using var entry = cache.CreateEntry(key);
+        entry.Value = value;
+        entry.Size = 1;
+        entry.Priority = CacheItemPriority.Normal;
+    }
+
+    [GlobalCleanup]
+    public void GlobalCleanup()
+    {
+        _memCacheFilled?.Dispose();
+        _memCacheMut?.Dispose();
+    }
+
+    [IterationSetup(Targets = new[] {
+        nameof(Omni_Add),
+        nameof(Baseline_Add),
+        nameof(Baseline_Dictionary_Add),
+        nameof(Baseline_MemoryCache_Add) })]
     public void ResetForAdd()
     {
         _omniMut = new ConcurrentLinkedDictionary<string, int>(N + OpsPerIteration);
         _baselineMut = new ConcurrentDictionary<string, int>();
+        _dictMut = new Dictionary<string, int>(N + OpsPerIteration);
+        _memCacheMut?.Dispose();
+        _memCacheMut = NewMemoryCache(N + OpsPerIteration);
         for (int i = 0; i < N; i++)
         {
             _omniMut.AddOrUpdate(_keys[i], _values[i]);
             _baselineMut.TryAdd(_keys[i], _values[i]);
+            _dictMut[_keys[i]] = _values[i];
+            SetMemoryCache(_memCacheMut, _keys[i], _values[i]);
         }
         _addCounter = N;
     }
@@ -92,6 +133,48 @@ public class ConcurrentLinkedDictionaryBenchmarks
     {
         var k = _keys[_readIndices[_readCounter++ & ReadIndexMask]];
         return _baselineFilled.TryGetValue(k, out _);
+    }
+
+    // ============= Fair-baseline alternatives =============
+    // Existing Baseline_* uses ConcurrentDictionary (closest BCL thread-safe dict, no LRU).
+    // The two below extend the comparison surface so all three coexist in one report:
+    //   - Dictionary<K,V>   — single-threaded reference (NOT thread-safe; floor cost)
+    //   - MemoryCache       — closest BCL-ish to LRU (size-limited, eviction-driven)
+
+    /// Claim: ConcurrentLinkedDictionary single-thread Add cost vs Dictionary.set_Item (no thread safety, no LRU).
+    /// Establishes the floor: how much do thread-safety + LRU cost on top of plain Dictionary?
+    [Benchmark, BenchmarkCategory("Add"), InvocationCount(OpsPerIteration)]
+    public bool Baseline_Dictionary_Add()
+    {
+        _dictMut[_keys[_addCounter]] = _values[_addCounter];
+        _addCounter++;
+        return true;
+    }
+
+    /// Claim: ConcurrentLinkedDictionary single-thread Add cost vs MemoryCache.Set
+    /// (size-limited eviction-driven, the closest BCL-ish to a thread-safe LRU).
+    [Benchmark, BenchmarkCategory("Add"), InvocationCount(OpsPerIteration)]
+    public bool Baseline_MemoryCache_Add()
+    {
+        SetMemoryCache(_memCacheMut, _keys[_addCounter], _values[_addCounter]);
+        _addCounter++;
+        return true;
+    }
+
+    /// Claim: ConcurrentLinkedDictionary lookup cost vs Dictionary.TryGetValue (no thread safety, no LRU).
+    [Benchmark, BenchmarkCategory("Lookup")]
+    public bool Baseline_Dictionary_Lookup()
+    {
+        var k = _keys[_readIndices[_readCounter++ & ReadIndexMask]];
+        return _dictFilled.TryGetValue(k, out _);
+    }
+
+    /// Claim: ConcurrentLinkedDictionary lookup cost vs MemoryCache.TryGetValue.
+    [Benchmark, BenchmarkCategory("Lookup")]
+    public bool Baseline_MemoryCache_Lookup()
+    {
+        var k = _keys[_readIndices[_readCounter++ & ReadIndexMask]];
+        return _memCacheFilled.TryGetValue(k, out _);
     }
 
     /// Claim: ConcurrentLinkedDictionary fill from default capacity vs ConcurrentDictionary growth.

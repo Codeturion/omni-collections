@@ -132,4 +132,36 @@ public class PooledStackBenchmarks
 
     [Benchmark(Baseline = true), BenchmarkCategory("Peek")]
     public string Baseline_Peek() => _baselineFilled.Peek();
+
+    // ============= FillAndDrain (sustained reuse — pool win surfaces here) =============
+    // Plain Fill captures first-allocation only. FillAndDrain builds + drains a
+    // container, then disposes — pooled buffer returns to ArrayPool and is rented
+    // by the next iteration. Allocated trends to zero for pooled type past warmup.
+
+    /// Claim: PooledStack.CreateWithArrayPool sustained fill+drain reuses pooled
+    /// buffers — Allocated should drop near-zero past the first warmup iteration.
+    [Benchmark, BenchmarkCategory("FillAndDrain"), InvocationCount(1)]
+    public int Omni_FillAndDrain()
+    {
+        var c = PooledStack<string>.CreateWithArrayPool();
+        for (int i = 0; i < N; i++)
+            c.Push(_values[i]);
+        int sum = 0;
+        while (c.Count > 0)
+            sum += c.Pop().Length;
+        c.Dispose();
+        return sum;
+    }
+
+    [Benchmark(Baseline = true), BenchmarkCategory("FillAndDrain"), InvocationCount(1)]
+    public int Baseline_FillAndDrain()
+    {
+        var c = new Stack<string>();
+        for (int i = 0; i < N; i++)
+            c.Push(_values[i]);
+        int sum = 0;
+        while (c.Count > 0)
+            sum += c.Pop().Length;
+        return sum;
+    }
 }
