@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using Omni.Collections.Core.Time;
 using Omni.Collections.Spatial;
 
 namespace Omni.Collections.Temporal;
@@ -22,6 +23,7 @@ public class TemporalSpatialGrid<T> : IDisposable where T : notnull
     static private readonly ConcurrentQueue<SpatialSnapshot<T>> SnapshotPool = new ConcurrentQueue<SpatialSnapshot<T>>();
     static private readonly ConcurrentQueue<SpatialHashGrid<T>> GridPool = new ConcurrentQueue<SpatialHashGrid<T>>();
     private readonly bool _usePooling;
+    private readonly IClock _clock;
     private SpatialHashGrid<T> _currentGrid;
     private long _lastRecordedTime;
     private bool _autoRecord;
@@ -31,15 +33,19 @@ public class TemporalSpatialGrid<T> : IDisposable where T : notnull
     public int CurrentObjectCount => _currentGrid.Count;
     public float CellSize => _cellSize;
     public TemporalSpatialGrid(int capacity = 3600, float cellSize = 64.0f, long frameDuration = 16, bool autoRecord = false)
-        : this(capacity, cellSize, frameDuration, autoRecord, usePooling: false) { }
+        : this(capacity, cellSize, frameDuration, autoRecord, usePooling: false, clock: SystemClock.Instance) { }
 
-    private TemporalSpatialGrid(int capacity, float cellSize, long frameDuration, bool autoRecord, bool usePooling)
+    public TemporalSpatialGrid(IClock clock, int capacity = 3600, float cellSize = 64.0f, long frameDuration = 16, bool autoRecord = false)
+        : this(capacity, cellSize, frameDuration, autoRecord, usePooling: false, clock: clock ?? throw new ArgumentNullException(nameof(clock))) { }
+
+    private TemporalSpatialGrid(int capacity, float cellSize, long frameDuration, bool autoRecord, bool usePooling, IClock clock)
     {
         _timeline = new TimelineArray<SpatialSnapshot<T>>(capacity, (int)frameDuration);
         _cellSize = cellSize;
         _frameDuration = frameDuration;
         _autoRecord = autoRecord;
         _usePooling = usePooling;
+        _clock = clock;
         if (_usePooling && GridPool.TryDequeue(out SpatialHashGrid<T>? pooledGrid))
         {
             pooledGrid.Clear();
@@ -54,7 +60,7 @@ public class TemporalSpatialGrid<T> : IDisposable where T : notnull
 
     public static TemporalSpatialGrid<T> CreateWithArrayPool(int capacity = 3600, float cellSize = 64.0f, long frameDuration = 16, bool autoRecord = false)
     {
-        return new TemporalSpatialGrid<T>(capacity, cellSize, frameDuration, autoRecord, usePooling: true);
+        return new TemporalSpatialGrid<T>(capacity, cellSize, frameDuration, autoRecord, usePooling: true, clock: SystemClock.Instance);
     }
 
     static private readonly ConcurrentQueue<TemporalSpatialGrid<T>> InstancePool = new ConcurrentQueue<TemporalSpatialGrid<T>>();
@@ -67,6 +73,8 @@ public class TemporalSpatialGrid<T> : IDisposable where T : notnull
         }
         return new TemporalSpatialGrid<T>(capacity, cellSize, frameDuration, autoRecord);
     }
+
+
 
     public void Return()
     {
@@ -89,7 +97,7 @@ public class TemporalSpatialGrid<T> : IDisposable where T : notnull
             _currentGrid.Insert(x, y, item);
             if (_autoRecord)
             {
-                var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                var currentTime = _clock.UtcNow.ToUnixTimeMilliseconds();
                 if (_lastRecordedTime == 0 || currentTime - _lastRecordedTime >= _frameDuration)
                 {
                     RecordCurrentState(currentTime);
@@ -106,7 +114,7 @@ public class TemporalSpatialGrid<T> : IDisposable where T : notnull
             var removed = _currentGrid.Remove(x, y, item);
             if (removed && _autoRecord)
             {
-                var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                var currentTime = _clock.UtcNow.ToUnixTimeMilliseconds();
                 if (currentTime - _lastRecordedTime >= _frameDuration)
                 {
                     RecordCurrentState(currentTime);
@@ -136,7 +144,7 @@ public class TemporalSpatialGrid<T> : IDisposable where T : notnull
 
     public void RecordSnapshot(long? timestamp = null)
     {
-        var time = timestamp ?? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var time = timestamp ?? _clock.UtcNow.ToUnixTimeMilliseconds();
         lock (_lock)
         {
             RecordCurrentState(time);
@@ -323,7 +331,7 @@ public class TemporalSpatialGrid<T> : IDisposable where T : notnull
         {
             _timeline.Clear();
             _currentGrid.Clear();
-            _lastRecordedTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            _lastRecordedTime = _clock.UtcNow.ToUnixTimeMilliseconds();
         }
     }
 
