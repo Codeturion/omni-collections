@@ -54,20 +54,16 @@ public class PooledList<T> : IList<T>, IDisposable
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-#if DEBUG
             if ((uint)index >= (uint)_size)
                 throw new IndexOutOfRangeException();
-#endif
             return _buffer[index];
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
-#if DEBUG
             if ((uint)index >= (uint)_size)
                 throw new IndexOutOfRangeException();
-#endif
             _buffer[index] = value;
         }
     }
@@ -75,19 +71,15 @@ public class PooledList<T> : IList<T>, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ref T GetRef(int index)
     {
-#if DEBUG
         if ((uint)index >= (uint)_size)
             throw new IndexOutOfRangeException();
-#endif
         return ref _buffer[index];
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Add(T item)
     {
-#if DEBUG
         ThrowIfDisposed();
-#endif
         if (_size >= _buffer.Length)
             Resize();
         _buffer[_size++] = item;
@@ -95,9 +87,7 @@ public class PooledList<T> : IList<T>, IDisposable
 
     public void AddRange(ReadOnlySpan<T> items)
     {
-#if DEBUG
         ThrowIfDisposed();
-#endif
         if (items.IsEmpty)
             return;
         while (_size + items.Length > _buffer.Length)
