@@ -30,6 +30,7 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
     private Action? _listCleared;
     private Action? _listChanged;
     private bool _disposed;
+    private bool _isNotifying;
     static private readonly PropertyChangedEventArgs CountChangedArgs = new PropertyChangedEventArgs("Count");
     static private readonly PropertyChangedEventArgs CapacityChangedArgs = new PropertyChangedEventArgs("Capacity");
     static private readonly NotifyCollectionChangedEventArgs ResetArgs = new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset);
@@ -125,6 +126,7 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
         get => _items[index];
         set
         {
+            ThrowIfNotifying();
             var oldItem = _items[index];
             _items[index] = value;
             IncrementVersion();
@@ -137,6 +139,7 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
     public void Add(T item)
     {
         ThrowIfDisposed();
+        ThrowIfNotifying();
         var index = _items.Count;
         _items.Add(item);
         IncrementVersion();
@@ -149,18 +152,19 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
 
     public void AddRange(IEnumerable<T> items)
     {
+        ThrowIfNotifying();
         var startIndex = _items.Count;
         IList<T>? itemsList = items as IList<T> ?? items.ToList();
         if (itemsList.Count == 0) return;
         _items.AddRange(itemsList);
         IncrementVersion();
-        
+
         // Fire ItemAdded events for each item
         foreach (T item in itemsList)
         {
             OnItemAdded(item);
         }
-        
+
         OnPropertyChanged(nameof(Count));
         OnCollectionChanged(NotifyCollectionChangedAction.Add, itemsList, startIndex);
         OnListChanged();
@@ -168,6 +172,7 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
 
     public void Insert(int index, T item)
     {
+        ThrowIfNotifying();
         _items.Insert(index, item);
         IncrementVersion();
         OnItemAdded(item);
@@ -179,6 +184,7 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
 
     public void InsertRange(int index, IEnumerable<T> items)
     {
+        ThrowIfNotifying();
         IList<T>? itemsList = items as IList<T> ?? items.ToList();
         if (itemsList.Count == 0) return;
         _items.InsertRange(index, itemsList);
@@ -190,6 +196,7 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
 
     public bool Remove(T item)
     {
+        ThrowIfNotifying();
         var index = _items.IndexOf(item);
         if (index >= 0)
         {
@@ -201,6 +208,7 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
 
     public void RemoveAt(int index)
     {
+        ThrowIfNotifying();
         var item = _items[index];
         _items.RemoveAt(index);
         IncrementVersion();
@@ -213,6 +221,7 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
 
     public int RemoveAll(Predicate<T> predicate)
     {
+        ThrowIfNotifying();
         var removedItems = new List<T>();
         var removedIndices = new List<int>();
         for (int i = _items.Count - 1; i >= 0; i--)
@@ -240,6 +249,7 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
     public void Clear()
     {
         ThrowIfDisposed();
+        ThrowIfNotifying();
         if (_items.Count > 0)
         {
             _items.Clear();
@@ -635,32 +645,80 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
         if (_collectionChanged != null)
         {
             // Only Reset action can be created without items/indices
-            var eventArgs = action == NotifyCollectionChangedAction.Reset 
-                ? ResetArgs 
+            var eventArgs = action == NotifyCollectionChangedAction.Reset
+                ? ResetArgs
                 : new NotifyCollectionChangedEventArgs(action);
-            _collectionChanged.Invoke(this, eventArgs);
+            _isNotifying = true;
+            try
+            {
+                _collectionChanged.Invoke(this, eventArgs);
+            }
+            finally
+            {
+                _isNotifying = false;
+            }
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void OnCollectionChanged(NotifyCollectionChangedAction action, object? item, int index)
     {
-        _collectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(action, item, index));
+        if (_collectionChanged != null)
+        {
+            _isNotifying = true;
+            try
+            {
+                _collectionChanged.Invoke(this, new NotifyCollectionChangedEventArgs(action, item, index));
+            }
+            finally
+            {
+                _isNotifying = false;
+            }
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void OnCollectionChanged(NotifyCollectionChangedAction action, object? newItem, object? oldItem, int index)
     {
-        _collectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(action, newItem, oldItem, index));
+        if (_collectionChanged != null)
+        {
+            _isNotifying = true;
+            try
+            {
+                _collectionChanged.Invoke(this, new NotifyCollectionChangedEventArgs(action, newItem, oldItem, index));
+            }
+            finally
+            {
+                _isNotifying = false;
+            }
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void OnCollectionChanged(NotifyCollectionChangedAction action, IList items, int startingIndex)
     {
-        _collectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(action, items, startingIndex));
+        if (_collectionChanged != null)
+        {
+            _isNotifying = true;
+            try
+            {
+                _collectionChanged.Invoke(this, new NotifyCollectionChangedEventArgs(action, items, startingIndex));
+            }
+            finally
+            {
+                _isNotifying = false;
+            }
+        }
     }
 
-    public void Dispose()
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void ThrowIfNotifying()
+    {
+        if (_isNotifying)
+            throw new InvalidOperationException("Cannot mutate the collection during a notification callback.");
+    }
+
+    public virtual void Dispose()
     {
         if (!_disposed)
         {
@@ -685,6 +743,47 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
     }
 }
 
+/// <summary>
+/// A live filtered view over an <see cref="ObservableList{T}"/>. Subscribes to the source's
+/// item events on construction; <see cref="Dispose"/> unsubscribes those handlers so the source
+/// no longer holds a reference to this view.
+/// </summary>
+public sealed class FilteredObservableListView<T> : ObservableList<T>
+{
+    private ObservableList<T>? _source;
+    private readonly Action<T> _onSourceItemAdded;
+    private readonly Action<T> _onSourceItemRemoved;
+    private readonly Action _onSourceListCleared;
+
+    internal FilteredObservableListView(ObservableList<T> source, Predicate<T> predicate)
+        : base(source.FindAll(predicate))
+    {
+        _source = source;
+        _onSourceItemAdded = item =>
+        {
+            if (predicate(item))
+                Add(item);
+        };
+        _onSourceItemRemoved = item => Remove(item);
+        _onSourceListCleared = () => Clear();
+        source.ItemAdded += _onSourceItemAdded;
+        source.ItemRemoved += _onSourceItemRemoved;
+        source.ListCleared += _onSourceListCleared;
+    }
+
+    public override void Dispose()
+    {
+        if (_source != null)
+        {
+            _source.ItemAdded -= _onSourceItemAdded;
+            _source.ItemRemoved -= _onSourceItemRemoved;
+            _source.ListCleared -= _onSourceListCleared;
+            _source = null;
+        }
+        base.Dispose();
+    }
+}
+
 public static class ObservableListExtensions
 {
     public static void SubscribeToChanges<T>(this ObservableList<T> list, Action onChanged)
@@ -700,19 +799,13 @@ public static class ObservableListExtensions
             list.ItemRemoved += onRemoved;
     }
 
-    public static ObservableList<T> CreateFilteredView<T>(this ObservableList<T> source, Predicate<T> predicate)
+    /// <summary>
+    /// Creates a live filtered view over <paramref name="source"/>. The returned view subscribes
+    /// to the source's item events; dispose the view to release those subscriptions and prevent
+    /// the source from keeping the view alive.
+    /// </summary>
+    public static FilteredObservableListView<T> CreateFilteredView<T>(this ObservableList<T> source, Predicate<T> predicate)
     {
-        var filtered = new ObservableList<T>(source.FindAll(predicate));
-        source.ItemAdded += item =>
-        {
-            if (predicate(item))
-                filtered.Add(item);
-        };
-        source.ItemRemoved += item =>
-        {
-            filtered.Remove(item);
-        };
-        source.ListCleared += () => filtered.Clear();
-        return filtered;
+        return new FilteredObservableListView<T>(source, predicate);
     }
 }

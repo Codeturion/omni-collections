@@ -635,5 +635,129 @@ public class ObservableHashSetTests
         set.Count.Should().Be(0);
     }
 
+    #region Filtered View Lifecycle (4.1)
+
+    [Fact]
+    public void CreateFilteredView_AfterDispose_DoesNotReceiveEventsFromSource()
+    {
+        var source = new ObservableHashSet<int> { 1, 2, 3, 4 };
+        var view = source.CreateFilteredView(x => x % 2 == 0);
+        view.Count.Should().Be(2);
+        view.Should().Contain(new[] { 2, 4 });
+
+        var viewItemAddedFired = 0;
+        var viewItemRemovedFired = 0;
+        var viewSetClearedFired = 0;
+        var viewCollectionChangedFired = 0;
+        view.ItemAdded += _ => viewItemAddedFired++;
+        view.ItemRemoved += _ => viewItemRemovedFired++;
+        view.SetCleared += () => viewSetClearedFired++;
+        view.CollectionChanged += (_, _) => viewCollectionChangedFired++;
+
+        view.Dispose();
+
+        source.Add(6);
+        source.Add(7);
+        source.Remove(2);
+        source.Clear();
+
+        viewItemAddedFired.Should().Be(0);
+        viewItemRemovedFired.Should().Be(0);
+        viewSetClearedFired.Should().Be(0);
+        viewCollectionChangedFired.Should().Be(0);
+    }
+
+    [Fact]
+    public void CreateFilteredView_BeforeDispose_TracksSource()
+    {
+        var source = new ObservableHashSet<int> { 1, 2, 3 };
+        using var view = source.CreateFilteredView(x => x % 2 == 1);
+        view.Should().Contain(new[] { 1, 3 });
+
+        source.Add(5);
+        view.Should().Contain(5);
+
+        source.Add(4);
+        view.Should().NotContain(4);
+
+        source.Remove(1);
+        view.Should().NotContain(1);
+
+        source.Clear();
+        view.Count.Should().Be(0);
+    }
+
+    [Fact]
+    public void CreateFilteredView_DisposeIsIdempotent()
+    {
+        var source = new ObservableHashSet<int> { 1, 2, 3 };
+        var view = source.CreateFilteredView(x => true);
+        view.Dispose();
+        var act = () => view.Dispose();
+        act.Should().NotThrow();
+    }
+
+    #endregion
+
+    #region Re-entrancy Guard (4.2)
+
+    [Fact]
+    public void Add_DuringCollectionChangedHandler_Throws()
+    {
+        var set = new ObservableHashSet<int>();
+        Exception? captured = null;
+        set.CollectionChanged += (_, _) =>
+        {
+            try { set.Add(99); }
+            catch (Exception ex) { captured = ex; }
+        };
+
+        set.Add(1);
+        captured.Should().BeOfType<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void Remove_DuringCollectionChangedHandler_Throws()
+    {
+        var set = new ObservableHashSet<int> { 1, 2, 3 };
+        Exception? captured = null;
+        set.CollectionChanged += (_, _) =>
+        {
+            try { set.Remove(2); }
+            catch (Exception ex) { captured = ex; }
+        };
+
+        set.Add(4);
+        captured.Should().BeOfType<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void Clear_DuringCollectionChangedHandler_Throws()
+    {
+        var set = new ObservableHashSet<int> { 1, 2 };
+        Exception? captured = null;
+        set.CollectionChanged += (_, _) =>
+        {
+            try { set.Clear(); }
+            catch (Exception ex) { captured = ex; }
+        };
+
+        set.Add(3);
+        captured.Should().BeOfType<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void NotifyingFlag_ResetsAfterEachCallback()
+    {
+        var set = new ObservableHashSet<int>();
+        set.CollectionChanged += (_, _) => { /* noop */ };
+        set.Add(1);
+        var act = () => set.Add(2);
+        act.Should().NotThrow();
+        set.Count.Should().Be(2);
+    }
+
+    #endregion
+
     private record Person(string Name, int Age);
 }
