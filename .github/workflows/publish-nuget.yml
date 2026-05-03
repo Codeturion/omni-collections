@@ -16,7 +16,11 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '8.0.x'
+        # Tests multi-target net8.0;net6.0 — both runtimes must be installed or
+        # `dotnet test` fails to run the net6 path even though build succeeds.
+        dotnet-version: |
+          6.0.x
+          8.0.x
 
     - name: Extract version from tag
       id: version
@@ -34,5 +38,12 @@ jobs:
     - name: Pack NuGet packages
       run: dotnet pack --configuration Release --no-build -p:PackageVersion=${{ steps.version.outputs.VERSION }} --output ./nupkgs
 
-    - name: Publish to NuGet
-      run: dotnet nuget push ./nupkgs/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+    # `dotnet pack` outputs both .nupkg and .snupkg next to each other when
+    # IncludeSymbols=true / SymbolPackageFormat=snupkg are set in
+    # Directory.Build.props (they are). Pushing both ships symbols + sources
+    # to nuget.org's symbol server.
+    - name: Publish packages to NuGet
+      run: dotnet nuget push "./nupkgs/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+    - name: Publish symbol packages to NuGet
+      run: dotnet nuget push "./nupkgs/*.snupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
