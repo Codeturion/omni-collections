@@ -412,16 +412,27 @@ public class SpatialHashGrid<T> : IDisposable where T : notnull
     {
         if (_useSpatialMode)
         {
-            int[] cellCounts = new int[_grid!.Count];
+            int cellCount = _grid!.Count;
+#if NET6_0_OR_GREATER
+            // Stack-allocate small grids to avoid heap churn; heap fallback for big ones.
+            // netstandard2.1 lacks Span<T>.Sort, so it always allocates the array.
+            Span<int> cellCounts = cellCount <= 1024 ? stackalloc int[cellCount] : new int[cellCount];
+            int index = 0;
+            foreach (List<SpatialEntry<T>> cell in _grid.Values)
+                cellCounts[index++] = cell.Count;
+            cellCounts.Sort();
+#else
+            int[] cellCounts = new int[cellCount];
             int index = 0;
             foreach (List<SpatialEntry<T>> cell in _grid.Values)
                 cellCounts[index++] = cell.Count;
             Array.Sort(cellCounts);
+#endif
             return new SpatialHashGridStats
             {
                 TotalObjects = _count,
-                OccupiedCells = _grid.Count,
-                AverageObjectsPerCell = _count > 0 ? (float)_count / _grid.Count : 0,
+                OccupiedCells = cellCount,
+                AverageObjectsPerCell = _count > 0 ? (float)_count / cellCount : 0,
                 MaxObjectsPerCell = cellCounts.Length > 0 ? cellCounts[cellCounts.Length - 1] : 0,
                 MedianObjectsPerCell = cellCounts.Length > 0 ? cellCounts[cellCounts.Length / 2] : 0
             };

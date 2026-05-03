@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Omni.Collections.Core.Time;
 
 namespace Omni.Collections.Hybrid.GraphDictionary
 {
@@ -28,6 +29,7 @@ namespace Omni.Collections.Hybrid.GraphDictionary
         private long _edgeCount;
         private long _lookupCount;
         private long _traversalCount;
+        private readonly IClock _clock;
         static private readonly ArrayPool<GraphNode> NodeArrayPool = ArrayPool<GraphNode>.Shared;
         static private readonly ArrayPool<TKey> KeyArrayPool = ArrayPool<TKey>.Shared;
         private GraphNode CreateNode()
@@ -92,22 +94,35 @@ namespace Omni.Collections.Hybrid.GraphDictionary
 
             public object? Metadata { get; set; }
 
-            public EdgeInfo(double weight = 1.0, object? metadata = null)
+            public EdgeInfo(double weight, DateTime created, object? metadata = null)
             {
                 Weight = weight;
-                Created = DateTime.UtcNow;
+                Created = created;
                 Metadata = metadata;
             }
         }
         #endregion
         #region Constructors
         public GraphDictionary()
+            : this(0, SystemClock.Instance)
         {
-            _nodes = new Dictionary<TKey, GraphNode>();
+        }
+
+        public GraphDictionary(int capacity)
+            : this(capacity, SystemClock.Instance)
+        {
+        }
+
+        public GraphDictionary(int capacity, IClock clock)
+        {
+            if (capacity < 0)
+                throw new ArgumentOutOfRangeException(nameof(capacity), "Capacity must be non-negative");
+            _clock = clock ?? throw new ArgumentNullException(nameof(clock));
+            _nodes = capacity > 0 ? new Dictionary<TKey, GraphNode>(capacity) : new Dictionary<TKey, GraphNode>();
             _structureLock = new ReaderWriterLockSlim();
             _metricsCache = new ConcurrentDictionary<string, object>();
             _cacheVersion = 0;
-            _incomingEdges = new Dictionary<TKey, HashSet<TKey>>();
+            _incomingEdges = capacity > 0 ? new Dictionary<TKey, HashSet<TKey>>(capacity) : new Dictionary<TKey, HashSet<TKey>>();
         }
         #endregion
         #region Dictionary Operations (O(1))
@@ -314,7 +329,7 @@ namespace Omni.Collections.Hybrid.GraphDictionary
                 if (!_nodes.ContainsKey(from) || !_nodes.ContainsKey(to))
                     return false;
                 var fromNode = _nodes[from];
-                var edgeInfo = new EdgeInfo(weight, metadata);
+                var edgeInfo = new EdgeInfo(weight, _clock.UtcNow.UtcDateTime, metadata);
                 if (fromNode.GetOrCreateNeighbors().TryAdd(to, edgeInfo))
                 {
                     if (!_incomingEdges.TryGetValue(to, out HashSet<TKey>? incomingSet))
@@ -372,6 +387,25 @@ namespace Omni.Collections.Hybrid.GraphDictionary
             {
                 _structureLock.ExitReadLock();
             }
+        }
+
+        public bool TryGetEdgeCreated(TKey from, TKey to, out DateTime created)
+        {
+            _structureLock.EnterReadLock();
+            try
+            {
+                if (_nodes.TryGetValue(from, out var node) && node.Neighbors != null && node.Neighbors.TryGetValue(to, out var info))
+                {
+                    created = info.Created;
+                    return true;
+                }
+            }
+            finally
+            {
+                _structureLock.ExitReadLock();
+            }
+            created = default;
+            return false;
         }
 
         public bool HasEdge(TKey from, TKey to)

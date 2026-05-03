@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
 using Omni.Collections.Temporal;
+using Omni.Collections.Tests._TestHelpers;
 using Xunit;
 
 namespace Omni.Collections.Tests.Temporal;
@@ -80,11 +81,11 @@ public class TemporalSpatialGridTests
     [Fact]
     public void Insert_WithAutoRecord_CreatesSnapshots()
     {
-        var grid = new TemporalSpatialGrid<string>(capacity: 100, cellSize: 64.0f, frameDuration: 100, autoRecord: true);
-        var baseTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var clock = new FakeClock();
+        var grid = new TemporalSpatialGrid<string>(clock, capacity: 100, cellSize: 64.0f, frameDuration: 100, autoRecord: true);
 
         grid.Insert(10.0f, 10.0f, "obj1");
-        System.Threading.Thread.Sleep(150); // Wait longer than frameDuration (100ms)
+        clock.Advance(TimeSpan.FromMilliseconds(150)); // Wait longer than frameDuration (100ms)
         grid.Insert(20.0f, 20.0f, "obj2"); // Beyond frame duration
 
         grid.SnapshotCount.Should().BeGreaterThan(0);
@@ -288,13 +289,14 @@ public class TemporalSpatialGridTests
     [Fact]
     public void TimeRange_ReturnsCorrectTemporalBounds()
     {
-        var grid = new TemporalSpatialGrid<string>();
-        var baseTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var clock = new FakeClock();
+        var grid = new TemporalSpatialGrid<string>(clock);
+        var baseTime = clock.UtcNow.ToUnixTimeMilliseconds();
 
         grid.Insert(10.0f, 10.0f, "obj1");
         grid.RecordSnapshot(baseTime);
 
-        System.Threading.Thread.Sleep(100);
+        clock.Advance(TimeSpan.FromMilliseconds(100));
         grid.Insert(20.0f, 20.0f, "obj2");
         grid.RecordSnapshot(baseTime + 1000);
 
@@ -356,6 +358,7 @@ public class TemporalSpatialGridTests
             for (int i = 0; i < 10; i++)
             {
                 var results = grid.GetObjectsInRectangle(0.0f, 0.0f, 1000.0f, 1000.0f);
+                // Real wall-clock yield: this is a concurrency stress probe, not deterministic time advance.
                 System.Threading.Thread.Sleep(10);
             }
         }));
@@ -478,10 +481,11 @@ public class TemporalSpatialGridTests
     [InlineData(200)]
     public void FrameDuration_AffectsAutoRecording(long frameDuration)
     {
-        var grid = new TemporalSpatialGrid<string>(capacity: 100, cellSize: 64.0f, frameDuration: frameDuration, autoRecord: true);
+        var clock = new FakeClock();
+        var grid = new TemporalSpatialGrid<string>(clock, capacity: 100, cellSize: 64.0f, frameDuration: frameDuration, autoRecord: true);
 
         grid.Insert(10.0f, 10.0f, "obj1");
-        System.Threading.Thread.Sleep((int)frameDuration + 20); // Wait beyond frame duration
+        clock.Advance(TimeSpan.FromMilliseconds(frameDuration + 20)); // Wait beyond frame duration
         grid.Insert(20.0f, 20.0f, "obj2"); // Should trigger auto-record
 
         grid.SnapshotCount.Should().BeGreaterOrEqualTo(1);
@@ -494,29 +498,30 @@ public class TemporalSpatialGridTests
     [Fact]
     public void AutoRecording_CanBeControlledAtRuntime()
     {
-        var grid = new TemporalSpatialGrid<string>(capacity: 100, cellSize: 64.0f, frameDuration: 10, autoRecord: false);
+        var clock = new FakeClock();
+        var grid = new TemporalSpatialGrid<string>(clock, capacity: 100, cellSize: 64.0f, frameDuration: 10, autoRecord: false);
 
         grid.Insert(10.0f, 10.0f, "obj1");
-        System.Threading.Thread.Sleep(20);
+        clock.Advance(TimeSpan.FromMilliseconds(20));
         grid.Insert(20.0f, 20.0f, "obj2");
-        
+
         // Should not have auto-recorded
         grid.SnapshotCount.Should().Be(0);
 
         // Start auto-recording
         grid.StartAutoRecording(10);
-        System.Threading.Thread.Sleep(20);
+        clock.Advance(TimeSpan.FromMilliseconds(20));
         grid.Insert(30.0f, 30.0f, "obj3");
-        
+
         // Should have auto-recorded
         grid.SnapshotCount.Should().BeGreaterOrEqualTo(1);
 
         // Stop auto-recording
         grid.StopAutoRecording();
         var countBeforeStop = grid.SnapshotCount;
-        System.Threading.Thread.Sleep(20);
+        clock.Advance(TimeSpan.FromMilliseconds(20));
         grid.Insert(40.0f, 40.0f, "obj4");
-        
+
         // Should not have recorded new snapshots
         grid.SnapshotCount.Should().Be(countBeforeStop);
     }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using Omni.Collections.Core.Time;
 using Omni.Collections.Probabilistic;
 
 namespace Omni.Collections.Probabilistic;
@@ -22,6 +23,7 @@ public class DigestStreamingAnalytics<T> : IDisposable
     private readonly Digest _currentWindow;
     private readonly Queue<TimestampedValue> _valueBuffer;
     private readonly Func<T, double> _valueExtractor;
+    private readonly IClock _clock;
     private readonly object _lock = new object();
     private readonly double _compression;
     private long _totalProcessed;
@@ -38,14 +40,18 @@ public class DigestStreamingAnalytics<T> : IDisposable
     public double WindowCount => _currentWindow.Count;
     public long EstimatedMemoryUsage => _currentWindow.EstimatedMemoryUsage + (_valueBuffer.Count * 16);
     public DigestStreamingAnalytics(TimeSpan windowSize, Func<T, double> valueExtractor, double compression = 100.0)
+        : this(windowSize, valueExtractor, SystemClock.Instance, compression) { }
+
+    public DigestStreamingAnalytics(TimeSpan windowSize, Func<T, double> valueExtractor, IClock clock, double compression = 100.0)
     {
         _windowSize = windowSize;
         _windowSizeMs = (long)windowSize.TotalMilliseconds;
         _valueExtractor = valueExtractor ?? throw new ArgumentNullException(nameof(valueExtractor));
+        _clock = clock ?? throw new ArgumentNullException(nameof(clock));
         _compression = compression;
         _currentWindow = RentDigest(compression);
         _valueBuffer = RentBuffer();
-        _lastCleanup = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        _lastCleanup = _clock.UtcNow.ToUnixTimeMilliseconds();
         _lastRebuildTime = _lastCleanup;
         PrewarmPools();
     }
@@ -55,10 +61,15 @@ public class DigestStreamingAnalytics<T> : IDisposable
         return new DigestStreamingAnalytics<double>(windowSize, x => x, compression);
     }
 
+    public static DigestStreamingAnalytics<double> CreateNumeric(TimeSpan windowSize, IClock clock, double compression = 100.0)
+    {
+        return new DigestStreamingAnalytics<double>(windowSize, x => x, clock, compression);
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Add(T item, long? timestamp = null)
     {
-        var ts = timestamp ?? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var ts = timestamp ?? _clock.UtcNow.ToUnixTimeMilliseconds();
         var value = _valueExtractor(item);
         lock (_lock)
         {
@@ -76,7 +87,7 @@ public class DigestStreamingAnalytics<T> : IDisposable
 
     public void AddRange(IEnumerable<T> items, long? timestamp = null)
     {
-        var ts = timestamp ?? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var ts = timestamp ?? _clock.UtcNow.ToUnixTimeMilliseconds();
         lock (_lock)
         {
             foreach (var item in items)
@@ -98,7 +109,7 @@ public class DigestStreamingAnalytics<T> : IDisposable
             throw new ArgumentOutOfRangeException(nameof(percentile), "Percentile must be between 0.0 and 1.0");
         lock (_lock)
         {
-            CleanupExpiredValues(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+            CleanupExpiredValues(_clock.UtcNow.ToUnixTimeMilliseconds());
             return _currentWindow.Quantile(percentile);
         }
     }
@@ -107,7 +118,7 @@ public class DigestStreamingAnalytics<T> : IDisposable
     {
         lock (_lock)
         {
-            CleanupExpiredValues(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+            CleanupExpiredValues(_clock.UtcNow.ToUnixTimeMilliseconds());
             var result = new Dictionary<double, double>(percentiles.Length);
             foreach (var p in percentiles)
             {
@@ -121,7 +132,7 @@ public class DigestStreamingAnalytics<T> : IDisposable
     {
         lock (_lock)
         {
-            var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            var currentTime = _clock.UtcNow.ToUnixTimeMilliseconds();
             if (_cachedAnalytics != null &&
                 currentTime - _lastAnalyticsTimestamp < 100 &&
                 _digestVersion == _cachedAnalytics.DigestVersion)
@@ -163,7 +174,7 @@ public class DigestStreamingAnalytics<T> : IDisposable
     {
         lock (_lock)
         {
-            var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            var currentTime = _clock.UtcNow.ToUnixTimeMilliseconds();
             CleanupExpiredValues(currentTime);
             var p95 = _currentWindow.Quantile(0.95);
             var p99 = _currentWindow.Quantile(0.99);
@@ -183,7 +194,7 @@ public class DigestStreamingAnalytics<T> : IDisposable
     {
         lock (_lock)
         {
-            CleanupExpiredValues(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+            CleanupExpiredValues(_clock.UtcNow.ToUnixTimeMilliseconds());
             var windowSizeSeconds = _windowSize.TotalSeconds;
             var rate = _currentWindow.Count / windowSizeSeconds;
             return new RateAnalytics
@@ -217,7 +228,7 @@ public class DigestStreamingAnalytics<T> : IDisposable
             _valueBuffer.Clear();
             _currentWindow.Clear();
             _totalProcessed = 0;
-            _lastCleanup = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            _lastCleanup = _clock.UtcNow.ToUnixTimeMilliseconds();
             _digestVersion++;
             _cachedAnalytics = null;
         }
@@ -235,9 +246,10 @@ public class DigestStreamingAnalytics<T> : IDisposable
         }
         if (removedCount > 0)
         {
-            // Original code had a throttle here that was always bypassed by an else branch
-            // calling RebuildDigestOptimized anyway. Test coverage shows percentile accuracy
-            // depends on rebuilding on every expiration; the throttle was structurally dead.
+            // The original code had a throttle here that was always bypassed by an else
+            // branch that called RebuildDigestOptimized anyway — structurally dead. Test
+            // coverage shows percentile accuracy depends on rebuilding on every expiration,
+            // so the gate collapses to: any expiration → rebuild + update timestamp.
             RebuildDigestOptimized();
             _lastRebuildTime = currentTime;
         }

@@ -78,11 +78,13 @@ public class OctTree<T> : IDisposable
             return;
         }
         // No bounds provided — walk the source once, tracking min/max position and
-        // buffering items in a single List<T>. Avoids the prior double-allocation
-        // (items.ToArray + positions.Select.ToArray) and the LINQ Min/Max scans.
+        // buffering (item, position) pairs so the second pass doesn't re-invoke the
+        // user-supplied IPointProvider delegate. Avoids the prior double-allocation
+        // (items.ToArray + positions.Select.ToArray), the LINQ Min/Max scans, AND
+        // the redundant per-item GetPosition call during insert.
         bool hasItems = false;
         float minX = 0, minY = 0, minZ = 0, maxX = 0, maxY = 0, maxZ = 0;
-        var buffer = new List<T>();
+        var buffer = new List<(T item, Vector3 position)>();
         foreach (var item in items)
         {
             var position = _pointProvider.GetPosition(item);
@@ -102,7 +104,7 @@ public class OctTree<T> : IDisposable
                 if (position.Z < minZ) minZ = position.Z;
                 else if (position.Z > maxZ) maxZ = position.Z;
             }
-            buffer.Add(item);
+            buffer.Add((item, position));
         }
         if (!hasItems)
             return;
@@ -110,10 +112,18 @@ public class OctTree<T> : IDisposable
         var computedBounds = new OctBounds(
             minX - padding, minY - padding, minZ - padding,
             maxX + padding, maxY + padding, maxZ + padding);
-        foreach (var item in buffer)
+        EnsureRoot(computedBounds);
+        foreach (var (item, position) in buffer)
         {
-            Insert(item, computedBounds);
+            InsertRecursive(_root!, item, position);
+            _count++;
         }
+    }
+
+    private void EnsureRoot(OctBounds bounds)
+    {
+        if (_root == null)
+            _root = CreateNode(bounds);
     }
 
     public List<T> FindInSphere(Vector3 center, float radius)

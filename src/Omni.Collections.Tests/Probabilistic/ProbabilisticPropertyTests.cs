@@ -142,6 +142,112 @@ public class ProbabilisticPropertyTests
         });
     }
 
+    /// <summary>
+    /// Fundamental BloomFilter contract: no false negatives. Every item that was added
+    /// must be reported as Contains.
+    /// </summary>
+    [Property(MaxTest = 50)]
+    public Property BloomFilter_NoFalseNegatives_ForEveryAddedItem()
+    {
+        return Prop.ForAll(Arb.From<int>(), seed =>
+        {
+            var rng = new System.Random(seed);
+            var bloom = new BloomFilter<long>(InsertCount, DesignFpr);
+            var inserted = new List<long>(InsertCount);
+            while (inserted.Count < InsertCount)
+            {
+                long x = NextLong(rng);
+                bloom.Add(x);
+                inserted.Add(x);
+            }
+            foreach (var x in inserted)
+            {
+                if (!bloom.Contains(x))
+                {
+                    return Prop.OfTestable(false)
+                        .Label($"seed={seed} false-negative on {x}");
+                }
+            }
+            return Prop.OfTestable(true);
+        });
+    }
+
+    /// <summary>
+    /// HyperLogLog merge contract: union(A, B) cardinality is at least max(|A|, |B|) and at most |A|+|B|.
+    /// </summary>
+    [Property(MaxTest = 30)]
+    public Property HyperLogLog_Merge_BoundsUnionCardinality()
+    {
+        return Prop.ForAll(Arb.From<int>(), seed =>
+        {
+            const int distinctPerSet = 10_000;
+            var rng = new System.Random(seed);
+            var hllA = new HyperLogLog<long>(bucketBits: 12);
+            var hllB = new HyperLogLog<long>(bucketBits: 12);
+            var seenA = new HashSet<long>();
+            var seenB = new HashSet<long>();
+            while (seenA.Count < distinctPerSet)
+            {
+                long x = NextLong(rng);
+                if (seenA.Add(x)) hllA.Add(x);
+            }
+            while (seenB.Count < distinctPerSet)
+            {
+                long x = NextLong(rng);
+                if (seenB.Add(x)) hllB.Add(x);
+            }
+            long cardA = hllA.EstimateCardinality();
+            long cardB = hllB.EstimateCardinality();
+            hllA.Merge(hllB);
+            long cardUnion = hllA.EstimateCardinality();
+
+            // 5 standard errors slack on each side accounts for HLL's intrinsic noise.
+            double slack = 5.0 * hllA.StandardError;
+            long lower = (long)(Math.Max(cardA, cardB) * (1 - slack));
+            long upper = (long)((cardA + cardB) * (1 + slack));
+            return ((cardUnion >= lower && cardUnion <= upper))
+                .Label($"seed={seed} cardA={cardA} cardB={cardB} union={cardUnion} bounds=[{lower}, {upper}]");
+        });
+    }
+
+    /// <summary>
+    /// CountMinSketch tightness: estimate ≤ trueCount + 2ε·totalCount with high probability,
+    /// where ε ≈ e/width. Tests the upper-bound side of the count contract; lower bound is
+    /// covered by EstimateNeverUnderCounts above.
+    /// </summary>
+    [Property(MaxTest = 30)]
+    public Property CountMinSketch_EstimateUpperBound_HoldsForMostItems()
+    {
+        return Prop.ForAll(Arb.From<int>(), seed =>
+        {
+            const int distinctItems = 500;
+            const uint perItemCount = 3;
+            const int width = 4096;
+            var rng = new System.Random(seed);
+            var cms = new CountMinSketch<long>(width: width, depth: 5);
+            var trueCounts = new Dictionary<long, uint>();
+            for (int i = 0; i < distinctItems; i++)
+            {
+                long x = NextLong(rng);
+                cms.Add(x, perItemCount);
+                trueCounts[x] = trueCounts.TryGetValue(x, out var c) ? c + perItemCount : perItemCount;
+            }
+            // ε = e/width; with 2ε slack the bound holds with very high probability per Cormode-Muthukrishnan.
+            long totalCount = (long)distinctItems * perItemCount;
+            double epsilon = Math.E / width;
+            uint upper = (uint)(perItemCount + 2 * epsilon * totalCount);
+            int violations = 0;
+            foreach (var (item, trueCount) in trueCounts)
+            {
+                if (cms.EstimateCount(item) > upper) violations++;
+            }
+            // Allow up to 5% of items to breach the loose bound — CMS is probabilistic.
+            int allowed = distinctItems / 20;
+            return (violations <= allowed)
+                .Label($"seed={seed} violations={violations}/{distinctItems} upperBound={upper}");
+        });
+    }
+
     private static long NextLong(System.Random rng)
     {
         Span<byte> buf = stackalloc byte[8];

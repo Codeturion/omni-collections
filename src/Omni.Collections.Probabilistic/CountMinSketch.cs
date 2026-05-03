@@ -14,6 +14,7 @@ public class CountMinSketch<T> where T : notnull
 {
     private readonly uint[,] _table;
     private readonly int _width;
+    private readonly ulong _widthMask;
     private readonly int _depth;
     private readonly ulong[] _hashSeeds;
     private readonly IHasher<T> _hasher;
@@ -37,7 +38,10 @@ public class CountMinSketch<T> where T : notnull
             throw new ArgumentOutOfRangeException(nameof(depth), "Depth cannot exceed 32");
         if (hasher is null)
             throw new ArgumentNullException(nameof(hasher));
-        _width = width;
+        // Round up to next power of two so we can replace `% _width` (slow modulo on a
+        // non-constant divisor, ~5–8 cycles) with `& _widthMask` (~1 cycle) in the hot path.
+        _width = NextPowerOfTwo(width);
+        _widthMask = (ulong)(_width - 1);
         _depth = depth;
         _table = new uint[_depth, _width];
         _hasher = hasher;
@@ -57,7 +61,8 @@ public class CountMinSketch<T> where T : notnull
             throw new ArgumentOutOfRangeException(nameof(confidence), "Confidence must be between 0 and 1");
         if (hasher is null)
             throw new ArgumentNullException(nameof(hasher));
-        _width = (int)Math.Ceiling(Math.E / maxError);
+        _width = NextPowerOfTwo((int)Math.Ceiling(Math.E / maxError));
+        _widthMask = (ulong)(_width - 1);
         _depth = (int)Math.Ceiling(Math.Log(1.0 / (1.0 - confidence)));
         _depth = Math.Max(1, Math.Min(_depth, 32));
         _table = new uint[_depth, _width];
@@ -76,7 +81,7 @@ public class CountMinSketch<T> where T : notnull
             return;
         for (int i = 0; i < _depth; i++)
         {
-            var bucketIndex = (int)(_hasher.Hash(item, _hashSeeds[i]) % (ulong)_width);
+            var bucketIndex = (int)(_hasher.Hash(item, _hashSeeds[i]) & _widthMask);
             if (_table[i, bucketIndex] <= uint.MaxValue - count)
                 _table[i, bucketIndex] += count;
             else
@@ -90,7 +95,7 @@ public class CountMinSketch<T> where T : notnull
         uint minCount = uint.MaxValue;
         for (int i = 0; i < _depth; i++)
         {
-            var bucketIndex = (int)(_hasher.Hash(item, _hashSeeds[i]) % (ulong)_width);
+            var bucketIndex = (int)(_hasher.Hash(item, _hashSeeds[i]) & _widthMask);
             var count = _table[i, bucketIndex];
             if (count < minCount)
                 minCount = count;
@@ -187,6 +192,18 @@ public class CountMinSketch<T> where T : notnull
     public long GetMemoryUsage()
     {
         return (_depth * _width * sizeof(uint)) + (_depth * sizeof(uint)) + 64;
+    }
+
+    private static int NextPowerOfTwo(int value)
+    {
+        if (value <= 1) return 1;
+        int v = value - 1;
+        v |= v >> 1;
+        v |= v >> 2;
+        v |= v >> 4;
+        v |= v >> 8;
+        v |= v >> 16;
+        return v + 1;
     }
 
     private static ulong[] BuildRowSeeds(int depth, ulong baseSeed)

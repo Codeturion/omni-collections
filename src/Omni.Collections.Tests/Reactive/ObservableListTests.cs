@@ -1172,22 +1172,20 @@ public class ObservableListTests
 
     /// <summary>
     /// Tests that RemoveAll fires exactly one CollectionChanged event with action Remove
-    /// containing all removed items and the lowest removed index.
+    /// fires Reset (the INotifyCollectionChanged contract requires a single contiguous
+    /// range when an index is supplied, which doesn't hold for arbitrary removals).
     /// </summary>
     [Fact]
-    public void RemoveAll_FiresExactlyOneCollectionChangedEventWithAllItems()
+    public void RemoveAll_FiresExactlyOneResetEvent()
     {
         var list = new ObservableList<int> { 1, 2, 3, 4, 5 };
         var events = new List<NotifyCollectionChangedEventArgs>();
         list.CollectionChanged += (_, e) => events.Add(e);
 
-        list.RemoveAll(x => x % 2 == 0); // remove 2, 4
+        list.RemoveAll(x => x % 2 == 0); // remove 2, 4 (non-contiguous)
 
         events.Should().HaveCount(1);
-        events[0].Action.Should().Be(NotifyCollectionChangedAction.Remove);
-        events[0].OldItems!.Count.Should().Be(2);
-        events[0].OldItems!.Cast<int>().Should().BeEquivalentTo(new[] { 2, 4 });
-        events[0].OldStartingIndex.Should().Be(1); // lowest index of removed items
+        events[0].Action.Should().Be(NotifyCollectionChangedAction.Reset);
     }
 
     /// <summary>
@@ -1210,24 +1208,20 @@ public class ObservableListTests
     }
 
     /// <summary>
-    /// Tests that RemoveAllAsync fires exactly one CollectionChanged event with action Remove
-    /// containing all removed items and the lowest removed index (matching the synchronous
-    /// RemoveAll contract — no Reset).
+    /// Tests that RemoveAllAsync fires exactly one Reset event (matching the synchronous
+    /// RemoveAll contract — non-contiguous removals must use Reset, not Remove+index).
     /// </summary>
     [Fact]
-    public async Task RemoveAllAsync_FiresExactlyOneRemoveEventNotReset()
+    public async Task RemoveAllAsync_FiresExactlyOneResetEvent()
     {
         var list = new ObservableList<int> { 1, 2, 3, 4, 5 };
         var events = new List<NotifyCollectionChangedEventArgs>();
         list.CollectionChanged += (_, e) => events.Add(e);
 
-        await list.RemoveAllAsync(x => x % 2 == 0); // remove 2, 4
+        await list.RemoveAllAsync(x => x % 2 == 0); // remove 2, 4 (non-contiguous)
 
         events.Should().HaveCount(1);
-        events[0].Action.Should().Be(NotifyCollectionChangedAction.Remove);
-        events[0].OldItems!.Count.Should().Be(2);
-        events[0].OldItems!.Cast<int>().Should().BeEquivalentTo(new[] { 2, 4 });
-        events[0].OldStartingIndex.Should().Be(1);
+        events[0].Action.Should().Be(NotifyCollectionChangedAction.Reset);
     }
 
     /// <summary>

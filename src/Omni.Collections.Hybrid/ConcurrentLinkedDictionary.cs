@@ -1,11 +1,11 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Threading;
 using Omni.Collections.Hybrid.LinkedDictionary;
 using Omni.Collections.Core.Node;
 using Omni.Collections.Core.Security;
+using Omni.Collections.Core.Time;
 
 namespace Omni.Collections.Hybrid
 {
@@ -24,14 +24,14 @@ namespace Omni.Collections.Hybrid
             private UniversalDictionaryNode<TKey, TValue>? _head;
 
             private readonly object _lock = new object();
-            public bool TryGet(TKey key, int hashCode, IEqualityComparer<TKey> comparer, out UniversalDictionaryNode<TKey, TValue>? node)
+            public bool TryGet(TKey key, int hashCode, IEqualityComparer<TKey> comparer, long timestamp, out UniversalDictionaryNode<TKey, TValue>? node)
             {
                 lock (_lock)
                 {
                     node = _head;
                     while (node != null) {
                         if (node.HashCode == hashCode && comparer.Equals(node.Key, key)) {
-                            UniversalNodeHelper.SetAccessTime(node, Stopwatch.GetTimestamp());
+                            UniversalNodeHelper.SetAccessTime(node, timestamp);
                             return true;
                         }
                         node = node.Next;
@@ -98,6 +98,7 @@ namespace Omni.Collections.Hybrid
         private readonly CapacityMode _capacityMode;
         private readonly IEqualityComparer<TKey> _comparer;
         private readonly SecureHashOptions _hashOptions;
+        private readonly IClock _clock;
         private readonly ReaderWriterLockSlim _lruLock = new ReaderWriterLockSlim();
         public int Count => _count;
         public CapacityMode Mode => _capacityMode;
@@ -106,23 +107,29 @@ namespace Omni.Collections.Hybrid
         }
 
         public ConcurrentLinkedDictionary(int capacity, CapacityMode mode = CapacityMode.Dynamic)
-            : this(capacity, mode, null, null)
+            : this(capacity, mode, null, null, null)
+        {
+        }
+
+        public ConcurrentLinkedDictionary(int capacity, IClock clock)
+            : this(capacity, CapacityMode.Dynamic, null, null, clock ?? throw new ArgumentNullException(nameof(clock)))
         {
         }
 
         public static ConcurrentLinkedDictionary<TKey, TValue> CreateWithoutPooling(int capacity = 1024, CapacityMode mode = CapacityMode.Dynamic, IEqualityComparer<TKey>? comparer = null, SecureHashOptions? hashOptions = null)
         {
-            return new ConcurrentLinkedDictionary<TKey, TValue>(capacity, mode, comparer, hashOptions);
+            return new ConcurrentLinkedDictionary<TKey, TValue>(capacity, mode, comparer, hashOptions, null);
         }
 
-        private ConcurrentLinkedDictionary(int capacity, CapacityMode mode, IEqualityComparer<TKey>? comparer, SecureHashOptions? hashOptions = null)
+        private ConcurrentLinkedDictionary(int capacity, CapacityMode mode, IEqualityComparer<TKey>? comparer, SecureHashOptions? hashOptions, IClock? clock)
         {
             if (capacity < 0)
                 throw new ArgumentOutOfRangeException(nameof(capacity));
             _capacityMode = mode;
             _maxCapacity = mode == CapacityMode.Fixed ? capacity : int.MaxValue;
             _hashOptions = hashOptions ?? SecureHashOptions.Default;
-            
+            _clock = clock ?? SystemClock.Instance;
+
             // Use secure comparer if randomized hashing is enabled and no custom comparer provided
             if (_hashOptions.EnableRandomizedHashing && comparer == null)
             {
@@ -155,7 +162,7 @@ namespace Omni.Collections.Hybrid
         {
             var hashCode = _comparer.GetHashCode(key) & 0x7FFFFFFF;
             var bucket = _buckets[hashCode % _buckets.Length];
-            if (bucket.TryGet(key, hashCode, _comparer, out UniversalDictionaryNode<TKey, TValue>? node))
+            if (bucket.TryGet(key, hashCode, _comparer, _clock.GetTimestamp(), out UniversalDictionaryNode<TKey, TValue>? node))
             {
                 value = node!.Value;
                 return true;
@@ -169,7 +176,7 @@ namespace Omni.Collections.Hybrid
             var hashCode = _comparer.GetHashCode(key) & 0x7FFFFFFF;
             var bucket = _buckets[hashCode % _buckets.Length];
             var node = new UniversalDictionaryNode<TKey, TValue>(key, value, hashCode);
-            UniversalNodeHelper.SetAccessTime(node, Stopwatch.GetTimestamp());
+            UniversalNodeHelper.SetAccessTime(node, _clock.GetTimestamp());
             bucket.AddOrUpdate(node, key, hashCode, _comparer, out UniversalDictionaryNode<TKey, TValue>? existing);
             if (existing == null)
             {
@@ -274,21 +281,29 @@ namespace Omni.Collections.Hybrid
             _lruLock.EnterWriteLock();
             try
             {
-                UniversalDictionaryNode<TKey, TValue>? prev = UniversalNodeHelper.GetPrevLru(node);
-                UniversalDictionaryNode<TKey, TValue>? next = UniversalNodeHelper.GetNextLru(node);
-                if (prev != null)
-                    UniversalNodeHelper.SetNextLru(prev, next);
-                else
-                    _lruHead = next;
-                if (next != null)
-                    UniversalNodeHelper.SetPrevLru(next, prev);
-                else
-                    _lruTail = prev;
+                RemoveFromLruNoLock(node);
             }
             finally
             {
                 _lruLock.ExitWriteLock();
             }
+        }
+
+        // Caller MUST hold the LRU write lock. Lets EvictLru splice the tail without
+        // re-entering its own lock (the SupportsRecursion policy was previously masking
+        // a self-recursion bug that fired on every Fixed-mode overflow).
+        private void RemoveFromLruNoLock(UniversalDictionaryNode<TKey, TValue> node)
+        {
+            UniversalDictionaryNode<TKey, TValue>? prev = UniversalNodeHelper.GetPrevLru(node);
+            UniversalDictionaryNode<TKey, TValue>? next = UniversalNodeHelper.GetNextLru(node);
+            if (prev != null)
+                UniversalNodeHelper.SetNextLru(prev, next);
+            else
+                _lruHead = next;
+            if (next != null)
+                UniversalNodeHelper.SetPrevLru(next, prev);
+            else
+                _lruTail = prev;
         }
 
         private void EvictLru()
@@ -302,7 +317,7 @@ namespace Omni.Collections.Hybrid
                 var bucket = _buckets[hashCode % _buckets.Length];
                 if (bucket.TryRemove(nodeToEvict.Key, hashCode, _comparer, out _))
                 {
-                    RemoveFromLru(nodeToEvict);
+                    RemoveFromLruNoLock(nodeToEvict);
                     Interlocked.Decrement(ref _count);
                 }
             }
