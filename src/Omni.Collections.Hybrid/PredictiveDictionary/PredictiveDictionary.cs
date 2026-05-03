@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Omni.Collections.Core.Security;
+using Omni.Collections.Core.Time;
 
 namespace Omni.Collections.Hybrid.PredictiveDictionary
 {
@@ -24,11 +25,11 @@ namespace Omni.Collections.Hybrid.PredictiveDictionary
             public readonly TKey NextKey;
             public readonly DateTime Timestamp;
             public readonly double Confidence;
-            public AccessPattern(TKey[] sequence, TKey nextKey, double confidence = 1.0)
+            public AccessPattern(TKey[] sequence, TKey nextKey, DateTime timestamp, double confidence = 1.0)
             {
                 Sequence = sequence;
                 NextKey = nextKey;
-                Timestamp = DateTime.UtcNow;
+                Timestamp = timestamp;
                 Confidence = confidence;
             }
         }
@@ -67,6 +68,7 @@ namespace Omni.Collections.Hybrid.PredictiveDictionary
         private readonly object _statsLock = new object();
         private readonly Timer _learningTimer;
         private readonly Timer _cleanupTimer;
+        private readonly IClock _clock;
         private volatile bool _isDisposed;
         public int Count => _dictionary.Count;
         public int PredictiveCacheCount => _predictiveCache.Count;
@@ -95,8 +97,19 @@ namespace Omni.Collections.Hybrid.PredictiveDictionary
         {
         }
 
+        public PredictiveDictionary(int capacity, IClock clock)
+            : this(3, capacity, 100, 0.7, TimeSpan.FromMinutes(10), null, clock)
+        {
+        }
+
         public PredictiveDictionary(int patternLength, int maxPatterns, int maxCacheSize,
             double confidenceThreshold, TimeSpan patternTimeout, SecureHashOptions? hashOptions = null)
+            : this(patternLength, maxPatterns, maxCacheSize, confidenceThreshold, patternTimeout, hashOptions, null)
+        {
+        }
+
+        public PredictiveDictionary(int patternLength, int maxPatterns, int maxCacheSize,
+            double confidenceThreshold, TimeSpan patternTimeout, SecureHashOptions? hashOptions, IClock? clock)
         {
             if (patternLength < 2 || patternLength > 10)
                 throw new ArgumentOutOfRangeException(nameof(patternLength), "Pattern length must be 2-10");
@@ -110,6 +123,7 @@ namespace Omni.Collections.Hybrid.PredictiveDictionary
             _confidenceThreshold = confidenceThreshold;
             _patternTimeout = patternTimeout;
             _hashOptions = hashOptions ?? SecureHashOptions.Default;
+            _clock = clock ?? SystemClock.Instance;
             
             // Use secure comparer if randomized hashing is enabled
             if (_hashOptions.EnableRandomizedHashing)
@@ -251,6 +265,11 @@ namespace Omni.Collections.Hybrid.PredictiveDictionary
             ProcessLearning(null);
         }
 
+        public void EvictStalePatterns()
+        {
+            CleanupPatterns(null);
+        }
+
         public bool Remove(TKey key)
         {
             bool removed = _dictionary.Remove(key);
@@ -283,7 +302,7 @@ namespace Omni.Collections.Hybrid.PredictiveDictionary
         private void RecordAccess(TKey key)
         {
             _accessHistory.Enqueue(key);
-            _lastAccess[key] = DateTime.UtcNow;
+            _lastAccess[key] = _clock.UtcNow.UtcDateTime;
             lock (_statsLock)
             {
                 _totalAccesses++;
@@ -347,7 +366,7 @@ namespace Omni.Collections.Hybrid.PredictiveDictionary
             }
             var existingCount = patterns.Count(p => _comparer.Equals(p.NextKey, nextKey));
             var confidence = Math.Min(0.1 + (existingCount * 0.15), 0.95);
-            patterns.Add(new AccessPattern(sequence, nextKey, confidence));
+            patterns.Add(new AccessPattern(sequence, nextKey, _clock.UtcNow.UtcDateTime, confidence));
             if (patterns.Count > 20)
             {
                 patterns.RemoveAt(0);
@@ -370,7 +389,7 @@ namespace Omni.Collections.Hybrid.PredictiveDictionary
                 return;
             try
             {
-                var cutoffTime = DateTime.UtcNow - _patternTimeout;
+                var cutoffTime = _clock.UtcNow.UtcDateTime - _patternTimeout;
                 var keysToRemove = new List<string>();
                 foreach (KeyValuePair<string, List<AccessPattern>> kvp in _patterns)
                 {
