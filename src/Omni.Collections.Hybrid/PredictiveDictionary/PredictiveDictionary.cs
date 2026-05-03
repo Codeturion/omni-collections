@@ -36,16 +36,19 @@ namespace Omni.Collections.Hybrid.PredictiveDictionary
         private readonly Dictionary<TKey, TValue> _dictionary;
         private readonly Dictionary<TKey, TValue> _predictiveCache;
         private readonly IEqualityComparer<TKey> _comparer;
-        // pattern key → (next key → seen count). Counts make confidence cheap to compute on demand.
-        private readonly Dictionary<string, Dictionary<TKey, int>> _patternCounts;
-        private readonly Dictionary<TKey, int> _keyFrequency;
+        // pattern hash → (next key → seen count). 64-bit hash key avoids string-allocation per access.
+        private readonly Dictionary<ulong, Dictionary<TKey, long>> _patternCounts;
+        // Bounded — caps memory + keeps GetPredictions O(maxFrequencyKeys), not O(unique keys ever seen).
+        private readonly Dictionary<TKey, long> _keyFrequency;
         private readonly TKey[] _recentAccesses;
+        private readonly TKey[] _contextScratch;
         private int _recentHead;
         private int _recentCount;
-        private int _totalAccesses;
+        private long _totalAccesses;
         private readonly int _patternLength;
         private readonly int _maxPatterns;
         private readonly int _maxCacheSize;
+        private readonly int _maxFrequencyKeys;
         private readonly double _confidenceThreshold;
         private bool _disposed;
 
@@ -67,13 +70,16 @@ namespace Omni.Collections.Hybrid.PredictiveDictionary
             _patternLength = patternLength;
             _maxPatterns = maxPatterns;
             _maxCacheSize = maxCacheSize;
+            // Bound the frequency table relative to the pattern table so GetPredictions stays bounded.
+            _maxFrequencyKeys = Math.Max(maxPatterns, 256);
             _confidenceThreshold = confidenceThreshold;
             _comparer = EqualityComparer<TKey>.Default;
             _dictionary = new Dictionary<TKey, TValue>(_comparer);
             _predictiveCache = new Dictionary<TKey, TValue>(_comparer);
-            _patternCounts = new Dictionary<string, Dictionary<TKey, int>>();
-            _keyFrequency = new Dictionary<TKey, int>(_comparer);
+            _patternCounts = new Dictionary<ulong, Dictionary<TKey, long>>();
+            _keyFrequency = new Dictionary<TKey, long>(_comparer);
             _recentAccesses = new TKey[patternLength + 1];
+            _contextScratch = new TKey[patternLength];
         }
 
         public TValue this[TKey key]
@@ -115,10 +121,10 @@ namespace Omni.Collections.Hybrid.PredictiveDictionary
                 return [];
 
             var predictions = new List<PredictionResult>();
-            var patternKey = CreatePatternKey(contextKeys);
+            var patternKey = CreatePatternKey(contextKeys, _comparer);
             if (_patternCounts.TryGetValue(patternKey, out var nextKeyCounts))
             {
-                int total = 0;
+                long total = 0;
                 foreach (var c in nextKeyCounts.Values) total += c;
                 if (total > 0)
                 {
@@ -136,7 +142,7 @@ namespace Omni.Collections.Hybrid.PredictiveDictionary
                 }
             }
 
-            // Fall back to global frequency for keys not already covered by pattern matches.
+            // Frequency fallback: bounded to _maxFrequencyKeys, so iteration stays O(maxFrequencyKeys).
             if (_totalAccesses > 0)
             {
                 var seen = new HashSet<TKey>(_comparer);
@@ -202,6 +208,10 @@ namespace Omni.Collections.Hybrid.PredictiveDictionary
             _totalAccesses++;
             _keyFrequency.TryGetValue(key, out var freq);
             _keyFrequency[key] = freq + 1;
+            // Bound the frequency dict so it can't grow with the universe of unique keys ever seen.
+            // When full and the new key is fresh, evict the lowest-frequency entry.
+            if (freq == 0 && _keyFrequency.Count > _maxFrequencyKeys)
+                EvictLowestFrequencyKey();
 
             // Append to ring; once it's full we have a (patternLength → next) tuple to learn.
             if (_recentCount < _recentAccesses.Length)
@@ -218,35 +228,64 @@ namespace Omni.Collections.Hybrid.PredictiveDictionary
             }
         }
 
+        private void EvictLowestFrequencyKey()
+        {
+            // Single-pass scan for the min-frequency entry. O(_maxFrequencyKeys).
+            TKey victim = default!;
+            long min = long.MaxValue;
+            bool found = false;
+            foreach (var kvp in _keyFrequency)
+            {
+                if (kvp.Value < min)
+                {
+                    min = kvp.Value;
+                    victim = kvp.Key;
+                    found = true;
+                }
+            }
+            if (found) _keyFrequency.Remove(victim);
+        }
+
         private void LearnFromRing()
         {
             // Ring layout: starting at _recentHead, the next patternLength items are the context, the
-            // last item is the predicted next key.
-            var contextSpan = new TKey[_patternLength];
+            // last item is the predicted next key. Reuse _contextScratch — no per-access allocation.
             for (int i = 0; i < _patternLength; i++)
-                contextSpan[i] = _recentAccesses[(_recentHead + i) % _recentAccesses.Length];
+                _contextScratch[i] = _recentAccesses[(_recentHead + i) % _recentAccesses.Length];
             var nextKey = _recentAccesses[(_recentHead + _patternLength) % _recentAccesses.Length];
 
-            var patternKey = CreatePatternKey(contextSpan);
+            var patternKey = CreatePatternKey(_contextScratch, _comparer);
             if (!_patternCounts.TryGetValue(patternKey, out var nextKeyCounts))
             {
                 if (_patternCounts.Count >= _maxPatterns)
                 {
                     // Evict oldest pattern entry — Dictionary insertion order keeps Keys stable.
-                    var oldest = default(string)!;
+                    ulong oldest = 0;
                     foreach (var k in _patternCounts.Keys) { oldest = k; break; }
                     _patternCounts.Remove(oldest);
                 }
-                nextKeyCounts = new Dictionary<TKey, int>(_comparer);
+                nextKeyCounts = new Dictionary<TKey, long>(_comparer);
                 _patternCounts[patternKey] = nextKeyCounts;
             }
             nextKeyCounts.TryGetValue(nextKey, out var c);
             nextKeyCounts[nextKey] = c + 1;
         }
 
-        private static string CreatePatternKey(TKey[] sequence)
+        // FNV-1a 64 over the per-key hashcodes — zero-alloc, stable across runs in-process.
+        // Collisions at 64 bits are negligible at the operating scale (<< 2^32 patterns).
+        private static ulong CreatePatternKey(TKey[] sequence, IEqualityComparer<TKey> comparer)
         {
-            return string.Join("|", Array.ConvertAll(sequence, k => k?.ToString() ?? "null"));
+            const ulong FnvOffset = 14695981039346656037UL;
+            const ulong FnvPrime = 1099511628211UL;
+            ulong hash = FnvOffset;
+            for (int i = 0; i < sequence.Length; i++)
+            {
+                var k = sequence[i];
+                int kh = k is null ? 0 : comparer.GetHashCode(k);
+                hash ^= unchecked((uint)kh);
+                hash *= FnvPrime;
+            }
+            return hash;
         }
 
         public void Dispose()
