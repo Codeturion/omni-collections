@@ -22,6 +22,7 @@ Reproduce against `dev/omni-collections-v2` HEAD `097943a` (post Phase 5 merge):
 | [`02-linear-MinMaxHeap-Pooled-Digest.md`](02-linear-MinMaxHeap-Pooled-Digest.md) | Linear (4 untested) + Probabilistic Digest |
 | [`03-hybrid.md`](03-hybrid.md) | All 9 Hybrid types |
 | [`04-spatial-grid-reactive-temporal-tdigest.md`](04-spatial-grid-reactive-temporal-tdigest.md) | Spatial 5 + Grid 3 + Reactive 2 + Temporal 1 + TDigest |
+| [`05-bloom-hll-blomdict-blomrtree.md`](05-bloom-hll-blomdict-blomrtree.md) | BloomFilter + HyperLogLog + BloomDictionary + BloomRTreeDictionary |
 
 For interpretation tiers (🟢 / 🟠 / ❌) and the full per-type win/loss table, see `currentbenchmarks.md` at the repo root (gitignored — personal session ledger; the `Phase 6 wide standard sweep` section captures the headline findings).
 
