@@ -23,7 +23,7 @@ v2.0.0 is a defensible re-foundation of the library. Every public type now justi
 
 🟢 **Probabilistic correctness rework** ([PR #3](https://github.com/Codeturion/omni-collections/pull/3))
 
-The probabilistic family (`BloomFilter`, `HyperLogLog`, `CountMinSketch`, `BloomDictionary`, `BloomRTreeDictionary`) had a hidden correctness bug: they hashed via `(uint)item.GetHashCode()`, which for randomized-string `GetHashCode` and arbitrary user types destroys the false-positive / cardinality / frequency math. v2.0 introduces a new `Omni.Collections.Core.Hashing.IHasher<T>` abstraction backed by **XxHash3** (default) and **Murmur3-128**, with specialized fast paths for `int`, `uint`, `long`, `ulong`, `string`, `Guid`, `byte[]`, `ReadOnlyMemory<byte>`. `BloomFilter.ContainsHit` is now **26-29% faster** despite doing more cryptographic-grade hashing. `CountMinSketch`'s hardcoded `Random(42)` per-row seeds (a CVE-tier predictability bug) were replaced with deterministic SplitMix64-derived seeds.
+The probabilistic family (`BloomFilter`, `HyperLogLog`, `CountMinSketch`, `BloomDictionary`, `BloomRTreeDictionary`) had a hidden correctness bug: they hashed via `(uint)item.GetHashCode()`, which for randomized-string `GetHashCode` and arbitrary user types destroys the false-positive / cardinality / frequency math. v2.0 introduces a new `Omni.Collections.Core.Hashing.IHasher<T>` abstraction backed by **XxHash3** (default) and **Murmur3-128**, with specialized fast paths for `int`, `uint`, `long`, `ulong`, `string`, `Guid`, `byte[]`, `ReadOnlyMemory<byte>`. The math now actually holds — empirical false-positive rate stays within 2× design FPR across 50 random seeds, verified by FsCheck property tests. **Speed-wise BloomFilter is ~2× slower than `HashSet<T>.Contains` under rigorous benchmarks** (was claimed faster earlier, but `HashSet` benefits more from JIT warmup at sub-µs scale); the win is the fixed-size memory budget regardless of N. `CountMinSketch`'s hardcoded `Random(42)` per-row seeds (a CVE-tier predictability bug) were replaced with deterministic SplitMix64-derived seeds.
 
 🔧 **25 correctness fixes** ([PR #4](https://github.com/Codeturion/omni-collections/pull/4))
 
@@ -54,7 +54,23 @@ Stub methods that returned hardcoded `false`, `else if` short-circuits that mask
 
 If you upgrade and hit a `NotSupportedException` from `Hashers.Default<T>`, that's #1 — implement `IHasher<T>`. If a test asserts `OldStartingIndex` on a `RemoveAll` event, that's #3 — switch to `Reset` handling or count `ItemRemoved` events.
 
-📈 **Benchmarks**: methodology, profiles, and reproduction commands live in [`docs/benchmarks.md`](docs/benchmarks.md). Reference numbers under `docs/perf/<machine>/` will ship with every release after a rigorous run.
+📈 **Benchmarks**: methodology, profiles, and reproduction commands live in [`docs/benchmarks.md`](docs/benchmarks.md). Released reference numbers (rigorous profile, 10 warmup × 25 iter × 3 launches) ship under [`docs/perf/i7-13700KF/rigorous-v2.0.0/`](docs/perf/i7-13700KF/rigorous-v2.0.0/). Headline rigorous wins:
+
+| Type / op | Ratio vs baseline | Comparison |
+|---|---:|---|
+| `KdTree.FindNearest @ N=100k` | **0.005 (~200× faster)** | vs `List<T>` linear scan |
+| `QuadTree.Query @ N=100k` | **0.009 (~110× faster)** | vs `List<T>` linear scan |
+| `OctTree.RadiusQuery @ N=100k` | **0.02 (~50× faster)** | vs `List<T>` linear scan |
+| `ObservableList.Add @ N=100k` | **0.41 (~2.4× faster)** | vs `ObservableCollection<T>` |
+| `ObservableList.Fill @ N=100k` | **0.30 (~3.3× faster)** | vs `ObservableCollection<T>` |
+| `TimelineArray.GetAtTime` | **0.17-0.22 (~5× faster)** | vs `List<(long,T)>` linear scan |
+| `BitGrid2D.Fill @ 1024×1024` | **0.10 (~10× faster)** + 8× less memory | vs `bool[,]` |
+| `LayeredGrid2D.Fill @ 1024×1024` | **0.22 (~5× faster)** | vs `int[,,]` |
+| `HyperLogLog.Add @ N=100k` | **0.60 (~40% faster)** | vs `HashSet<long>` |
+| `MinHeap.Insert / MaxHeap.Insert` | **0.84-0.86 (~15% faster)** | vs `PriorityQueue<,>` |
+| `BoundedList.Add` | **0.91 (~9% faster)** | vs `List<T>` |
+
+**Honest non-wins (rigorous):** `BloomFilter.Contains` is 2× slower than `HashSet.Contains` (capability play, not speed). `BitGrid2D.Get` is 1.6× slower than `bool[,]` indexing (the win is 8× memory). `MinHeap.ExtractMin` is 1.4-1.8× slower than `PriorityQueue.Dequeue` (Insert is still faster). All Hybrid types (`LinkedDictionary`, `LRU`, `LFU`, etc.) are slower than `Dictionary<K,V>` on basic ops — they're capability plays, not speed plays.
 
 ## Table of Contents
 
