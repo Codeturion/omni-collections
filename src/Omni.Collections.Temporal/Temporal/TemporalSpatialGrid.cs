@@ -190,20 +190,22 @@ public class TemporalSpatialGrid<T> : IDisposable where T : notnull
             bool foundA = false, foundB = false;
             foreach (var (x, y, item) in snapshot.Grid.GetAllObjects())
             {
+                // Independent matches: the same item must be allowed to satisfy both A and B
+                // when objectA equals objectB (same instance, or equal by comparer). The previous
+                // `else if` short-circuited that case and silently returned false at zero distance.
                 if (!foundA && comparer.Equals(item, objectA))
                 {
                     aX = x;
                     aY = y;
                     foundA = true;
-                    if (foundB) break;
                 }
-                else if (!foundB && comparer.Equals(item, objectB))
+                if (!foundB && comparer.Equals(item, objectB))
                 {
                     bX = x;
                     bY = y;
                     foundB = true;
-                    if (foundA) break;
                 }
+                if (foundA && foundB) break;
             }
             if (!foundA || !foundB) return false;
             var dx = aX - bX;

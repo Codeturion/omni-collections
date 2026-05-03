@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Specialized;
@@ -89,12 +90,18 @@ namespace Omni.Collections.Reactive
         public NotifyCollectionChangedEventArgs RentCollectionChangedEventArgs(NotifyCollectionChangedAction action)
         {
             // Only Reset is shareable (no item state). Other actions require concrete items
-            // we don't have here, so callers should use the typed Rent overloads instead.
-            if (action == NotifyCollectionChangedAction.Reset)
+            // and must go through the typed Rent overloads (RentAdd/RentRemove/RentReplace/...);
+            // the BCL `NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction)` ctor
+            // throws ArgumentException for anything other than Reset, so we reject up front
+            // with a clearer message.
+            if (action != NotifyCollectionChangedAction.Reset)
             {
-                return ResetArgs;
+                throw new ArgumentException(
+                    "Only NotifyCollectionChangedAction.Reset is supported by this overload. " +
+                    "Use RentAdd / RentRemove / RentReplace / RentAddRange / RentRemoveRange for other actions.",
+                    nameof(action));
             }
-            return new NotifyCollectionChangedEventArgs(action);
+            return ResetArgs;
         }
 
         public void ReturnCollectionChangedEventArgs(NotifyCollectionChangedEventArgs eventArgs)

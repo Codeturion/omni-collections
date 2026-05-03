@@ -244,7 +244,11 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
             }
             IncrementVersion();
             OnPropertyChanged(nameof(Count));
-            OnCollectionChanged(NotifyCollectionChangedAction.Remove, removedItems, removedIndices[removedIndices.Count - 1]);
+            // Removed items are typically non-contiguous, so the (Remove, items, index) shape
+            // would be semantically wrong (INotifyCollectionChanged contract requires a single
+            // contiguous range). Fire Reset; per-item ItemRemoved events still fire individually
+            // for fine-grained subscribers via the loop below the removal loop above.
+            OnCollectionChanged(NotifyCollectionChangedAction.Reset);
             OnListChanged();
         }
         return removedItems.Count;
@@ -392,7 +396,10 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
             }
 
             OnPropertyChanged(nameof(Count));
-            OnCollectionChanged(NotifyCollectionChangedAction.Remove, removedItems, lowestIndex);
+            // Non-contiguous removals: Reset is the correct action per the
+            // INotifyCollectionChanged contract. Per-item ItemRemoved fires above for
+            // subscribers that need fine-grained updates.
+            OnCollectionChanged(NotifyCollectionChangedAction.Reset);
             OnListChanged();
         }
 

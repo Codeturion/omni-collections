@@ -398,7 +398,9 @@ public class CountMinSketchTests
     [Fact]
     public void GetStats_ReturnsComprehensiveStatistics()
     {
+        // Width is rounded up to the next power of two (Phase 5 perf fix); 100 → 128.
         var sketch = new CountMinSketch<int>(100, 4);
+        sketch.Width.Should().Be(128);
         sketch.Add(1, 10);
         sketch.Add(2, 20);
         sketch.Add(3, 5);
@@ -406,7 +408,7 @@ public class CountMinSketchTests
         var stats = sketch.GetStats();
 
         stats.TotalItems.Should().Be(35);
-        stats.TotalCells.Should().Be(400); // 100 * 4
+        stats.TotalCells.Should().Be(128 * 4);
         stats.NonZeroCells.Should().BeGreaterThan(0);
         stats.FillRatio.Should().BeGreaterThan(0.0);
         stats.MinCellValue.Should().BeGreaterOrEqualTo(0);
