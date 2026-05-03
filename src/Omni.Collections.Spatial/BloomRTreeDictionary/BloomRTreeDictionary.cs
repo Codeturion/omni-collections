@@ -267,7 +267,19 @@ public class BloomRTreeDictionary<TKey, TValue> : IDisposable, IEnumerable<KeyVa
             _dictionaryLookups++;
             return _keyToEntry[key].Value;
         }
-        set => Add(key, value, _keyToEntry[key].Bounds);
+        set
+        {
+            if (_keyToEntry.TryGetValue(key, out RTreeEntry<TKey, TValue>? existingEntry))
+            {
+                existingEntry.Value = value;
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    $"Cannot insert key '{key}' via the indexer because spatial bounds are required. " +
+                    $"Call {nameof(Add)}(key, value, bounds) instead.");
+            }
+        }
     }
 
     public bool TryGetValue(TKey key, out TValue value)
@@ -401,54 +413,65 @@ public class BloomRTreeDictionary<TKey, TValue> : IDisposable, IEnumerable<KeyVa
 
     private (int seed1, int seed2) FindWorstPair(List<RTreeEntry<TKey, TValue>> entries)
     {
-        // Linear-time R*-Tree inspired split: find seeds with maximum separation
-        // Instead of O(n²) all-pairs comparison, use axis-based separation
-        
+        // R*-Tree linear seed pick (Beckmann '90): on each axis, find the entry with
+        // the highest low side and the entry with the lowest high side; the normalized
+        // separation between them measures axis spread. Pick the axis with the largest
+        // normalized spread. Single O(n) pass, no allocation, no sort.
+
         if (entries.Count < 2) return (0, Math.Min(1, entries.Count - 1));
-        
-        // Find the pair with maximum separation on the axis with highest normalized spread
-        float bestSeparation = -1;
-        int seed1 = 0, seed2 = 1;
-        
-        // Check both X and Y axes for separation
-        for (int axis = 0; axis < 2; axis++)
+
+        // Per-axis trackers seeded from the first entry.
+        var first = entries[0].Bounds;
+        // Highest low side (entry whose MinX/MinY is the largest).
+        float maxLowX = first.MinX, maxLowY = first.MinY;
+        int maxLowXIdx = 0, maxLowYIdx = 0;
+        // Lowest high side (entry whose MaxX/MaxY is the smallest).
+        float minHighX = first.MaxX, minHighY = first.MaxY;
+        int minHighXIdx = 0, minHighYIdx = 0;
+        // Axis extents for normalization.
+        float axisMinX = first.MinX, axisMaxX = first.MaxX;
+        float axisMinY = first.MinY, axisMaxY = first.MaxY;
+
+        for (int i = 1; i < entries.Count; i++)
         {
-            // Sort entries by axis coordinate (O(n log n) but only twice)
-            var sortedEntries = entries
-                .Select((entry, index) => new { entry, index, coord = axis == 0 ? entry.Bounds.CenterX : entry.Bounds.CenterY })
-                .OrderBy(x => x.coord)
-                .ToArray();
-            
-            if (sortedEntries.Length < 2) continue;
-            
-            // Find the pair with maximum coordinate separation
-            var first = sortedEntries[0];
-            var last = sortedEntries[sortedEntries.Length - 1];
-            float separation = Math.Abs(last.coord - first.coord);
-            
-            // Normalize by axis span to compare across axes
-            float axisMin = sortedEntries[0].coord;
-            float axisMax = sortedEntries[sortedEntries.Length - 1].coord;
-            float axisSpan = axisMax - axisMin;
-            
-            if (axisSpan > 0)
-            {
-                float normalizedSeparation = separation / axisSpan;
-                if (normalizedSeparation > bestSeparation)
-                {
-                    bestSeparation = normalizedSeparation;
-                    seed1 = first.index;
-                    seed2 = last.index;
-                }
-            }
+            var b = entries[i].Bounds;
+
+            if (b.MinX > maxLowX) { maxLowX = b.MinX; maxLowXIdx = i; }
+            if (b.MaxX < minHighX) { minHighX = b.MaxX; minHighXIdx = i; }
+            if (b.MinY > maxLowY) { maxLowY = b.MinY; maxLowYIdx = i; }
+            if (b.MaxY < minHighY) { minHighY = b.MaxY; minHighYIdx = i; }
+
+            if (b.MinX < axisMinX) axisMinX = b.MinX;
+            if (b.MaxX > axisMaxX) axisMaxX = b.MaxX;
+            if (b.MinY < axisMinY) axisMinY = b.MinY;
+            if (b.MaxY > axisMaxY) axisMaxY = b.MaxY;
         }
-        
-        // Ensure different indices
-        if (seed1 == seed2 && entries.Count > 1)
+
+        float spanX = axisMaxX - axisMinX;
+        float spanY = axisMaxY - axisMinY;
+        float separationX = maxLowX - minHighX;
+        float separationY = maxLowY - minHighY;
+        float normalizedX = spanX > 0 ? separationX / spanX : float.NegativeInfinity;
+        float normalizedY = spanY > 0 ? separationY / spanY : float.NegativeInfinity;
+
+        int seed1, seed2;
+        if (normalizedX >= normalizedY)
+        {
+            seed1 = maxLowXIdx;
+            seed2 = minHighXIdx;
+        }
+        else
+        {
+            seed1 = maxLowYIdx;
+            seed2 = minHighYIdx;
+        }
+
+        // Ensure different indices (occurs when one entry holds both extremes on the chosen axis).
+        if (seed1 == seed2)
         {
             seed2 = (seed1 + 1) % entries.Count;
         }
-        
+
         return (seed1, seed2);
     }
 

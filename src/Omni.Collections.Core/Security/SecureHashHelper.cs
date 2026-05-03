@@ -81,6 +81,8 @@ namespace Omni.Collections.Core.Security
             
             public bool Equals(T? x, T? y)
             {
+                if (x is null) return y is null;
+                if (y is null) return false;
                 return _baseComparer.Equals(x, y);
             }
             

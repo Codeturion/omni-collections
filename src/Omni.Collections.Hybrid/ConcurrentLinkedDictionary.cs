@@ -80,6 +80,14 @@ namespace Omni.Collections.Hybrid
                     return false;
                 }
             }
+
+            public void Clear()
+            {
+                lock (_lock)
+                {
+                    _head = null;
+                }
+            }
         }
         #endregion Bucket
         private readonly Bucket[] _buckets;
@@ -203,11 +211,9 @@ namespace Omni.Collections.Hybrid
             _lruLock.EnterWriteLock();
             try
             {
-                UniversalDictionaryNode<TKey, TValue>? current = _lruHead;
-                while (current != null)
+                for (int i = 0; i < _buckets.Length; i++)
                 {
-                    UniversalDictionaryNode<TKey, TValue>? next = UniversalNodeHelper.GetNextLru(current);
-                    current = next;
+                    _buckets[i].Clear();
                 }
                 _lruHead = _lruTail = null;
                 _count = 0;

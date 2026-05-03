@@ -52,9 +52,7 @@ public sealed class PooledStack<T> : IEnumerable<T>, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Push(T item)
     {
-#if DEBUG
         ThrowIfDisposed();
-#endif
         if (_size >= _buffer.Length)
         {
             Resize();

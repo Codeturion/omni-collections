@@ -157,7 +157,16 @@ namespace Omni.Collections.Hybrid.LinkedDictionary
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ContainsKey(TKey key)
         {
-            return TryGetValue(key, out _);
+            var hashCode = _comparer.GetHashCode(key) & 0x7FFFFFFF;
+            var bucketIndex = hashCode % _buckets.Length;
+            UniversalDictionaryNode<TKey, TValue>? current = _buckets[bucketIndex];
+            while (current != null)
+            {
+                if (current.HashCode == hashCode && _comparer.Equals(current.Key, key))
+                    return true;
+                current = current.Next;
+            }
+            return false;
         }
 
         public void Clear()

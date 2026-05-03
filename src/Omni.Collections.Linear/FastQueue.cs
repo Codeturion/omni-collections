@@ -117,7 +117,10 @@ public sealed class FastQueue<T> : IEnumerable<T>, IDisposable
             throw new InvalidOperationException("Queue is empty");
 
         var item = _buffer[_head];
-        _buffer[_head] = default!;
+        // For value types the JIT eliminates this branch and the dead store; for reference
+        // types we clear the slot so the GC can reclaim the dequeued object.
+        if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+            _buffer[_head] = default!;
         _head = (_head + 1) & _mask;
         _size--;
         return item;
@@ -133,7 +136,8 @@ public sealed class FastQueue<T> : IEnumerable<T>, IDisposable
             return false;
         }
         result = _buffer[_head];
-        _buffer[_head] = default!;
+        if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+            _buffer[_head] = default!;
         _head = (_head + 1) & _mask;
         _size--;
         return true;
@@ -247,7 +251,16 @@ public sealed class FastQueue<T> : IEnumerable<T>, IDisposable
     {
         if (_size > 0)
         {
-            Array.Clear(_buffer, 0, _buffer.Length);
+            if (_head + _size <= _buffer.Length)
+            {
+                Array.Clear(_buffer, _head, _size);
+            }
+            else
+            {
+                int firstSegment = _buffer.Length - _head;
+                Array.Clear(_buffer, _head, firstSegment);
+                Array.Clear(_buffer, 0, _size - firstSegment);
+            }
             _head = 0;
             _tail = 0;
             _size = 0;

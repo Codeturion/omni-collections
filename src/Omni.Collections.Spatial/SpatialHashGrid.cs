@@ -15,6 +15,7 @@ namespace Omni.Collections.Spatial;
 public class SpatialHashGrid<T> : IDisposable where T : notnull
 {
     private const int SpatialThreshold = 5000;
+    private const float PositionEpsilon = 0.001f;
     private Dictionary<long, List<SpatialEntry<T>>>? _grid;
     private readonly float _cellSize;
     private readonly float _inverseCellSize;
@@ -187,7 +188,7 @@ public class SpatialHashGrid<T> : IDisposable where T : notnull
             for (int i = _linearList!.Count - 1; i >= 0; i--)
             {
                 SpatialEntry<T> entry = _linearList[i];
-                if (Math.Abs(entry.X - x) < 0.001f && Math.Abs(entry.Y - y) < 0.001f &&
+                if (Math.Abs(entry.X - x) < PositionEpsilon && Math.Abs(entry.Y - y) < PositionEpsilon &&
                     EqualityComparer<T>.Default.Equals(entry.Item, item))
                 {
                     _linearList.RemoveAt(i);
@@ -208,7 +209,7 @@ public class SpatialHashGrid<T> : IDisposable where T : notnull
             {
                 foreach (SpatialEntry<T> entry in cell)
                 {
-                    if (Math.Abs(entry.X - x) < 0.001f && Math.Abs(entry.Y - y) < 0.001f)
+                    if (Math.Abs(entry.X - x) < PositionEpsilon && Math.Abs(entry.Y - y) < PositionEpsilon)
                         yield return entry.Item;
                 }
             }
@@ -217,7 +218,7 @@ public class SpatialHashGrid<T> : IDisposable where T : notnull
         {
             foreach (SpatialEntry<T> entry in _linearList!)
             {
-                if (Math.Abs(entry.X - x) < 0.001f && Math.Abs(entry.Y - y) < 0.001f)
+                if (Math.Abs(entry.X - x) < PositionEpsilon && Math.Abs(entry.Y - y) < PositionEpsilon)
                     yield return entry.Item;
             }
         }

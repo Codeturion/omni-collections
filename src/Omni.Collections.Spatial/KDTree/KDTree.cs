@@ -53,7 +53,8 @@ public class KdTree<T> : IDisposable
     {
         _root = InsertRecursive(_root, item, 0);
         _count++;
-        if (_count > 1000 && (_count & (_count - 1)) == 0)
+        // Amortize the O(n) height check: only consider rebalancing every 64 inserts past 1000.
+        if (_count > 1000 && (_count & 63) == 0)
         {
             RebalanceIfNeeded();
         }
@@ -68,7 +69,9 @@ public class KdTree<T> : IDisposable
 #else
         var optimalHeight = Math.Log(_count, 2.0);
 #endif
-        if (height > optimalHeight * 2.5)
+        // Rebuild when height exceeds 2 * log2(count) + 2 — i.e., the tree has degraded
+        // significantly past balanced. Constant + slack term avoids spurious rebuilds at small count.
+        if (height > optimalHeight * 2 + 2)
         {
             T[]? items = GetAllItems().ToArray();
             Clear();
@@ -153,9 +156,9 @@ public class KdTree<T> : IDisposable
         if (_root == null)
             return default;
         var targetCoords = _pointProvider.GetCoordinates(target);
-        var best = new NearestResult<T> { Item = _root.Item, DistanceSquared = double.MaxValue };
+        var best = new NearestResult<T> { Item = default!, DistanceSquared = double.MaxValue, HasResult = false };
         FindNearestRecursive(_root, targetCoords, 0, ref best);
-        return best.Item;
+        return best.HasResult ? best.Item : default;
     }
 
     public List<T> FindNearestK(T target, int k)
@@ -317,6 +320,7 @@ public class KdTree<T> : IDisposable
         {
             best.Item = node.Item;
             best.DistanceSquared = distanceSquared;
+            best.HasResult = true;
         }
         var dimension = depth % _dimensions;
         var diff = target[dimension] - nodeCoords[dimension];
@@ -407,5 +411,6 @@ public class KdTree<T> : IDisposable
     {
         public TItem Item;
         public double DistanceSquared;
+        public bool HasResult;
     }
 }
