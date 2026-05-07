@@ -56,6 +56,10 @@ namespace Omni.Collections.Spatial
         private readonly SpatialHashGrid<T> _currentGrid;
         private readonly Dictionary<T, SpatialObject> _currentObjects;
         private readonly LinkedDictionary<DateTime, SpatialSnapshot> _snapshots;
+        // Parallel list of snapshot timestamps in chronological insertion order.
+        // Maintained in lockstep with _snapshots for O(log N) binary-search access in
+        // FindClosestSnapshot. Cleanup pops expired entries from the front.
+        private readonly List<DateTime> _snapshotKeysOrdered;
         private readonly TimeSpan _snapshotInterval;
         private readonly TimeSpan _historyRetention;
         private readonly float _cellSize;
@@ -81,6 +85,7 @@ namespace Omni.Collections.Spatial
             _currentGrid = new SpatialHashGrid<T>(cellSize);
             _currentObjects = new Dictionary<T, SpatialObject>();
             _snapshots = new LinkedDictionary<DateTime, SpatialSnapshot>(1000, CapacityMode.Fixed);
+            _snapshotKeysOrdered = new List<DateTime>(1000);
             _lastSnapshotTime = DateTime.UtcNow;
         }
 
@@ -218,6 +223,7 @@ namespace Omni.Collections.Spatial
             _currentGrid.Clear();
             _currentObjects.Clear();
             _snapshots.Clear();
+            _snapshotKeysOrdered.Clear();
             _lastSnapshotTime = DateTime.UtcNow;
         }
         #region Private Methods
@@ -231,7 +237,13 @@ namespace Omni.Collections.Spatial
                 snapshot.Grid.Insert(spatialObj.X, spatialObj.Y, obj);
                 snapshot.Objects[obj] = spatialObj;
             }
+            // Append to both _snapshots (insertion order) and _snapshotKeysOrdered
+            // (chronological — guaranteed monotonic because TakeSnapshot's timestamp
+            // comes from DateTime.UtcNow). Same-timestamp re-snapshots overwrite the
+            // dictionary entry but skip the parallel-list duplicate.
+            bool isNewKey = !_snapshots.ContainsKey(timestamp);
             _snapshots[timestamp] = snapshot;
+            if (isNewKey) _snapshotKeysOrdered.Add(timestamp);
             _lastSnapshotTime = timestamp;
             CleanupOldSnapshots(timestamp);
         }
@@ -239,35 +251,39 @@ namespace Omni.Collections.Spatial
         private void CleanupOldSnapshots(DateTime currentTime)
         {
             var cutoffTime = currentTime - _historyRetention;
-            var keysToRemove = new List<DateTime>();
-            foreach (KeyValuePair<DateTime, SpatialSnapshot> kvp in _snapshots)
+            int expiredCount = 0;
+            while (expiredCount < _snapshotKeysOrdered.Count &&
+                   _snapshotKeysOrdered[expiredCount] < cutoffTime)
             {
-                if (kvp.Key < cutoffTime)
-                {
-                    keysToRemove.Add(kvp.Key);
-                    kvp.Value.Grid.Dispose();
-                }
-            }
-            foreach (var key in keysToRemove)
-            {
+                var key = _snapshotKeysOrdered[expiredCount];
+                if (_snapshots.TryGetValue(key, out var snap))
+                    snap.Grid.Dispose();
                 _snapshots.Remove(key);
+                expiredCount++;
             }
+            if (expiredCount > 0)
+                _snapshotKeysOrdered.RemoveRange(0, expiredCount);
         }
 
         private SpatialSnapshot? FindClosestSnapshot(DateTime time)
         {
-            SpatialSnapshot? closest = null;
-            var minDelta = TimeSpan.MaxValue;
-            foreach (KeyValuePair<DateTime, SpatialSnapshot> kvp in _snapshots)
-            {
-                var delta = time > kvp.Key ? time - kvp.Key : kvp.Key - time;
-                if (delta < minDelta)
-                {
-                    minDelta = delta;
-                    closest = kvp.Value;
-                }
-            }
-            return closest;
+            // O(log N) via binary search on the chronologically-ordered key list.
+            // Returns the snapshot whose timestamp is nearest to `time` in absolute
+            // terms (compares the immediate predecessor and successor candidates).
+            int count = _snapshotKeysOrdered.Count;
+            if (count == 0) return null;
+            int idx = _snapshotKeysOrdered.BinarySearch(time);
+            if (idx >= 0)
+                return _snapshots[_snapshotKeysOrdered[idx]];
+            int insertionPoint = ~idx;
+            if (insertionPoint == 0)
+                return _snapshots[_snapshotKeysOrdered[0]];
+            if (insertionPoint == count)
+                return _snapshots[_snapshotKeysOrdered[count - 1]];
+            DateTime before = _snapshotKeysOrdered[insertionPoint - 1];
+            DateTime after = _snapshotKeysOrdered[insertionPoint];
+            DateTime closer = (time - before) <= (after - time) ? before : after;
+            return _snapshots[closer];
         }
 
         private IEnumerable<T> InterpolateObjectsInRadius(float x, float y, float radius, DateTime time)
