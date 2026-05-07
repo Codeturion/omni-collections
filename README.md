@@ -86,7 +86,7 @@ If you upgrade and hit a `NotSupportedException` from `Hashers.Default<T>`, that
   - [Probabilistic Structures](#probabilistic-structures) (5 structures)
   - [Grid Structures](#grid-structures) (3 structures)
   - [Reactive Structures](#reactive-structures) (2 structures)
-  - [Temporal Structures](#temporal-structures) (2 structures)
+  - [Temporal Structures](#temporal-structures) (1 structure)
 - [Real-World Usage Examples](#real-world-usage-examples)
 - [Installation](#installation)
 - [Security Considerations](#security-considerations)
@@ -753,7 +753,7 @@ public class DamageTracker
 
     public void Record(string sourceId, int damage)
     {
-        for (int i = 0; i < damage; i++) _bySource.Add(sourceId);
+        _bySource.Add(sourceId, (uint)damage);
     }
 
     public long ApproxDamage(string sourceId) => _bySource.EstimateCount(sourceId);
