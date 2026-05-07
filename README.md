@@ -2,7 +2,7 @@
 
 [![NuGet Version](https://img.shields.io/nuget/v/OmniCollections.svg)](https://www.nuget.org/packages/OmniCollections/)
 [![Build Status](https://github.com/Codeturion/omni-collections/actions/workflows/publish-nuget.yml/badge.svg)](https://github.com/Codeturion/omni-collections/actions)
-[![License: PolyForm Noncommercial](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-blue.svg)](https://polyformproject.org/licenses/noncommercial/1.0.0/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 **32 specialized .NET data structures with documented Big-O bounds, multi-targeted for `net8.0` and `netstandard2.1`.**
 
@@ -891,7 +891,7 @@ Libraries multi-target `net8.0;netstandard2.1`. Tests cover `net8.0` and `net6.0
 
 ## License
 
-[PolyForm Noncommercial 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0/). Free for personal and non-commercial use, including forks and modifications. Commercial use requires permission.
+[MIT](LICENSE). Free for any use — personal, commercial, fork, modify, redistribute — provided the copyright notice and license text remain in derivative works.
 
 ## Contributing
 
