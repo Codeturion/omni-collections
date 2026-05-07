@@ -142,4 +142,36 @@ public class PooledQueueBenchmarks
             sum += s.Length;
         return sum;
     }
+
+    // ============= FillAndDrain (sustained reuse — pool win surfaces here) =============
+    // Plain Fill captures first-allocation only. FillAndDrain builds + drains a
+    // container, then disposes — pooled buffer returns to ArrayPool and is rented
+    // by the next iteration. Allocated trends to zero for pooled type past warmup.
+
+    /// Claim: PooledQueue.CreateWithArrayPool sustained fill+drain reuses pooled
+    /// buffers — Allocated should drop near-zero past the first warmup iteration.
+    [Benchmark, BenchmarkCategory("FillAndDrain"), InvocationCount(1)]
+    public int Omni_FillAndDrain()
+    {
+        var c = PooledQueue<string>.CreateWithArrayPool();
+        for (int i = 0; i < N; i++)
+            c.Enqueue(_values[i]);
+        int sum = 0;
+        while (c.Count > 0)
+            sum += c.Dequeue().Length;
+        c.Dispose();
+        return sum;
+    }
+
+    [Benchmark(Baseline = true), BenchmarkCategory("FillAndDrain"), InvocationCount(1)]
+    public int Baseline_FillAndDrain()
+    {
+        var c = new Queue<string>();
+        for (int i = 0; i < N; i++)
+            c.Enqueue(_values[i]);
+        int sum = 0;
+        while (c.Count > 0)
+            sum += c.Dequeue().Length;
+        return sum;
+    }
 }
