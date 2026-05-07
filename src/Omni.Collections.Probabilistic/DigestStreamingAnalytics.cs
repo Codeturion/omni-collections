@@ -8,10 +8,11 @@ using Omni.Collections.Probabilistic;
 namespace Omni.Collections.Probabilistic;
 
 /// <summary>
-/// A streaming analytics engine that tracks percentiles in real-time using t-digest with sliding time windows.
-/// Achieves O(log n) Add operations and O(1) quantile queries with adaptive compression for extreme percentile accuracy.
-/// Critical for real-time dashboards, SLA monitoring, and performance analytics where instant percentile insights
-/// across streaming data determine operational decisions.
+/// A streaming percentile engine wrapping a <see cref="Digest"/> with a sliding time window. All public operations
+/// delegate to the underlying digest, so per-call cost is O(c) (linear in centroid count); a periodic cleanup pass
+/// rebuilds the digest from the retained value buffer in O(buffer) when the cleanup interval elapses. Suited to
+/// real-time dashboards, SLA monitoring, and per-window percentile analytics; for lifetime quantiles, use
+/// <see cref="Digest"/> directly without the windowing machinery.
 /// </summary>
 public class DigestStreamingAnalytics<T> : IDisposable
 {

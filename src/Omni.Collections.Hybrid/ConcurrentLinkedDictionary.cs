@@ -10,10 +10,11 @@ using Omni.Collections.Core.Time;
 namespace Omni.Collections.Hybrid
 {
     /// <summary>
-    /// A thread-safe linked dictionary achieving lock-free reads and fine-grained locking for writes with preserved insertion order.
-    /// Provides O(1) Add/Remove/Contains operations with minimal contention through optimized concurrent algorithms.
-    /// Essential for high-concurrency LRU caches, multi-threaded event processors, and shared state management where
-    /// thread safety and predictable iteration order are both critical.
+    /// A thread-safe LRU dictionary with per-bucket monitors for hash-table mutation and a per-instance LRU writer lock for ordering.
+    /// Reads acquire the per-bucket monitor briefly to update the access timestamp; writes (AddOrUpdate on existing key, Remove,
+    /// MoveToFront) additionally acquire the LRU writer lock. Enumeration takes the LRU read lock for the lifetime of the iterator.
+    /// Suited to high-concurrency LRU caches and multi-threaded event processors where strict access-order eviction matters; if
+    /// only insertion-order semantics are needed, <see cref="LinkedDictionary.LinkedDictionary{TKey,TValue}"/> is leaner.
     /// </summary>
     public class ConcurrentLinkedDictionary<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>, IDisposable
         where TKey : notnull

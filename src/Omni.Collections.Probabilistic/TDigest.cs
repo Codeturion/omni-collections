@@ -5,10 +5,13 @@ using System.Runtime.CompilerServices;
 namespace Omni.Collections.Probabilistic;
 
 /// <summary>
-/// A t-digest implementation that provides accurate quantile estimation on streaming data with bounded memory usage.
-/// Provides O(log n) Add/Quantile operations with adaptive compression that maintains high accuracy for extreme percentiles.
-/// Excellent for streaming quantile estimation, percentile monitoring, performance analytics, or scenarios
-/// where maintaining exact sorted data is memory-prohibitive but accurate percentiles are critical.
+/// A t-digest variant for approximate quantile estimation over streaming data with bounded memory.
+/// Centroids are kept in a sorted <see cref="List{T}"/>, so Add and Quantile are O(c) per call (binary search to locate
+/// position, then a tail shift on insert / linear scan for cumulative weight). Merge is O(c1 + c2) — linear merge of the
+/// two sorted centroid lists followed by a Compress pass. Memory is bounded by the configured compression parameter.
+/// Suited to scenarios where exact sorting is too memory-heavy and centroid count stays small relative to data volume —
+/// SLA monitoring, latency dashboards, distributed shards merged at query time. The asymptotic per-op cost is linear in
+/// centroid count, not logarithmic.
 /// </summary>
 public sealed class Digest
 {
