@@ -163,12 +163,32 @@ public class TimelineArray<T> : IDisposable
         if (_count == 0 || fps <= 0)
             yield break;
         long frameInterval = 1000 / fps;
-        long currentReplayTime = startTime;
-        while (currentReplayTime <= EndTime)
+        long endTime = EndTime;
+        if (startTime > endTime)
+            yield break;
+        // One binary search to seed the index, then advance linearly per frame.
+        // Previously this method called GetAtTime per frame, each a fresh O(log N)
+        // binary search — total O(frames · log N). Now it's O(log N + frames).
+        int index = BinarySearchTime(startTime);
+        if (index < 0)
         {
-            var snapshot = GetAtTime(currentReplayTime);
-            if (snapshot != null)
-                yield return (snapshot, currentReplayTime);
+            index = ~index;
+            // GetAtTime's "round down" semantics: pick the latest sample at-or-before
+            // startTime. If startTime is earlier than the oldest sample, the insertion
+            // point is 0; we leave index=0 here but skip yielding until currentReplayTime
+            // reaches _startTime (matches GetAtTime's "return default for time < _startTime"
+            // contract that the caller filters via `if snapshot != null`).
+            if (index > 0) index--;
+        }
+        long currentReplayTime = startTime;
+        while (currentReplayTime <= endTime)
+        {
+            // Advance `index` so _timestamps[index] is the latest sample <= currentReplayTime.
+            while (index + 1 < _count && _timestamps[GetBufferIndex(index + 1)] <= currentReplayTime)
+                index++;
+            // Skip frames before the first recorded sample (mirror GetAtTime's null-skip).
+            if (currentReplayTime >= _startTime)
+                yield return (_buffer[GetBufferIndex(index)], currentReplayTime);
             currentReplayTime += frameInterval;
         }
     }
