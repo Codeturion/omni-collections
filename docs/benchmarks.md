@@ -46,7 +46,7 @@ Results land under `src/Omni.Collections.Benchmarks/BenchmarkDotNet.Artifacts/re
 - `*-report.csv` — for tooling.
 - `*-report.html` — browser-friendly view.
 
-The directory is gitignored. To publish reference numbers we copy the relevant markdown into `docs/perf/` under a hardware-specific subfolder.
+The directory is gitignored — reports are hardware-dependent and don't ship in the repo. Use BDN's own outputs to compare local before/after on your machine.
 
 ## Interpreting results
 
@@ -120,7 +120,7 @@ Both patterns coexist: per-op shows steady-state cost, Fill shows realistic popu
 
 ## Hardware reference
 
-When publishing reference numbers under `docs/perf/`, include a hardware banner that BDN itself generates at the top of every report. Sample:
+Always cite the hardware banner BDN auto-generates at the top of every report when sharing numbers. Sample:
 
 ```
 BenchmarkDotNet v0.14.0, Windows 11

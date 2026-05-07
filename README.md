@@ -883,7 +883,7 @@ Summary across all 32 types. `*` denotes amortized; `c` is centroid / cell count
 
 ## Benchmarks
 
-Reference benchmark numbers live at [`docs/perf/i7-13700KF/`](docs/perf/i7-13700KF/) — both `--standard` and `--rigorous` BenchmarkDotNet profiles, machine-tagged. Reproduce on your hardware with `.\bench.ps1 --rigorous --filter '*<TypeName>Benchmarks*'`. Methodology at [`docs/benchmarks.md`](docs/benchmarks.md).
+Benchmarks are hardware-dependent. Reproduce on your machine with `.\bench.ps1 --rigorous --filter '*<TypeName>Benchmarks*'`. Methodology and profile definitions at [`docs/benchmarks.md`](docs/benchmarks.md).
 
 ## Compatibility
 
