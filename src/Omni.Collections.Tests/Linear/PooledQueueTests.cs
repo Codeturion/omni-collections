@@ -7,10 +7,10 @@ using Xunit;
 
 namespace Omni.Collections.Tests.Linear;
 
-public class FastQueueTests
+public class PooledQueueTests
 {
     /// <summary>
-    /// Tests that a FastQueue can be constructed with valid capacity.
+    /// Tests that a PooledQueue can be constructed with valid capacity.
     /// The queue should have at least the specified capacity rounded to power of two.
     /// </summary>
     [Theory]
@@ -21,7 +21,7 @@ public class FastQueueTests
     [InlineData(100, 128)]
     public void Constructor_WithValidCapacity_CreatesQueueWithPowerOfTwoCapacity(int requestedCapacity, int expectedMinCapacity)
     {
-        var queue = new FastQueue<int>(requestedCapacity);
+        var queue = new PooledQueue<int>(requestedCapacity);
 
         queue.Capacity.Should().BeGreaterThanOrEqualTo(expectedMinCapacity);
         queue.Count.Should().Be(0);
@@ -34,7 +34,7 @@ public class FastQueueTests
     [Fact]
     public void Constructor_WithoutCapacity_UsesDefaultCapacity()
     {
-        var queue = new FastQueue<int>();
+        var queue = new PooledQueue<int>();
 
         queue.Capacity.Should().BeGreaterThanOrEqualTo(16);
         queue.Count.Should().Be(0);
@@ -50,7 +50,7 @@ public class FastQueueTests
     [InlineData(-100)]
     public void Constructor_WithInvalidCapacity_ThrowsArgumentOutOfRangeException(int capacity)
     {
-        var act = () => new FastQueue<int>(capacity);
+        var act = () => new PooledQueue<int>(capacity);
 
         act.Should().Throw<ArgumentOutOfRangeException>()
             .WithParameterName("capacity");
@@ -63,7 +63,7 @@ public class FastQueueTests
     [Fact]
     public void Enqueue_AddsItemsInOrder()
     {
-        var queue = new FastQueue<int>();
+        var queue = new PooledQueue<int>();
 
         queue.Enqueue(1);
         queue.Enqueue(2);
@@ -80,7 +80,7 @@ public class FastQueueTests
     [Fact]
     public void Enqueue_WhenFull_AutomaticallyResizes()
     {
-        var queue = new FastQueue<int>(2);
+        var queue = new PooledQueue<int>(2);
         
         queue.Enqueue(1);
         queue.Enqueue(2);
@@ -99,7 +99,7 @@ public class FastQueueTests
     [Fact]
     public void Dequeue_RemovesItemsInFifoOrder()
     {
-        var queue = new FastQueue<int>();
+        var queue = new PooledQueue<int>();
         queue.Enqueue(1);
         queue.Enqueue(2);
         queue.Enqueue(3);
@@ -121,7 +121,7 @@ public class FastQueueTests
     [Fact]
     public void Dequeue_WhenEmpty_ThrowsInvalidOperationException()
     {
-        var queue = new FastQueue<int>();
+        var queue = new PooledQueue<int>();
 
 #if DEBUG
         var act = () => queue.Dequeue();
@@ -140,7 +140,7 @@ public class FastQueueTests
     [Fact]
     public void TryDequeue_WhenNotEmpty_ReturnsTrueAndDequeuesItem()
     {
-        var queue = new FastQueue<int>();
+        var queue = new PooledQueue<int>();
         queue.Enqueue(10);
         queue.Enqueue(20);
 
@@ -161,7 +161,7 @@ public class FastQueueTests
     [Fact]
     public void TryDequeue_WhenEmpty_ReturnsFalse()
     {
-        var queue = new FastQueue<int>();
+        var queue = new PooledQueue<int>();
 
         var result = queue.TryDequeue(out var item);
 
@@ -177,7 +177,7 @@ public class FastQueueTests
     [Fact]
     public void Peek_ReturnsFirstItemWithoutRemoving()
     {
-        var queue = new FastQueue<int>();
+        var queue = new PooledQueue<int>();
         queue.Enqueue(10);
         queue.Enqueue(20);
 
@@ -195,7 +195,7 @@ public class FastQueueTests
     [Fact]
     public void Peek_WhenEmpty_ThrowsInvalidOperationException()
     {
-        var queue = new FastQueue<int>();
+        var queue = new PooledQueue<int>();
 
         var act = () => queue.Peek();
 
@@ -210,7 +210,7 @@ public class FastQueueTests
     [Fact]
     public void TryPeek_WhenNotEmpty_ReturnsTrueAndPeeksItem()
     {
-        var queue = new FastQueue<int>();
+        var queue = new PooledQueue<int>();
         queue.Enqueue(10);
         queue.Enqueue(20);
 
@@ -228,7 +228,7 @@ public class FastQueueTests
     [Fact]
     public void TryPeek_WhenEmpty_ReturnsFalse()
     {
-        var queue = new FastQueue<int>();
+        var queue = new PooledQueue<int>();
 
         var result = queue.TryPeek(out var item);
 
@@ -243,7 +243,7 @@ public class FastQueueTests
     [Fact]
     public void EnqueueSpan_AddsMultipleItems()
     {
-        var queue = new FastQueue<int>();
+        var queue = new PooledQueue<int>();
         var items = new[] { 1, 2, 3, 4, 5 };
 
         queue.EnqueueSpan(items.AsSpan());
@@ -259,7 +259,7 @@ public class FastQueueTests
     [Fact]
     public void EnqueueSpan_WithEmptySpan_DoesNothing()
     {
-        var queue = new FastQueue<int>();
+        var queue = new PooledQueue<int>();
         queue.Enqueue(1);
 
         queue.EnqueueSpan(ReadOnlySpan<int>.Empty);
@@ -275,7 +275,7 @@ public class FastQueueTests
     [Fact]
     public void EnqueueSpan_WhenExceedsCapacity_TriggersResize()
     {
-        var queue = new FastQueue<int>(2);
+        var queue = new PooledQueue<int>(2);
         var items = new[] { 1, 2, 3, 4, 5 };
 
         queue.EnqueueSpan(items.AsSpan());
@@ -292,7 +292,7 @@ public class FastQueueTests
     [Fact]
     public void DequeueSpan_RemovesMultipleItems()
     {
-        var queue = new FastQueue<int>();
+        var queue = new PooledQueue<int>();
         for (int i = 1; i <= 5; i++)
             queue.Enqueue(i);
 
@@ -310,7 +310,7 @@ public class FastQueueTests
     [Fact]
     public void DequeueSpan_WithCountLargerThanSize_DequeuesAllItems()
     {
-        var queue = new FastQueue<int>();
+        var queue = new PooledQueue<int>();
         queue.Enqueue(1);
         queue.Enqueue(2);
 
@@ -330,7 +330,7 @@ public class FastQueueTests
     [InlineData(-10)]
     public void DequeueSpan_WithInvalidCount_ReturnsEmptySpan(int count)
     {
-        var queue = new FastQueue<int>();
+        var queue = new PooledQueue<int>();
         queue.Enqueue(1);
         queue.Enqueue(2);
 
@@ -347,7 +347,7 @@ public class FastQueueTests
     [Fact]
     public void Clear_RemovesAllItems()
     {
-        var queue = new FastQueue<int>();
+        var queue = new PooledQueue<int>();
         queue.Enqueue(1);
         queue.Enqueue(2);
         queue.Enqueue(3);
@@ -365,7 +365,7 @@ public class FastQueueTests
     [Fact]
     public void Clear_OnEmptyQueue_DoesNotThrow()
     {
-        var queue = new FastQueue<int>();
+        var queue = new PooledQueue<int>();
 
         var act = () => queue.Clear();
 
@@ -380,7 +380,7 @@ public class FastQueueTests
     [Fact]
     public void GetEnumerator_IteratesInFifoOrder()
     {
-        var queue = new FastQueue<int>();
+        var queue = new PooledQueue<int>();
         queue.Enqueue(1);
         queue.Enqueue(2);
         queue.Enqueue(3);
@@ -401,7 +401,7 @@ public class FastQueueTests
     [Fact]
     public void Enumerator_WorksWithLinq()
     {
-        var queue = new FastQueue<int>();
+        var queue = new PooledQueue<int>();
         queue.Enqueue(1);
         queue.Enqueue(2);
         queue.Enqueue(3);
@@ -420,7 +420,7 @@ public class FastQueueTests
     [Fact]
     public void CircularBuffer_HandlesWrapAroundCorrectly()
     {
-        var queue = new FastQueue<int>(4);
+        var queue = new PooledQueue<int>(4);
         
         // Fill queue
         queue.Enqueue(1);
@@ -447,7 +447,7 @@ public class FastQueueTests
     [Fact]
     public void CreateWithArrayPool_CreatesPooledInstance()
     {
-        using var queue = FastQueue<int>.CreateWithArrayPool(10);
+        using var queue = PooledQueue<int>.CreateWithArrayPool(10);
 
         queue.Capacity.Should().BeGreaterThanOrEqualTo(10);
         queue.Count.Should().Be(0);
@@ -464,12 +464,12 @@ public class FastQueueTests
     [Fact]
     public void Rent_Return_ReuseInstance()
     {
-        var queue1 = FastQueue<int>.Rent(10);
+        var queue1 = PooledQueue<int>.Rent(10);
         queue1.Enqueue(1);
         queue1.Enqueue(2);
         queue1.Return();
 
-        var queue2 = FastQueue<int>.Rent(10);
+        var queue2 = PooledQueue<int>.Rent(10);
         
         queue2.Count.Should().Be(0);
         queue2.Capacity.Should().BeGreaterThanOrEqualTo(10);
@@ -482,7 +482,7 @@ public class FastQueueTests
     [Fact]
     public void Dispose_CleansUpResources()
     {
-        var queue = FastQueue<int>.CreateWithArrayPool(10);
+        var queue = PooledQueue<int>.CreateWithArrayPool(10);
         queue.Enqueue(1);
         queue.Enqueue(2);
 
@@ -497,7 +497,7 @@ public class FastQueueTests
     [Fact]
     public void NullHandling_ForReferenceTypes_WorksCorrectly()
     {
-        var queue = new FastQueue<string>();
+        var queue = new PooledQueue<string>();
 
         queue.Enqueue(null!);
         queue.Enqueue("test");
@@ -516,7 +516,7 @@ public class FastQueueTests
     [Fact]
     public void EmptyQueue_HandlesOperationsCorrectly()
     {
-        var queue = new FastQueue<int>();
+        var queue = new PooledQueue<int>();
 
         queue.Count.Should().Be(0);
         queue.TryDequeue(out _).Should().BeFalse();
@@ -536,7 +536,7 @@ public class FastQueueTests
     [Fact]
     public void SingleElementQueue_HandlesOperationsCorrectly()
     {
-        var queue = new FastQueue<int>(1);
+        var queue = new PooledQueue<int>(1);
 
         queue.Enqueue(10);
         queue.Count.Should().Be(1);
@@ -554,7 +554,7 @@ public class FastQueueTests
     [Fact]
     public void LargeQueue_HandlesMannyItemsEfficiently()
     {
-        var queue = new FastQueue<int>(2);
+        var queue = new PooledQueue<int>(2);
         const int itemCount = 1000;
 
         // Enqueue many items
@@ -582,7 +582,7 @@ public class FastQueueTests
     [Fact]
     public void AlternatingOperations_MaintainCorrectState()
     {
-        var queue = new FastQueue<int>();
+        var queue = new PooledQueue<int>();
 
         for (int i = 0; i < 10; i++)
         {

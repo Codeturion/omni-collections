@@ -7,10 +7,10 @@ using Xunit;
 
 namespace Omni.Collections.Tests.Hybrid;
 
-public class CircularDictionaryTests
+public class BoundedDictionaryTests
 {
     /// <summary>
-    /// Tests that a CircularDictionary can be constructed with a positive capacity.
+    /// Tests that a BoundedDictionary can be constructed with a positive capacity.
     /// The dictionary should have the specified capacity and be empty initially.
     /// </summary>
     [Theory]
@@ -20,7 +20,7 @@ public class CircularDictionaryTests
     [InlineData(1000)]
     public void Constructor_WithValidCapacity_CreatesEmptyDictionaryWithCorrectCapacity(int capacity)
     {
-        var dict = new CircularDictionary<string, int>(capacity);
+        var dict = new BoundedDictionary<string, int>(capacity);
 
         dict.Capacity.Should().Be(capacity);
         dict.Count.Should().Be(0);
@@ -29,7 +29,7 @@ public class CircularDictionaryTests
     }
 
     /// <summary>
-    /// Tests that constructing a CircularDictionary with invalid capacity throws exception.
+    /// Tests that constructing a BoundedDictionary with invalid capacity throws exception.
     /// The constructor should reject zero or negative capacity values.
     /// </summary>
     [Theory]
@@ -38,21 +38,21 @@ public class CircularDictionaryTests
     [InlineData(-100)]
     public void Constructor_WithInvalidCapacity_ThrowsArgumentOutOfRangeException(int capacity)
     {
-        var act = () => new CircularDictionary<string, int>(capacity);
+        var act = () => new BoundedDictionary<string, int>(capacity);
 
         act.Should().Throw<ArgumentOutOfRangeException>()
             .WithParameterName("capacity");
     }
 
     /// <summary>
-    /// Tests that a CircularDictionary can be constructed with custom equality comparer.
+    /// Tests that a BoundedDictionary can be constructed with custom equality comparer.
     /// The dictionary should use the provided comparer for key comparisons.
     /// </summary>
     [Fact]
     public void Constructor_WithCustomComparer_UsesCustomComparerForKeys()
     {
         var comparer = StringComparer.OrdinalIgnoreCase;
-        var dict = new CircularDictionary<string, int>(5, comparer);
+        var dict = new BoundedDictionary<string, int>(5, comparer);
 
         dict.Add("KEY", 1);
         dict.ContainsKey("key").Should().BeTrue();
@@ -66,7 +66,7 @@ public class CircularDictionaryTests
     [Fact]
     public void Add_NewItems_AddsItemsAndIncreasesCount()
     {
-        var dict = new CircularDictionary<string, int>(5);
+        var dict = new BoundedDictionary<string, int>(5);
 
         dict.Add("key1", 10);
         dict.Add("key2", 20);
@@ -87,7 +87,7 @@ public class CircularDictionaryTests
     [Fact]
     public void Add_ExistingKey_UpdatesValueWithoutChangingCount()
     {
-        var dict = new CircularDictionary<string, int>(5);
+        var dict = new BoundedDictionary<string, int>(5);
         dict.Add("key1", 10);
 
         dict.Add("key1", 100);
@@ -103,7 +103,7 @@ public class CircularDictionaryTests
     [Fact(Skip = "Needs algorithm review - not blocking NuGet publishing")]
     public void Add_ExceedsCapacity_EvictsOldestItems()
     {
-        var dict = new CircularDictionary<string, int>(3);
+        var dict = new BoundedDictionary<string, int>(3);
         dict.Add("first", 1);
         dict.Add("second", 2);
         dict.Add("third", 3);
@@ -125,7 +125,7 @@ public class CircularDictionaryTests
     [Fact]
     public void Add_MultipleEvictions_MaintainsCorrectFifoOrder()
     {
-        var dict = new CircularDictionary<string, int>(2);
+        var dict = new BoundedDictionary<string, int>(2);
         dict.Add("A", 1);
         dict.Add("B", 2);  // Full
         dict.Add("C", 3);  // Evicts A
@@ -145,7 +145,7 @@ public class CircularDictionaryTests
     [Fact]
     public void Indexer_GetAndSet_WorksCorrectly()
     {
-        var dict = new CircularDictionary<string, int>(5);
+        var dict = new BoundedDictionary<string, int>(5);
         dict.Add("key1", 10);
 
         var value = dict["key1"];
@@ -165,7 +165,7 @@ public class CircularDictionaryTests
     [Fact]
     public void Indexer_NonExistentKey_ThrowsKeyNotFoundException()
     {
-        var dict = new CircularDictionary<string, int>(5);
+        var dict = new BoundedDictionary<string, int>(5);
 
         var act = () => dict["nonexistent"];
 
@@ -179,7 +179,7 @@ public class CircularDictionaryTests
     [Fact]
     public void TryGetValue_ExistingKey_ReturnsTrueWithCorrectValue()
     {
-        var dict = new CircularDictionary<string, int>(5);
+        var dict = new BoundedDictionary<string, int>(5);
         dict.Add("key1", 42);
 
         var result = dict.TryGetValue("key1", out var value);
@@ -195,7 +195,7 @@ public class CircularDictionaryTests
     [Fact]
     public void TryGetValue_NonExistentKey_ReturnsFalseWithDefaultValue()
     {
-        var dict = new CircularDictionary<string, int>(5);
+        var dict = new BoundedDictionary<string, int>(5);
 
         var result = dict.TryGetValue("nonexistent", out var value);
 
@@ -210,7 +210,7 @@ public class CircularDictionaryTests
     [Fact]
     public void ContainsKey_ExistingKey_ReturnsTrue()
     {
-        var dict = new CircularDictionary<string, int>(5);
+        var dict = new BoundedDictionary<string, int>(5);
         dict.Add("key1", 42);
 
         var result = dict.ContainsKey("key1");
@@ -225,7 +225,7 @@ public class CircularDictionaryTests
     [Fact]
     public void ContainsKey_NonExistentKey_ReturnsFalse()
     {
-        var dict = new CircularDictionary<string, int>(5);
+        var dict = new BoundedDictionary<string, int>(5);
 
         var result = dict.ContainsKey("nonexistent");
 
@@ -239,7 +239,7 @@ public class CircularDictionaryTests
     [Fact]
     public void GetOldest_WithItems_ReturnsOldestItem()
     {
-        var dict = new CircularDictionary<string, int>(5);
+        var dict = new BoundedDictionary<string, int>(5);
         dict.Add("first", 1);
         dict.Add("second", 2);
         dict.Add("third", 3);
@@ -257,7 +257,7 @@ public class CircularDictionaryTests
     [Fact]
     public void GetOldest_AfterEvictions_ReturnsCorrectOldestItem()
     {
-        var dict = new CircularDictionary<string, int>(2);
+        var dict = new BoundedDictionary<string, int>(2);
         dict.Add("A", 1);
         dict.Add("B", 2);  // Full
         dict.Add("C", 3);  // Evicts A, B is now oldest
@@ -275,7 +275,7 @@ public class CircularDictionaryTests
     [Fact]
     public void GetOldest_EmptyDictionary_ThrowsInvalidOperationException()
     {
-        var dict = new CircularDictionary<string, int>(5);
+        var dict = new BoundedDictionary<string, int>(5);
 
         var act = () => dict.GetOldest();
 
@@ -290,7 +290,7 @@ public class CircularDictionaryTests
     [Fact]
     public void GetNewest_WithItems_ReturnsNewestItem()
     {
-        var dict = new CircularDictionary<string, int>(5);
+        var dict = new BoundedDictionary<string, int>(5);
         dict.Add("first", 1);
         dict.Add("second", 2);
         dict.Add("third", 3);
@@ -308,7 +308,7 @@ public class CircularDictionaryTests
     [Fact]
     public void GetNewest_AfterEvictions_ReturnsCorrectNewestItem()
     {
-        var dict = new CircularDictionary<string, int>(2);
+        var dict = new BoundedDictionary<string, int>(2);
         dict.Add("A", 1);
         dict.Add("B", 2);
         dict.Add("C", 3);  // C should be newest
@@ -326,7 +326,7 @@ public class CircularDictionaryTests
     [Fact]
     public void GetNewest_EmptyDictionary_ThrowsInvalidOperationException()
     {
-        var dict = new CircularDictionary<string, int>(5);
+        var dict = new BoundedDictionary<string, int>(5);
 
         var act = () => dict.GetNewest();
 
@@ -341,7 +341,7 @@ public class CircularDictionaryTests
     [Fact]
     public void Remove_ExistingKey_ReturnsTrueAndRemovesItem()
     {
-        var dict = new CircularDictionary<string, int>(5);
+        var dict = new BoundedDictionary<string, int>(5);
         dict.Add("key1", 10);
         dict.Add("key2", 20);
 
@@ -360,7 +360,7 @@ public class CircularDictionaryTests
     [Fact]
     public void Remove_NonExistentKey_ReturnsFalseWithoutChangingCollection()
     {
-        var dict = new CircularDictionary<string, int>(5);
+        var dict = new BoundedDictionary<string, int>(5);
         dict.Add("key1", 10);
 
         var result = dict.Remove("nonexistent");
@@ -373,7 +373,7 @@ public class CircularDictionaryTests
     [Fact]
     public void Remove_WhenNotEmpty_DecrementsCountAndReusesSlot()
     {
-        var dict = new CircularDictionary<string, int>(3);
+        var dict = new BoundedDictionary<string, int>(3);
         dict.Add("A", 1);
         dict.Add("B", 2);
         dict.Add("C", 3);
@@ -396,7 +396,7 @@ public class CircularDictionaryTests
     [Fact]
     public void Remove_OldestEntry_AdvancesOldestPointer()
     {
-        var dict = new CircularDictionary<string, int>(3);
+        var dict = new BoundedDictionary<string, int>(3);
         dict.Add("A", 1);
         dict.Add("B", 2);
         dict.Add("C", 3);
@@ -410,7 +410,7 @@ public class CircularDictionaryTests
     [Fact]
     public void Remove_NewestEntry_UpdatesNewestPointer()
     {
-        var dict = new CircularDictionary<string, int>(3);
+        var dict = new BoundedDictionary<string, int>(3);
         dict.Add("A", 1);
         dict.Add("B", 2);
         dict.Add("C", 3);
@@ -431,7 +431,7 @@ public class CircularDictionaryTests
     [Fact]
     public void Clear_WithMultipleItems_RemovesAllItemsAndResetsState()
     {
-        var dict = new CircularDictionary<string, int>(5);
+        var dict = new BoundedDictionary<string, int>(5);
         dict.Add("key1", 10);
         dict.Add("key2", 20);
         dict.Add("key3", 30);
@@ -453,7 +453,7 @@ public class CircularDictionaryTests
     [Fact]
     public void GetRecentWindow_ValidWindowSize_ReturnsRecentItems()
     {
-        var dict = new CircularDictionary<string, int>(5);
+        var dict = new BoundedDictionary<string, int>(5);
         dict.Add("A", 1);
         dict.Add("B", 2);
         dict.Add("C", 3);
@@ -473,7 +473,7 @@ public class CircularDictionaryTests
     [Fact]
     public void GetRecentWindow_WindowSizeLargerThanCount_ReturnsAllItems()
     {
-        var dict = new CircularDictionary<string, int>(5);
+        var dict = new BoundedDictionary<string, int>(5);
         dict.Add("A", 1);
         dict.Add("B", 2);
 
@@ -493,7 +493,7 @@ public class CircularDictionaryTests
     [InlineData(-1)]
     public void GetRecentWindow_InvalidWindowSize_ReturnsAllItems(int windowSize)
     {
-        var dict = new CircularDictionary<string, int>(5);
+        var dict = new BoundedDictionary<string, int>(5);
         dict.Add("A", 1);
         dict.Add("B", 2);
 
@@ -509,7 +509,7 @@ public class CircularDictionaryTests
     [Fact]
     public void GetRecentWindow_AfterEvictions_ReturnsCorrectRecentItems()
     {
-        var dict = new CircularDictionary<string, int>(3);
+        var dict = new BoundedDictionary<string, int>(3);
         dict.Add("A", 1);
         dict.Add("B", 2);
         dict.Add("C", 3);  // Full
@@ -526,7 +526,7 @@ public class CircularDictionaryTests
     [Fact]
     public void GetRecentWindow_WithGaps_StillReturnsMostRecentItems()
     {
-        var dict = new CircularDictionary<string, int>(4);
+        var dict = new BoundedDictionary<string, int>(4);
         dict.Add("A", 1);
         dict.Add("B", 2);
         dict.Add("C", 3);
@@ -547,7 +547,7 @@ public class CircularDictionaryTests
     [Fact]
     public void GetStatistics_WithItems_ReturnsCorrectStatistics()
     {
-        var dict = new CircularDictionary<string, int>(3);
+        var dict = new BoundedDictionary<string, int>(3);
         dict.Add("A", 1);
         dict.Add("B", 2);
         dict.Add("C", 3);
@@ -566,7 +566,7 @@ public class CircularDictionaryTests
     [Fact]
     public void GetStatistics_EmptyDictionary_ReturnsDefaultValues()
     {
-        var dict = new CircularDictionary<string, int>(5);
+        var dict = new BoundedDictionary<string, int>(5);
 
         var stats = dict.GetStatistics();
 
@@ -582,7 +582,7 @@ public class CircularDictionaryTests
     [Fact]
     public void Enumeration_MultipleItems_TraversesAllItems()
     {
-        var dict = new CircularDictionary<string, int>(5);
+        var dict = new BoundedDictionary<string, int>(5);
         dict.Add("A", 1);
         dict.Add("B", 2);
         dict.Add("C", 3);
@@ -598,7 +598,7 @@ public class CircularDictionaryTests
     [Fact]
     public void Enumeration_AfterRemovals_TraversesRemainingItems()
     {
-        var dict = new CircularDictionary<string, int>(4);
+        var dict = new BoundedDictionary<string, int>(4);
         dict.Add("A", 1);
         dict.Add("B", 2);
         dict.Add("C", 3);
@@ -621,7 +621,7 @@ public class CircularDictionaryTests
     [Fact]
     public void Enumeration_AfterEvictions_TraversesOnlyCurrentItems()
     {
-        var dict = new CircularDictionary<string, int>(2);
+        var dict = new BoundedDictionary<string, int>(2);
         dict.Add("A", 1);
         dict.Add("B", 2);
         dict.Add("C", 3);  // Evicts A
@@ -641,7 +641,7 @@ public class CircularDictionaryTests
     [Fact]
     public void Enumeration_EmptyDictionary_ReturnsNoItems()
     {
-        var dict = new CircularDictionary<string, int>(5);
+        var dict = new BoundedDictionary<string, int>(5);
 
         var items = dict.ToList();
 
@@ -655,7 +655,7 @@ public class CircularDictionaryTests
     [Fact]
     public void Enumeration_ModifiedDuringIteration_ThrowsInvalidOperationException()
     {
-        var dict = new CircularDictionary<string, int>(5);
+        var dict = new BoundedDictionary<string, int>(5);
         dict.Add("key1", 1);
         dict.Add("key2", 2);
 
@@ -678,7 +678,7 @@ public class CircularDictionaryTests
     [Fact]
     public void Dispose_WithItems_ClearsAllItemsAndResetsState()
     {
-        var dict = new CircularDictionary<string, int>(5);
+        var dict = new BoundedDictionary<string, int>(5);
         dict.Add("key1", 1);
         dict.Add("key2", 2);
 
@@ -698,7 +698,7 @@ public class CircularDictionaryTests
     public void CapacityLimits_AddingManyItems_NeverExceedsCapacity()
     {
         const int capacity = 5;
-        var dict = new CircularDictionary<int, string>(capacity);
+        var dict = new BoundedDictionary<int, string>(capacity);
 
         for (int i = 0; i < capacity * 3; i++)
         {
@@ -717,7 +717,7 @@ public class CircularDictionaryTests
     [Fact]
     public void UpdateExistingKey_UpdatesValueWithoutChangingPosition()
     {
-        var dict = new CircularDictionary<string, int>(3);
+        var dict = new BoundedDictionary<string, int>(3);
         dict.Add("A", 1);
         dict.Add("B", 2);
         dict.Add("C", 3);
@@ -737,7 +737,7 @@ public class CircularDictionaryTests
     [Fact]
     public void SingleItemCapacity_Operations_WorkCorrectly()
     {
-        var dict = new CircularDictionary<string, int>(1);
+        var dict = new BoundedDictionary<string, int>(1);
 
         dict.Add("first", 1);
         dict.Count.Should().Be(1);
@@ -761,7 +761,7 @@ public class CircularDictionaryTests
     [Fact]
     public void ComplexTypes_AsKeysAndValues_WorksCorrectly()
     {
-        var dict = new CircularDictionary<int, Person>(3);
+        var dict = new BoundedDictionary<int, Person>(3);
         var person1 = new Person("Alice", 25);
         var person2 = new Person("Bob", 30);
 
@@ -780,7 +780,7 @@ public class CircularDictionaryTests
     [Fact]
     public void NullValues_Operations_WorkCorrectly()
     {
-        var dict = new CircularDictionary<string, string?>(3);
+        var dict = new BoundedDictionary<string, string?>(3);
 
         dict.Add("key1", null);
         dict.Add("key2", "value");

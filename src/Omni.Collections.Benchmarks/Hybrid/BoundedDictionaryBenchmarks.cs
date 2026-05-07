@@ -10,7 +10,7 @@ namespace Omni.Collections.Benchmarks.Hybrid;
 [GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
 [CategoriesColumn]
 [MemoryDiagnoser]
-public class CircularDictionaryBenchmarks
+public class BoundedDictionaryBenchmarks
 {
     private const int OpsPerIteration = 32768;
 
@@ -23,10 +23,10 @@ public class CircularDictionaryBenchmarks
     private const int ReadIndexMask = 1023;
     private int _readCounter;
 
-    private CircularDictionary<string, int> _omniFilled = null!;
+    private BoundedDictionary<string, int> _omniFilled = null!;
     private Dictionary<string, int> _baselineFilled = null!;
 
-    private CircularDictionary<string, int> _omniMut = null!;
+    private BoundedDictionary<string, int> _omniMut = null!;
     private Dictionary<string, int> _baselineMut = null!;
     private int _addCounter;
 
@@ -37,7 +37,7 @@ public class CircularDictionaryBenchmarks
         _values = RandomData.Ints(N + OpsPerIteration);
         _readIndices = RandomData.IntsInRange(ReadIndexMask + 1, 0, N);
 
-        _omniFilled = new CircularDictionary<string, int>(N);
+        _omniFilled = new BoundedDictionary<string, int>(N);
         _baselineFilled = new Dictionary<string, int>(N);
         for (int i = 0; i < N; i++)
         {
@@ -49,7 +49,7 @@ public class CircularDictionaryBenchmarks
     [IterationSetup(Targets = new[] { nameof(Omni_Add), nameof(Baseline_Add) })]
     public void ResetForAdd()
     {
-        _omniMut = new CircularDictionary<string, int>(N + OpsPerIteration);
+        _omniMut = new BoundedDictionary<string, int>(N + OpsPerIteration);
         _baselineMut = new Dictionary<string, int>(N + OpsPerIteration);
         for (int i = 0; i < N; i++)
         {
@@ -59,7 +59,7 @@ public class CircularDictionaryBenchmarks
         _addCounter = N;
     }
 
-    /// Claim: CircularDictionary.Add (capacity sufficient, no eviction) matches Dictionary.Add.
+    /// Claim: BoundedDictionary.Add (capacity sufficient, no eviction) matches Dictionary.Add.
     [Benchmark, BenchmarkCategory("Add"), InvocationCount(OpsPerIteration)]
     public int Omni_Add()
     {
@@ -76,7 +76,7 @@ public class CircularDictionaryBenchmarks
         return _baselineMut.Count;
     }
 
-    /// Claim: CircularDictionary.TryGetValue matches Dictionary lookup speed.
+    /// Claim: BoundedDictionary.TryGetValue matches Dictionary lookup speed.
     [Benchmark, BenchmarkCategory("Lookup")]
     public bool Omni_Lookup()
     {
@@ -91,11 +91,11 @@ public class CircularDictionaryBenchmarks
         return _baselineFilled.TryGetValue(k, out _);
     }
 
-    /// Claim: CircularDictionary preset to N pre-allocates a fixed-size ring buffer.
+    /// Claim: BoundedDictionary preset to N pre-allocates a fixed-size ring buffer.
     [Benchmark, BenchmarkCategory("Fill"), InvocationCount(1)]
-    public CircularDictionary<string, int> Omni_Fill()
+    public BoundedDictionary<string, int> Omni_Fill()
     {
-        var c = new CircularDictionary<string, int>(N);
+        var c = new BoundedDictionary<string, int>(N);
         for (int i = 0; i < N; i++)
             c.Add(_keys[i], _values[i]);
         return c;
