@@ -1,1043 +1,898 @@
 # Omni.Collections
 
 [![NuGet Version](https://img.shields.io/nuget/v/OmniCollections.svg)](https://www.nuget.org/packages/OmniCollections/)
-[![NuGet Downloads](https://img.shields.io/nuget/dt/OmniCollections.svg)](https://www.nuget.org/packages/OmniCollections/)
 [![Build Status](https://github.com/Codeturion/omni-collections/actions/workflows/publish-nuget.yml/badge.svg)](https://github.com/Codeturion/omni-collections/actions)
-[![GitHub Stars](https://img.shields.io/github/stars/Codeturion/omni-collections)](https://github.com/Codeturion/omni-collections)
-[![GitHub Last Commit](https://img.shields.io/github/last-commit/Codeturion/omni-collections)](https://github.com/Codeturion/omni-collections)
 [![License: PolyForm Noncommercial](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-blue.svg)](https://polyformproject.org/licenses/noncommercial/1.0.0/)
 
-**32 specialized .NET data structures addressing algorithmic bottlenecks**
+**32 specialized .NET data structures with documented Big-O bounds, multi-targeted for `net8.0` and `netstandard2.1`.**
 
-When .NET's built-in collections hit their limits — spatial indexing, priority processing, bounded memory, streaming analytics — these structures provide the missing pieces. Every type wins on one of five axes: speed, allocation, memory, predictability, or unique capability. Numbers and trade-offs live in [`docs/perf/`](docs/perf/).
+## What this library is
 
-## What's New in v2.0.0
+32 .NET data structures the BCL doesn't ship: spatial indexes, observable collections, bounded-memory probabilistic estimators, temporal queries, and keyed collections that maintain access order. All public types document Big-O time and space complexity per operation. Multi-targets `net8.0` and `netstandard2.1`; symbol packages and SourceLink ship with every release.
 
-v2.0.0 is a defensible re-foundation. Every public type now justifies its existence on a measurable axis — proven by the rebuilt benchmark suite or documented honestly when the win is capability rather than speed.
+## Install
 
-🟢 **Probabilistic correctness rework** ([PR #3](https://github.com/Codeturion/omni-collections/pull/3))
-
-The probabilistic family (`BloomFilter`, `HyperLogLog`, `CountMinSketch`, `BloomRTreeDictionary`) had a hidden correctness bug: they hashed via `(uint)item.GetHashCode()`, which for randomized-string `GetHashCode` and arbitrary user types destroys the false-positive / cardinality / frequency math. v2.0 introduces a new `Omni.Collections.Core.Hashing.IHasher<T>` abstraction backed by **XxHash3** (default) and **Murmur3-128**, with specialized fast paths for `int`, `uint`, `long`, `ulong`, `string`, `Guid`, `byte[]`, `ReadOnlyMemory<byte>`. The math now actually holds — empirical false-positive rate stays within 2× design FPR across 50 random seeds, verified by FsCheck property tests. Speed-wise `BloomFilter.Contains` is ~2× slower than `HashSet<T>.Contains` under rigorous benchmarks; the win is the fixed-size memory budget regardless of N. `CountMinSketch`'s hardcoded `Random(42)` per-row seeds (a CVE-tier predictability bug) were replaced with deterministic SplitMix64-derived seeds.
-
-🔧 **25 correctness fixes** ([PR #4](https://github.com/Codeturion/omni-collections/pull/4))
-
-Stub methods that returned hardcoded `false`, `else if` short-circuits that masked same-instance collisions, `Resize` paths that didn't clear bucket arrays, `Clear` paths that leaked node references, `KDTree.FindNearest` returning the wrong default for empty trees, R-Tree `FindWorstPair` doing O(n²) repeated sorts, and 18 more. See PR #4 for the full list.
-
-⚡ **Reactive correctness** ([PR #5](https://github.com/Codeturion/omni-collections/pull/5))
-
-`ObservableList` / `ObservableHashSet` filtered views are now `IDisposable` and properly unsubscribe from the source on Dispose (previously leaked indefinitely). Re-entrancy guards block mutations from inside `CollectionChanged` callbacks. Notification doctrine is uniform across batch ops (one `Add` event for batched additions, one `Reset` for non-contiguous removals). The event-args pool routing seam is now in place for future allocation-free notifications.
-
-🧪 **Test coverage rebuild** ([PR #6](https://github.com/Codeturion/omni-collections/pull/6))
-
-+209 new tests across `PredictiveDictionary`, `ConcurrentLinkedDictionary` (including 4-thread concurrency stress with `Barrier`-synced start), `LinkedMultiMap`, `GraphDictionary`, `HexPathfinding`, plus FsCheck property tests for the probabilistic types' theoretical bounds (false-positive rate, cardinality SE, frequency upper bound). New `IClock` abstraction lets temporal tests advance time deterministically instead of `Thread.Sleep`. CI now runs the suite under three RNG seeds per PR.
-
-📊 **Multi-target + packaging**
-- Multi-targets `net8.0;netstandard2.1` for libraries, `net8.0;net6.0` for tests, `net8.0` for benchmarks.
-- All sub-packages now pack `README.md` and `LICENSE`.
-- SourceLink + symbol packages (`.snupkg`) for every release.
-- `Microsoft.CodeAnalysis.PublicApiAnalyzers` baselines the public surface so v2.x patch releases can't accidentally break consumers.
-
-### v1.x → v2.0 migration
-
-**Hard breaks** (intentional):
-
-1. **`BloomFilter<T>` etc. for custom types now require an `IHasher<T>`.** Built-in types (`int`/`long`/`string`/`Guid`/etc.) work as before; for your own types, implement `IHasher<T>` and pass it via the new constructor overloads. The error message at runtime names the supported types and points to `IHasher<T>`.
-2. **`BitGrid2D.GetRowSpan(int y)` removed.** It had misleading zero-copy semantics over bit-packed storage. Replaced by `CopyRowTo(int y, Span<bool> destination)` (caller buffer) and `GetRowCopy(int y)` (explicit allocation). `LayeredGrid2D.GetRowSpan` is unchanged — its span is real.
-3. **`ObservableList.RemoveAll` / `RemoveAllAsync` now fire `NotifyCollectionChangedAction.Reset`** instead of `Remove` with a starting index. Non-contiguous removals can't satisfy `INotifyCollectionChanged`'s contiguous-range contract; the previous shape would silently mis-position WPF data bindings. Per-item `ItemRemoved` events still fire on the side channel.
-4. **`FastQueue<T>` renamed to `PooledQueue<T>`**, **`CircularDictionary<K,V>` renamed to `BoundedDictionary<K,V>`**. Mechanical search-and-replace. The `PooledQueue` rename also drops the "fast" claim from its XML doc — Phase 3's `ThrowIfDisposed` brought it to parity with `Queue<T>` at large N (slower at small N). The value-prop is the `ArrayPool` rental and `Span<T>` batch APIs, not raw per-op throughput.
-5. **`PredictiveDictionary<K,V>` scope-narrowed**: removed `Statistics`, `GetConfidence`, `UpdateModel`, `EvictStalePatterns`, the `IClock`-injected and `SecureHashOptions`-overloaded constructors, and the time-based pattern eviction. Kept the prediction surface (`GetPredictions`, `PrefetchLikely`).
-6. **`BoundingRectangle.Contains(float, float)`** documented convention: closed `[min, max]` interval. The cell-indexing math in `QuadTree`/`SpatialHashGrid`/`BloomRTreeDictionary` uses half-open `[min, max)` internally without going through `Contains`.
-7. **`BloomDictionary<TKey, TValue>` removed.** The capability claim "fast miss-path short-circuit" doesn't hold under fair miss-heavy benchmarks: bloom pre-screen costs ~30 ns per lookup; the Dictionary miss probe it skips costs ~17 ns. Bloom adds latency without saving any. Memory was also worse (bloom + dict, not bloom alone). Use `BloomFilter<T>` + a separate `Dictionary<K,V>` if you genuinely need a bloom-pre-screened keyed cache and your workload profile somehow makes the math work — the library doesn't justify shipping the combo.
-
-If you upgrade and hit a `NotSupportedException` from `Hashers.Default<T>`, that's #1 — implement `IHasher<T>`. If a test asserts `OldStartingIndex` on a `RemoveAll` event, that's #3 — switch to `Reset` handling or count `ItemRemoved` events.
-
-📈 **Benchmarks**: methodology, profiles, and reproduction commands live in [`docs/benchmarks.md`](docs/benchmarks.md). Released reference numbers (rigorous profile, 10 warmup × 25 iter × 3 launches) ship under [`docs/perf/i7-13700KF/rigorous-v2.0.0/`](docs/perf/i7-13700KF/rigorous-v2.0.0/). Headline rigorous wins:
-
-| Type / op | Ratio vs baseline | Comparison |
-|---|---:|---|
-| `KdTree.FindNearest @ N=100k` | **0.005 (~200× faster)** | vs `List<T>` linear scan |
-| `QuadTree.Query @ N=100k` | **0.009 (~110× faster)** | vs `List<T>` linear scan |
-| `OctTree.RadiusQuery @ N=100k` | **0.02 (~50× faster)** | vs `List<T>` linear scan |
-| `ObservableList.Add @ N=100k` | **0.41 (~2.4× faster)** | vs `ObservableCollection<T>` |
-| `ObservableList.Fill @ N=100k` | **0.30 (~3.3× faster)** | vs `ObservableCollection<T>` |
-| `TimelineArray.GetAtTime` | **0.17-0.22 (~5× faster)** | vs `List<(long,T)>` linear scan |
-| `BitGrid2D.Fill @ 1024×1024` | **0.10 (~10× faster)** + 8× less memory | vs `bool[,]` |
-| `LayeredGrid2D.Fill @ 1024×1024` | **0.22 (~5× faster)** | vs `int[,,]` |
-| `HyperLogLog.Add @ N=100k` | **0.60 (~40% faster)** | vs `HashSet<long>` |
-| `MinHeap.Insert / MaxHeap.Insert` | **0.84-0.86 (~15% faster)** | vs `PriorityQueue<,>` |
-| `BoundedList.Add` | **0.91 (~9% faster)** | vs `List<T>` |
-
-**Honest non-wins (rigorous):** `BloomFilter.Contains` is 2× slower than `HashSet.Contains` (capability play, not speed). `BitGrid2D.Get` is 1.6× slower than `bool[,]` indexing (the win is 8× memory). `MinHeap.ExtractMin` is 1.4-1.8× slower than `PriorityQueue.Dequeue` (Insert is still faster). All Hybrid types (`LinkedDictionary`, `BoundedDictionary`, etc.) are slower than `Dictionary<K,V>` on basic ops — they're capability plays, not speed plays.
-
-## Table of Contents
-
-<details>
-<summary>📋 Click to expand table of contents</summary>
-
-- [What's New in v2.0.0](#whats-new-in-v200)
-  - [v1.x → v2.0 migration](#v1x--v20-migration)
-- [Quick Start](#quick-start)
-- [Complexity Guarantees](#complexity-guarantees)
-- [Performance Results & Benchmarking](#performance-results--benchmarking)
-- [Core Data Structures](#core-data-structures)
-  - [Linear Collections](#linear-collections) (6 structures)
-  - [Spatial Structures](#spatial-structures) (6 structures)
-  - [Hybrid Structures](#hybrid-structures) (9 structures)
-  - [Probabilistic Structures](#probabilistic-structures) (5 structures)
-  - [Grid Structures](#grid-structures) (3 structures)
-  - [Reactive Structures](#reactive-structures) (2 structures)
-  - [Temporal Structures](#temporal-structures) (1 structure)
-- [Real-World Usage Examples](#real-world-usage-examples)
-- [Installation](#installation)
-- [Security Considerations](#security-considerations)
-- [Choosing the Right Structure](#choosing-the-right-structure)
-- [Contributing](#contributing)
-- [License](#license)
-
-</details>
-
-## Quick Start
-
-<details>
-<summary>🚀 Get up and running in 2 minutes</summary>
-
-### Installation
 ```bash
 dotnet add package OmniCollections
 ```
 
-### Hello World — PooledQueue (one of several reasonable defaults)
+The umbrella package pulls in all 8 sub-packages. For trimmed deployments, install only the per-namespace packages you need: `OmniCollections.Linear`, `OmniCollections.Spatial`, `OmniCollections.Hybrid`, `OmniCollections.Probabilistic`, `OmniCollections.Grid`, `OmniCollections.Reactive`, `OmniCollections.Temporal`, `OmniCollections.Core`.
+
+## The 32 collections
+
+Organized by namespace. Click each category to expand.
+
+### Linear
+
+<details><summary><strong>BoundedList, PooledList, PooledStack, PooledQueue, MinHeap, MaxHeap</strong> (6 types)</summary>
+
+#### `BoundedList<T>` — Linear
+
+`List<T>`-shaped collection with a hard upper-bound capacity set at construction. Throws on overflow (or call `TryAdd`).
+
+| Operation | Time | Space |
+|---|---|---|
+| `Add` | O(1) | O(1) |
+| `TryAdd` | O(1) | O(1) |
+| `Insert(i, item)` | O(N) | O(1) |
+| `Remove(item)` | O(N) | O(1) |
+| `RemoveAt(i)` | O(N − i) | O(1) |
+| `RemoveLast` | O(1) | O(1) |
+| `this[i]` | O(1) | — |
+| `Contains` | O(N) | O(1) |
+| `Clear` | O(N) | — |
+| Storage | — | O(capacity), fixed at construction |
+
 ```csharp
-using Omni.Collections.Linear;
-
-// PooledQueue rents its backing buffer from ArrayPool<T>.Shared, so
-// repeatedly creating short-lived queues amortizes the buffer alloc.
-// For a single long-lived queue, plain Queue<T> or BoundedList<T> is fine.
-var queue = PooledQueue<Order>.CreateWithArrayPool(capacity: 10000);
-queue.Enqueue(new Order("12345"));
-var next = queue.Dequeue();
+var list = new BoundedList<Sample>(capacity: 1024);
+list.Add(sample);          // throws if full
+if (!list.TryAdd(other)) { /* full */ }
 ```
 
-### Common Scenarios — Pick Your Win
-```csharp
-// Spatial queries (games, GIS, collision detection)
-var quadTree = new QuadTree<GameObject>(worldBounds);
-quadTree.Insert(new Point(x, y), gameObject);
-var visible = quadTree.Query(cameraBounds); // O(log n + k)
+**Use when** capacity is known up-front and you want zero resize overhead — real-time loops, fixed-size buffers, GC-conscious paths.
+**Don't use when** capacity is unpredictable; pay the resize cost with `List<T>` and skip the throw.
 
-// Priority processing (job queues, A* pathfinding)
-var heap = MinHeap<Task>.CreateWithArrayPool(initialCapacity: 1000);
-heap.Insert(urgentTask);
-var next = heap.ExtractMin(); // O(log n)
+#### `PooledList<T>` — Linear
 
-// Bounded memory cache with FIFO auto-eviction
-var cache = new BoundedDictionary<string, Data>(capacity: 1000);
-cache["key"] = data; // Auto-evicts oldest insert when full
-```
+`List<T>`-shaped collection whose backing array is rented from `ArrayPool<T>` and returned on `Dispose`.
 
-### Next Steps
-- 📚 Browse [Core Data Structures](#core-data-structures)
-- 📊 Reproduce numbers via [Performance Results & Benchmarking](#performance-results--benchmarking)
-- 🔧 [Report issues](https://github.com/Codeturion/omni-collections/issues)
+| Operation | Time | Space |
+|---|---|---|
+| `Add` | O(1) amortized | O(1) |
+| `AddRange(span)` | O(n) | O(1) |
+| `Insert(i, item)` / `RemoveAt(i)` | O(N − i) | O(1) |
+| `RemoveLast` | O(1) | O(1) |
+| `this[i]` / `AsSpan` | O(1) | — |
+| `IndexOf` / `Contains` | O(N) | O(1) |
+| Storage | — | O(capacity), buffer rented from `ArrayPool<T>` |
 
-</details>
-
-## Complexity Guarantees
-
-| Structure | Insert | Remove | Lookup | Special Operation |
-|-----------|--------|--------|--------|-------------------|
-| **Spatial** |
-| QuadTree | O(log n) | O(log n) | - | Spatial query: O(log n + k) |
-| OctTree | O(log n) | O(log n) | - | 3D query: O(log n + k) |
-| KdTree | O(log n) | O(log n) | - | k-NN: O(log n) average |
-| SpatialHashGrid | O(1) avg | O(1) avg | - | Range query: O(k) |
-| TemporalSpatialHashGrid | O(1) avg | O(1) avg | - | Temporal query: O(k), Trajectory: O(t) |
-| BloomRTreeDictionary | O(log n) | O(log n) | O(1) | Range query: O(log n + k) with pruning |
-| **Linear** |
-| PooledQueue | O(1)* | O(1) | - | Enqueue/Dequeue: O(1), batch via Span |
-| MinHeap/MaxHeap | O(log n) | O(log n) | O(1) peek | ExtractMin/Max: O(log n) |
-| BoundedList | O(1) | O(n) | O(1) | Capacity-bounded |
-| PooledList | O(1)* | O(n) | O(1) | ArrayPool integration |
-| PooledStack | O(1)* | O(1) | O(1) peek | Push/Pop: O(1) |
-| **Hybrid** |
-| CounterDictionary | O(1) | O(1) | O(1) | GetFrequency: O(1) |
-| LinkedDictionary | O(1) | O(1) | O(1) | LRU access-order |
-| QueueDictionary | O(1) | O(1) | O(1) | Dequeue: O(1) FIFO |
-| BoundedDictionary | O(1) | O(1) | O(1) | FIFO auto-eviction at capacity |
-| DequeDictionary | O(1) | O(1) | O(1) | AddFirst/Last: O(1) |
-| ConcurrentLinkedDictionary | O(1) | O(1) | O(1) | Thread-safe LRU |
-| LinkedMultiMap | O(1) | O(1) | O(1) | GetValues: O(k) |
-| GraphDictionary | O(1) | O(1) | O(1) | AddEdge: O(1), ShortestPath: O(V+E) |
-| PredictiveDictionary | O(1) | O(1) | O(1) | GetPredictions: O(1) |
-| **Probabilistic** |
-| BloomFilter | O(k) | - | O(k) | Zero false negatives |
-| CountMinSketch | O(d) | - | O(d) | EstimateCount: O(d) |
-| HyperLogLog | O(1) | - | - | EstimateCardinality: O(m) |
-| Digest (TDigest) | O(log n) | - | O(1) | Quantile query: O(1) |
-| DigestStreamingAnalytics | O(log n) | - | O(1) | Quantile query: O(1) |
-| **Grid** |
-| BitGrid2D | O(1) | O(1) | O(1) | Bit-packed storage (8× less memory) |
-| LayeredGrid2D | O(1) | O(1) | O(1) | Layer operations: O(1) |
-| HexGrid2D | O(1) | O(1) | O(1) | Neighbor queries: O(6) |
-| **Reactive** |
-| ObservableList | O(1)* | O(n) | O(1) | Event notification: O(s) |
-| ObservableHashSet | O(1) | O(1) | O(1) | Event notification: O(s) |
-| **Temporal** |
-| TimelineArray | O(1) | - | O(log n) | Replay range: O(log n + k) |
-| TemporalSpatialGrid | O(1) | O(1) | O(1) | Snapshot: O(n), QueryAtTime: O(k) |
-
-*Amortized; k = hash functions or results; d = sketch depth; m = HyperLogLog registers; s = subscribers.
-
-## Performance Results & Benchmarking
-
-Released v2.0.0 reference numbers (rigorous profile, i7-13700KF) live at [`docs/perf/i7-13700KF/rigorous-v2.0.0/`](docs/perf/i7-13700KF/rigorous-v2.0.0/). Standard-profile data (broader coverage) at [`docs/perf/i7-13700KF/standard-v2.0.0/`](docs/perf/i7-13700KF/standard-v2.0.0/). Reproduce against `dev/omni-collections-v2`:
-
-```pwsh
-.\bench.ps1 --rigorous --filter '*<TypeName>Benchmarks*'   # rigorous (claim-grade)
-.\bench.ps1 --filter '*<TypeName>Benchmarks*'              # standard (broader coverage)
-```
-
-Methodology: [`docs/benchmarks.md`](docs/benchmarks.md).
-
-## Core Data Structures
-
-### Linear Collections
-
-<details>
-<summary>PooledQueue, MinHeap, MaxHeap, BoundedList, PooledList, PooledStack (6 structures)</summary>
-
-#### PooledQueue&lt;T&gt;
-```csharp
-var queue = PooledQueue<Order>.CreateWithArrayPool(capacity: 10000);
-queue.Enqueue(order);                  // O(1) amortized
-var next = queue.Dequeue();            // O(1)
-
-// Span batch APIs Queue<T> doesn't have:
-ReadOnlySpan<Order> burst = stackalloc Order[8];
-queue.EnqueueSpan(burst);
-```
-- **Slower than `Queue<T>` on small N** (~1.35× per-op due to mandatory `ThrowIfDisposed` from Phase 3's correctness fix); parity at N=100k.
-- **Capability:** `ArrayPool<T>` rental for the backing buffer + `EnqueueSpan` / `DequeueSpan` batch APIs.
-- **Use it when** you have many short-lived queues in a hot path and want to amortize buffer allocation, or when you want span-based batch enqueue/dequeue. Plain `Queue<T>` is fine for one long-lived queue.
-
-#### MinHeap&lt;T&gt; / MaxHeap&lt;T&gt;
-```csharp
-var heap = MinHeap<Task>.CreateWithArrayPool(initialCapacity: 1000);
-heap.Insert(task);                     // O(log n)
-var urgent = heap.ExtractMin();        // O(log n)
-```
-- **Insert:** ratio 0.84–0.86 (~15% faster than `PriorityQueue<,>.Enqueue`) across N=1k/10k/100k under rigorous; ~2× less memory per slot.
-- **Honest non-win:** `ExtractMin` / `ExtractMax` is 1.4–1.8× slower than `PriorityQueue.Dequeue`. Insert + memory carry the type.
-- **Use it when** Insert volume dominates Extract or when you want lower per-element memory.
-
-#### BoundedList&lt;T&gt;
-```csharp
-var list = new BoundedList<Event>(capacity: 1000);
-list.Add(evt);                         // O(1) — throws on overflow
-```
-- **Add:** ratio 0.91–0.93 (~7–9% faster than `List<T>.Add`) at N=1k/10k/100k. Win comes from preset array vs doubling-and-copy.
-- **Use it when** the upper bound is known and you want predictable memory + slightly faster Add.
-
-#### PooledList&lt;T&gt;
 ```csharp
 using var list = PooledList<Item>.CreateWithArrayPool(initialCapacity: 1000);
-list.Add(item);                        // O(1) amortized; backing buffer rented from ArrayPool
+list.Add(item);
+ReadOnlySpan<Item> view = list.AsSpan();
 ```
-- **Per-op:** parity-ish with `List<T>` (1.0–1.27 across ops). The current `Fill` benchmark exposes single-fill-then-dispose, which doesn't show the pool win.
-- **Capability:** `ArrayPool<T>` rental — buffer reuse across many short-lived lists.
-- **Use it when** you create+drop many lists per second on a hot path. Plain `List<T>` is fine otherwise.
 
-#### PooledStack&lt;T&gt;
+**Use when** you create and drop many short-lived lists per second — buffer rental amortizes allocation across instances.
+**Don't use when** the list is long-lived; the pool rental adds overhead without payoff.
+
+#### `PooledStack<T>` — Linear
+
+LIFO stack whose backing array is rented from `ArrayPool<T>`. Adds `Span<T>` batch push/pop on top of the standard `Stack<T>` shape.
+
+| Operation | Time | Space |
+|---|---|---|
+| `Push` | O(1) amortized | O(1) |
+| `Pop` | O(1) | O(1) |
+| `Peek` | O(1) | — |
+| `PushSpan(span)` / `PopSpan(count)` | O(n) | O(1) |
+| Storage | — | O(capacity), buffer rented from `ArrayPool<T>` |
+
 ```csharp
 using var stack = PooledStack<Item>.CreateWithArrayPool(initialCapacity: 1000);
-stack.Push(item);                      // O(1)
-var last = stack.Pop();                // O(1)
+stack.Push(item);
+ReadOnlySpan<Item> popped = stack.PopSpan(8);
 ```
-- Same story as PooledList: parity-ish per-op (1.09–1.25), value-prop is buffer rental.
+
+**Use when** you create and drop many short-lived stacks, or want span-based batch push/pop the BCL `Stack<T>` doesn't expose.
+**Don't use when** the stack is long-lived and you don't use the span APIs — `Stack<T>` is simpler.
+
+#### `PooledQueue<T>` — Linear
+
+FIFO queue whose backing array is rented from `ArrayPool<T>`. Adds `Span<T>` batch enqueue/dequeue on top of the standard `Queue<T>` shape.
+
+| Operation | Time | Space |
+|---|---|---|
+| `Enqueue` | O(1) amortized | O(1) |
+| `Dequeue` | O(1) | O(1) |
+| `Peek` | O(1) | — |
+| `EnqueueSpan(span)` / `DequeueSpan(count)` | O(n) | O(1) |
+| Storage | — | O(capacity), buffer rented from `ArrayPool<T>` |
+
+```csharp
+using var queue = PooledQueue<Order>.CreateWithArrayPool(capacity: 10_000);
+queue.Enqueue(order);
+ReadOnlySpan<Order> burst = queue.DequeueSpan(8);
+```
+
+**Use when** queue instances churn (per-request, per-frame) and you want buffer reuse across them, or you need span-batch enqueue/dequeue.
+**Don't use when** a single long-lived queue suffices — `Queue<T>` is simpler and at parity for that case.
+
+#### `MinHeap<T>` — Linear
+
+Binary min-heap over `T : IComparable<T>`. Smallest element always at the root. Optional `ArrayPool<T>` rental.
+
+| Operation | Time | Space |
+|---|---|---|
+| `Insert` | O(log N) | O(1) |
+| `ExtractMin` | O(log N) | O(1) |
+| `PeekMin` | O(1) | — |
+| `InsertRange` | O(n log N) | O(1) |
+| `BuildHeap(array)` | O(N) (Floyd build) | O(1) |
+| Storage | — | O(capacity) |
+
+```csharp
+var heap = MinHeap<Task>.CreateWithArrayPool(initialCapacity: 1000);
+heap.Insert(task);
+var urgent = heap.ExtractMin();
+```
+
+**Use when** Insert volume dominates Extract, you need linear-time bulk-build via `BuildHeap`, or you want pooled backing memory.
+**Don't use when** you only need rare priority extraction over a stable set — the BCL `PriorityQueue<,>` is fine.
+
+#### `MaxHeap<T>` — Linear
+
+Binary max-heap over `T : IComparable<T>`. Largest element always at the root. Optional `ArrayPool<T>` rental.
+
+| Operation | Time | Space |
+|---|---|---|
+| `Insert` | O(log N) | O(1) |
+| `ExtractMax` | O(log N) | O(1) |
+| `PeekMax` | O(1) | — |
+| `InsertRange` | O(n log N) | O(1) |
+| `BuildHeap(array)` | O(N) (Floyd build) | O(1) |
+| Storage | — | O(capacity) |
+
+```csharp
+var heap = MaxHeap<int>.CreateWithArrayPool(initialCapacity: 1000);
+heap.Insert(score);
+var top = heap.ExtractMax();
+```
+
+**Use when** you need top-K / largest-first ordering — `PriorityQueue<,>` requires inverted comparers for max-heap semantics.
+**Don't use when** you only ever peek; sort once and index from the end of the array.
 
 </details>
 
-### Spatial Structures
+### Spatial
 
-<details>
-<summary>QuadTree, OctTree, KdTree, SpatialHashGrid, TemporalSpatialHashGrid, BloomRTreeDictionary (6 structures)</summary>
+<details><summary><strong>QuadTree, OctTree, KdTree, SpatialHashGrid, TemporalSpatialHashGrid, BloomRTreeDictionary</strong> (6 types)</summary>
 
-#### QuadTree&lt;T&gt;
+#### `QuadTree<T>` — Spatial
+
+2D point-keyed tree that subdivides space into four quadrants per node. Returns items intersecting an axis-aligned query rectangle.
+
+| Operation | Time | Space |
+|---|---|---|
+| `Insert(point, item)` | O(log N) avg, O(N) worst (degenerate / colocated) | O(1) |
+| `Remove(point, item)` | O(log N) avg | O(1) |
+| `Query(rect)` | O(log N + k), k = result size | O(k) |
+| `FindNearest(point)` | O(log N) avg | O(1) |
+| Storage | — | O(N) |
+
 ```csharp
-var bounds = new Rectangle(0, 0, 1024, 1024);
-var quadTree = new QuadTree<GameObject>(bounds);
-quadTree.Insert(new Point(x, y), gameObject);    // O(log n) average
-
-var visible = quadTree.Query(cameraBounds);       // O(log n + k)
-var nearest = quadTree.FindNearest(playerPoint);  // O(log n) average
+var tree = new QuadTree<GameObject>(new Rectangle(0, 0, 1024, 1024));
+tree.Insert(new Point(x, y), gameObject);
+List<GameObject> visible = tree.Query(cameraBounds);
 ```
-- **Query:** ratio 0.009 at N=100k — ~110× faster than `List<T>` linear scan. Algorithmic.
-- **Cost:** Fill is 9–285× slower than `List<T>.Add` (build cost of the index). Query repays.
-- **Use it when** you query 2D spatial data at N≥10k. Below N≈1k, linear scan is competitive.
 
-#### OctTree&lt;T&gt;
+**Use when** you have many 2D points and the dominant query is "what's inside this rectangle?" — collision broad phase, viewport culling, GIS overlays.
+**Don't use when** points move every frame; rebuild cost outweighs query savings unless you batch-rebuild.
+
+#### `OctTree<T>` — Spatial
+
+3D analog of `QuadTree` — subdivides space into eight octants per node. Supports sphere, AABB, and frustum queries.
+
+| Operation | Time | Space |
+|---|---|---|
+| `Insert(item)` | O(log N) avg, O(N) worst | O(1) |
+| `FindInSphere(center, radius)` | O(log N + k) | O(k) |
+| `FindInBounds(aabb)` | O(log N + k) | O(k) |
+| `FindInFrustum(planes)` | O(log N + k) | O(k) |
+| `FindNearest(point)` | O(log N) avg | O(1) |
+| `Clear` | O(N) | — |
+| Storage | — | O(N) |
+
 ```csharp
-var octTree = OctTree<Entity>.Create3D(
-    getX: e => e.Position.X,
-    getY: e => e.Position.Y,
-    getZ: e => e.Position.Z,
-    minSize: 1.0f);
-octTree.Insert(entity);
-var nearby = octTree.FindInSphere(center, radius); // O(log n + k)
-var nearest = octTree.FindNearest(targetPos);
+var tree = OctTree<Entity>.Create3D(e => e.X, e => e.Y, e => e.Z, minSize: 1.0f);
+tree.Insert(entity);
+List<Entity> visible = tree.FindInFrustum(camera.Frustum);
 ```
-- **RadiusQuery:** ratio 0.02–0.34 (3–50× faster than linear scan) across N=1k/10k/100k under rigorous.
-- **Cost:** Fill is 47–329× slower than `List<T>.Add`.
-- **Use it when** you query 3D points or do frustum / radius culling at N≥1k.
 
-#### KdTree&lt;T&gt;
+**Use when** you query a 3D point set by sphere / AABB / view frustum — 3D culling, range pickup, proximity AI.
+**Don't use when** all points lie roughly in a 2D plane; `QuadTree` halves the bookkeeping per node.
+
+#### `KdTree<T>` — Spatial
+
+K-dimensional tree for nearest-neighbor and range queries on multi-dimensional points.
+
+| Operation | Time | Space |
+|---|---|---|
+| `Insert` | O(log N) avg, O(N) worst (degenerate input) | O(1) |
+| `FindNearest` | O(log N) avg | O(1) |
+| `FindNearestK(k)` | O(k log N) avg | O(k) |
+| `RangeQuery` | O(N^(1−1/d) + r) where r = result size | O(r) |
+| `Clear` | O(N) | — |
+
 ```csharp
-var kdTree = KdTree<DataPoint>.Create3D(
-    getX: p => p.X,
-    getY: p => p.Y,
-    getZ: p => p.Z);
-kdTree.Insert(point);
-var nearest = kdTree.FindNearest(target);          // O(log n) average
-var topK   = kdTree.FindNearestK(target, k: 5);    // k-NN
+var tree = KdTree<DataPoint>.Create3D(p => p.X, p => p.Y, p => p.Z);
+tree.Insert(point);
+var nearest = tree.FindNearest(query);
 ```
-- **FindNearest @ N=100k:** ratio **0.005 (~200× faster** than `List<T>` linear scan). Algorithmic.
-- **Cost:** Fill is 411–1936× a `List<T>.Add` — kd-tree balancing has a real build cost. FindNearest repays it on the very first query at N≥10k.
-- **Use it when** you do many k-NN or nearest-neighbor queries against a relatively static point set.
 
-#### SpatialHashGrid&lt;T&gt;
+**Use when** the point set is read-mostly: build once, query many times.
+**Don't use when** points churn faster than you query — incremental inserts skew the tree, eventually forcing a rebalance pass.
+
+#### `SpatialHashGrid<T>` — Spatial
+
+Uniform-cell hash grid keyed by 2D coordinates. Each cell holds a list of items currently inside it.
+
+| Operation | Time | Space |
+|---|---|---|
+| `Insert(x, y, item)` | O(1) avg | O(1) |
+| `Remove(x, y, item)` | O(1) avg | O(1) |
+| `GetObjectsAt(x, y)` | O(c), c = items in that cell | O(c) |
+| `GetObjectsInRadius(x, y, r)` | O((r/cellSize)² · c) | O(k) |
+| `GetObjectsInRectangle(...)` | O((w·h/cellSize²) · c) | O(k) |
+| `GetPotentialCollisions()` | O(N + pairs) | O(pairs) |
+| `Clear` | O(occupied cells) | — |
+| Storage | — | O(N + occupied cells) |
+
 ```csharp
 var grid = new SpatialHashGrid<Entity>(cellSize: 64.0f);
-grid.Insert(x, y, entity);                                 // O(1) average
-var nearby = grid.GetObjectsInRectangle(x0, y0, x1, y1);    // O(k)
-foreach (var (a, b) in grid.GetPotentialCollisions()) { … } // O(n) collision pairs
+grid.Insert(x, y, entity);
+foreach (var e in grid.GetObjectsInRadius(px, py, 100f)) { /* ... */ }
 ```
-- **RadiusQuery:** ratio 0.05–0.12 at N≥10k (8–20× faster than linear scan; standard-profile). Below N=1k it loses to tight-loop overhead (4.31×).
-- **Use it when** point density is roughly uniform across the world (bullets, particles).
 
-#### TemporalSpatialHashGrid&lt;T&gt;
+**Use when** point density is roughly uniform across the world (bullets, particles, units on an even map) and the query radius is on the order of a few cells.
+**Don't use when** density is wildly skewed (most items in 1% of the world) — a single cell becomes the bottleneck. A `QuadTree` handles that better.
+
+#### `TemporalSpatialHashGrid<T>` — Spatial
+
+`SpatialHashGrid<T>` plus a time-stamped snapshot ring. Lets you query the grid as it existed at a prior time, replay an object's trajectory, or extrapolate from velocity.
+
+| Operation | Time | Space |
+|---|---|---|
+| `UpdateObject` / `RemoveObject` | O(1) avg | O(1) |
+| `GetObjectsInRadius` (live) | O((r/cellSize)² · c) | O(k) |
+| `GetObjectsInRadiusAtTime(when)` | O(snapshots) + O((r/cellSize)² · c) | O(k) |
+| `GetObjectTrajectory(obj, lookBack)` | O(snapshots) | O(snapshots) |
+| `GetObjectsAlongPath(...)` | O(path length / cellSize · c) | O(k) |
+| Storage | — | O(N + retained snapshots × snapshot size) |
+
 ```csharp
-var temporalGrid = new TemporalSpatialHashGrid<MovingEntity>(
-    cellSize:          32.0f,
-    snapshotInterval:  TimeSpan.FromSeconds(1),
-    historyRetention:  TimeSpan.FromMinutes(10));
-temporalGrid.UpdateObject(entity, x, y, vx, vy);
-
-var snapshot   = temporalGrid.GetObjectsInRadiusAtTime(x, y, radius, when: DateTime.UtcNow);
-var trajectory = temporalGrid.GetObjectTrajectory(entity, lookBack: TimeSpan.FromMinutes(5));
+var grid = new TemporalSpatialHashGrid<Mob>(
+    cellSize: 32f, snapshotInterval: TimeSpan.FromSeconds(1),
+    historyRetention: TimeSpan.FromMinutes(10));
+grid.UpdateObject(mob, x, y, vx, vy);
+var past = grid.GetObjectsInRadiusAtTime(x, y, 50f, DateTime.UtcNow.AddMinutes(-1));
 ```
-- **RadiusQuery @ N≥10k:** ratio 0.07–0.14 (similar to plain SpatialHashGrid; small temporal-snapshot overhead).
-- **Capability:** spatial query *at a past time* and per-object trajectory replay — no BCL equivalent.
-- **Cost:** Fill is 27–253× a `List<T>.Add` (extra cost of snapshot indexing).
 
-#### BloomRTreeDictionary&lt;TKey, TValue&gt;
+**Use when** you need spatial queries that look back in time (replay debugging, lag compensation, post-hoc audit).
+**Don't use when** you only ever query "now" — the snapshot ring is dead weight; use `SpatialHashGrid<T>`.
+
+#### `BloomRTreeDictionary<TKey, TValue>` — Spatial
+
+Keyed dictionary whose values also live in an R-tree indexed by per-entry bounding rectangles. A bloom filter pre-screens key lookups against the negative path.
+
+| Operation | Time | Space |
+|---|---|---|
+| `Add(key, value, bounds)` | O(log N) avg (R-tree insert) | O(1) |
+| `this[key]` (get) | O(1) avg | — |
+| `TryGetValue(key)` | O(1) avg | O(1) |
+| `Remove(key)` | O(log N) avg | O(1) |
+| `FindIntersecting(bounds)` | O(log N + k) | O(k) |
+| `FindContained(bounds)` | O(log N + k) | O(k) |
+| `FindAtPoint(x, y)` | O(log N + k) | O(k) |
+| `Clear` | O(N) | — |
+| Storage | — | O(N) for dict + R-tree + bloom bits |
+
 ```csharp
-var spatialDict = new BloomRTreeDictionary<string, Building>(
-    expectedCapacity:   10_000,
-    falsePositiveRate:  0.01);
-spatialDict.Add("b1", building, new BoundingRectangle(x0, y0, x1, y1));
-
-var hits      = spatialDict.FindIntersecting(searchBounds);  // O(log n + k)
-var atPoint   = spatialDict.FindAtPoint(x, y);
-var stats     = spatialDict.Statistics;                       // bloom hit-rate telemetry
+var dict = new BloomRTreeDictionary<string, Building>(
+    expectedCapacity: 10_000, falsePositiveRate: 0.01);
+dict.Add("b1", building, new BoundingRectangle(x0, y0, x1, y1));
+var hits = dict.FindIntersecting(searchBounds);
 ```
-- **Slower than `Dictionary<K,V>` on basic ops:** Add ratio 30–75×, Lookup ratio 1.12–1.28 across N.
-- **Capability:** spatial range/point queries on a *keyed* dictionary, with bloom-pre-screen short-circuiting misses.
-- **Use it when** you need both `dict[key]` access and "what's intersecting this rectangle?" queries on the same data.
+
+**Use when** the same data needs both `dict[key]` access and "what's intersecting this region?" queries.
+**Don't use when** you only need one of the two access patterns — pay only for what you use with a plain `Dictionary` or a standalone R-tree.
 
 </details>
 
-### Hybrid Structures
+### Hybrid
 
-<details>
-<summary>CounterDictionary, LinkedDictionary, QueueDictionary, BoundedDictionary, DequeDictionary, ConcurrentLinkedDictionary, LinkedMultiMap, GraphDictionary, PredictiveDictionary (9 structures)</summary>
+<details><summary><strong>BoundedDictionary, LinkedDictionary, QueueDictionary, DequeDictionary, CounterDictionary, GraphDictionary, LinkedMultiMap, ConcurrentLinkedDictionary, PredictiveDictionary</strong> (9 types)</summary>
 
-> **All Hybrid types are slower than `Dictionary<K,V>` on basic Add/Lookup.** They ship as capability plays — LRU, LFU, FIFO, multi-value, graph, pattern-prediction, thread-safe LRU. The added structure is the value, not raw speed.
+#### `BoundedDictionary<TKey, TValue>` — Hybrid (FIFO eviction)
 
-#### BoundedDictionary&lt;TKey, TValue&gt;
+Fixed-capacity dictionary backed by a ring buffer. When full, the next `Add` evicts the oldest *insert* (FIFO order, not access order).
+
+| Operation | Time | Space |
+|---|---|---|
+| `Add` / `this[key] =` | O(1) avg, O(N) worst (collision) | O(1) |
+| `TryGetValue` | O(1) avg — does not touch eviction order | O(1) |
+| `ContainsKey` | O(1) avg | O(1) |
+| `Remove` | O(1) avg | O(1) |
+| `GetOldest` / `GetNewest` | O(1) avg | — |
+| `Clear` | O(capacity) | — |
+| Storage | — | O(capacity), fixed at construction |
+
 ```csharp
 var cache = new BoundedDictionary<string, Data>(capacity: 1000);
-cache["key"] = data;                       // O(1) — auto-evicts oldest INSERT when full
-var oldest  = cache.GetOldest();           // O(1)
+cache["k"] = data;                      // evicts oldest insert when full
+var oldest = cache.GetOldest();
 ```
-- **Slower than `Dictionary<K,V>`:** Add ratio 1.11×, Lookup ratio 2.09× at N=100k.
-- **Capability:** fixed-capacity dictionary with FIFO auto-eviction (oldest insert evicts first).
-- **Use it when** you want bounded memory and an auto-evicting cache where eviction is by *insert time*. For LRU access-order eviction use `LinkedDictionary`. For unbounded FIFO with key lookup use `QueueDictionary`.
 
-#### LinkedDictionary&lt;TKey, TValue&gt;
+**Use when** you want a bounded cache and eviction by *insert age* is correct (rolling event log, recent-N buffer).
+**Don't use when** you want LRU semantics — reuse should reset the eviction clock; use `LinkedDictionary` instead.
+
+#### `LinkedDictionary<TKey, TValue>` — Hybrid (LRU)
+
+`Dictionary<K,V>` that maintains an access-order linked list. Reads move the entry to the front; the back is the eviction candidate when used as a fixed-capacity LRU cache.
+
+| Operation | Time | Space |
+|---|---|---|
+| `AddOrUpdate` | O(1) avg, O(N) worst (collision) | O(1) |
+| `TryGetValue` | O(1) avg — *mutates LRU order* | O(1) |
+| `ContainsKey` | O(1) avg — does not touch LRU order | O(1) |
+| `this[key]` (get) | O(1) avg — *mutates LRU order* | — |
+| `Remove` | O(1) avg | O(1) |
+| `Clear` | O(N) | — |
+| Storage | — | O(N), one entry + two list pointers per key |
+
 ```csharp
-var linked = new LinkedDictionary<string, Config>();
-linked.AddOrUpdate("setting1", config);
-foreach (var kvp in linked) { … }          // LRU access-order on iteration
+var lru = new LinkedDictionary<string, byte[]>(capacity: 1000, CapacityMode.Fixed);
+lru.AddOrUpdate("k", payload);
+if (lru.TryGetValue("k", out var v)) { /* "k" is now most-recently-used */ }
 ```
-- **Slower than `Dictionary<K,V>`:** Add ratio 2.26×, Lookup ratio 2.79× at N=100k.
-- **Capability:** LRU access-order iteration — every Get bumps the key to MRU.
-- **Use it when** you want an LRU cache, access-order session list, etc.
 
-#### QueueDictionary&lt;TKey, TValue&gt;
+**Use when** you want a single-threaded LRU cache without the `MemoryCache` weight class.
+**Don't use when** iteration must not perturb recency — `ContainsKey` is the side-effect-free probe; `TryGetValue` and the indexer both touch order.
+
+#### `QueueDictionary<TKey, TValue>` — Hybrid (FIFO)
+
+FIFO queue with O(1) key lookup against the same backing storage. `Dequeue` removes from the head; key access does not reorder.
+
+| Operation | Time | Space |
+|---|---|---|
+| `Enqueue(key, value)` | O(1) avg | O(1) |
+| `Dequeue` | O(1) | O(1) |
+| `TryDequeue` | O(1) | O(1) |
+| `PeekFront` / `PeekBack` | O(1) | — |
+| `TryGetValue` | O(1) avg — does not touch FIFO order | O(1) |
+| `ContainsKey` | O(1) avg | O(1) |
+| `Remove(key)` | O(1) avg | O(1) |
+| `Clear` | O(N) | — |
+| Storage | — | O(N) |
+
 ```csharp
-var queueDict = new QueueDictionary<string, Message>();
-queueDict.Enqueue("msg1", message);
-var next = queueDict.Dequeue();            // KeyValuePair<TKey, TValue>
+var q = new QueueDictionary<string, Message>();
+q.Enqueue("msg1", message);
+var head = q.Dequeue();          // KeyValuePair<string, Message>
+var lookup = q["msg1"];          // throws if Dequeue already removed it
 ```
-- **Slower than `Dictionary<K,V>`:** Add ratio 2.68×, Lookup ratio 1.96× at N=100k.
-- **Capability:** unbounded FIFO + key lookup in one structure.
 
-#### DequeDictionary&lt;TKey, TValue&gt;
+**Use when** you process items in FIFO order but also need to dedupe / look up by key (job queues with idempotent IDs, message inboxes).
+**Don't use when** you only need queue semantics; `Queue<T>` is leaner without the dictionary overhead.
+
+#### `DequeDictionary<TKey, TValue>` — Hybrid (Deque)
+
+Double-ended queue with O(1) key lookup. Push and pop on either end; explicit `MoveToFront` / `MoveToBack` for re-prioritizing.
+
+| Operation | Time | Space |
+|---|---|---|
+| `PushFront(key, value)` | O(1) avg | O(1) |
+| `PushBack(key, value)` | O(1) avg | O(1) |
+| `PopFront` / `PopBack` | O(1) | O(1) |
+| `PeekFront` / `PeekBack` | O(1) | — |
+| `TryGetValue` | O(1) avg — does not touch order | O(1) |
+| `MoveToFront(key)` | O(1) avg | O(1) |
+| `MoveToBack(key)` | O(1) avg | O(1) |
+| `Remove(key)` | O(1) avg | O(1) |
+| `Clear` | O(N) | — |
+| Storage | — | O(N) |
+
 ```csharp
-var deque = new DequeDictionary<string, Message>();
-deque.PushFront("msg1", a);
-deque.PushBack("msg2", b);
-var first = deque.PopFront();
+var dq = new DequeDictionary<string, Step>();
+dq.PushFront("a", first);
+dq.PushBack("b", last);
+var oldest = dq.PopFront();
 ```
-- **Slower than `Dictionary<K,V>`:** Add ratio 2.24×, Lookup ratio 1.96× at N=100k.
-- **Capability:** double-ended queue with key-based lookups (undo/redo, sliding windows).
 
-#### ConcurrentLinkedDictionary&lt;TKey, TValue&gt;
-```csharp
-var concurrent = new ConcurrentLinkedDictionary<string, Config>();
-concurrent.Add("setting", config);         // thread-safe with insertion order
-```
-- **Slower than (non-thread-safe) `Dictionary<K,V>`:** Add ratio 4.02×, Lookup ratio 5.06× at N=100k.
-- **Capability:** **thread-safe LRU** — fine-grained write locking, lock-free reads. (A `ConcurrentDictionary<K,V>` baseline comparison is a Phase 7 follow-up.)
+**Use when** you need both ends of a queue and key-based lookup (undo/redo stacks, sliding windows, bidirectional cursors).
+**Don't use when** you only push/pop one end; `QueueDictionary` halves the pointer bookkeeping.
 
-#### LinkedMultiMap&lt;TKey, TValue&gt;
-```csharp
-var multiMap = new LinkedMultiMap<string, Tag>();
-multiMap.Add("item1", tag1);
-multiMap.Add("item1", tag2);
-var tags = multiMap.GetValues("item1");    // O(1) value list access
-```
-- **At N=100k:** Add ratio **0.78×** (Add wins at large N), Lookup ratio 3.14×.
-- **Capability:** native multiple-values-per-key with insertion order preserved per key.
+#### `CounterDictionary<TKey, TValue>` — Hybrid (LFU)
 
-#### GraphDictionary&lt;TKey, TValue&gt;
-```csharp
-var graph = new GraphDictionary<string, User>();
-graph.Add("alice", aliceData);
-graph.AddEdge("alice", "bob", weight: 1.0);
-graph.AddBidirectionalEdge("alice", "charlie");
-var path = graph.FindShortestPath("alice", "david"); // O(V + E) BFS
-```
-- **Slower than `Dictionary<K,V>`:** AddNode ratio 1.98×, Lookup ratio 2.78× at N=100k.
-- **Capability:** vertex/edge topology + per-vertex value lookup + BFS shortest-path in one structure.
+Dictionary that tracks per-key access frequency in a frequency-bucket linked list. Supports "top-K most frequent" and "least frequent" in time linear in K, not N.
 
-#### CounterDictionary&lt;TKey, TValue&gt;
+| Operation | Time | Space |
+|---|---|---|
+| `AddOrUpdate` | O(1) avg | O(1) |
+| `TryGetValue` | O(1) avg — *mutates frequency count* | O(1) |
+| `TryPeek` | O(1) avg — does not touch counts | O(1) |
+| `IncrementCount(key)` | O(1) avg | O(1) |
+| `GetMostFrequent(k)` | O(k) | O(k) |
+| `GetLeastFrequent(k)` | O(k) | O(k) |
+| `RemoveLeastFrequent` | O(1) | O(1) |
+| `Remove(key)` | O(1) avg | O(1) |
+| `Clear` | O(N) | — |
+| Storage | — | O(N + distinct frequency values) |
+
 ```csharp
 var counter = new CounterDictionary<string, Product>();
-counter.IncrementCount("product1");
-var hot = counter.GetMostFrequent(10);     // KeyValuePair<TKey, (TValue, long count)>
+counter.AddOrUpdate("p1", product);
+counter.IncrementCount("p1");
+foreach (var kv in counter.GetMostFrequent(10)) { /* hot keys */ }
 ```
-- **Slower than `Dictionary<K,V>`:** Add ratio 5.88×, Lookup ratio 6.59× at N=100k.
-- **Capability:** integrated frequency counter — LFU semantics, "top-K most frequent" without a side dictionary.
 
-#### PredictiveDictionary&lt;TKey, TValue&gt;
+**Use when** you need LFU eviction or "top-K most accessed" without sorting all keys.
+**Don't use when** you only need raw counts — a `Dictionary<TKey, int>` is half the size and faster per-op.
+
+#### `GraphDictionary<TKey, TValue>` — Hybrid (graph + value store)
+
+Vertex-keyed dictionary plus weighted directed edges. BFS shortest-path, distance-bounded reachability, and Tarjan SCC built on top.
+
+| Operation | Time | Space |
+|---|---|---|
+| `Add(key, value)` / `TryGetValue` | O(1) avg | O(1) |
+| `Remove(key)` | O(deg(key)) | O(1) |
+| `AddEdge` / `RemoveEdge` / `HasEdge` | O(1) avg | O(1) |
+| `GetNeighbors(key)` | O(deg(key)) | O(deg) |
+| `FindShortestPath` (unweighted BFS) | O(V + E) | O(V) |
+| `FindNodesWithinDistance` | O(V + E) | O(V) |
+| `FindStronglyConnectedComponents` | O(V + E) | O(V) |
+| Storage | — | O(V + E) |
+
 ```csharp
-var predictive = new PredictiveDictionary<string, CachedData>();
-predictive.AddOrUpdate("user123", userData);
-predictive.TryGetValue("user123", out var v);
-
-// Opt-in n-gram pattern recognition: ask for predictions given a context
-var contextKeys = new[] { "user123", "user124" };
-var predictions = predictive.GetPredictions(contextKeys);
-
-// Explicitly prefetch the predicted keys via your value factory
-int prefetched = predictive.PrefetchLikely(contextKeys, key => LoadFromBackingStore(key));
+var g = new GraphDictionary<string, User>();
+g.Add("alice", aliceUser);
+g.AddEdge("alice", "bob", weight: 1.0);
+var path = g.FindShortestPath("alice", "carol");
 ```
-- **Slower than `Dictionary<K,V>`:** Add ratio 1.19×, Lookup ratio 6.76× at N=100k.
-- **Capability:** n-gram access-pattern recognition you *opt into* via `PrefetchLikely`. The dictionary does not prefetch transparently — you decide when (and with which value factory) to act on `GetPredictions`. Learning is synchronous on each access; no background work.
-- **Use it when** access has a sequential pattern (`A → B → C`) and you can supply a value factory that produces values cheaply enough to be worth pre-loading. Use plain `Dictionary` if you don't query `GetPredictions`.
+
+**Use when** vertex values, topology, and graph algorithms need to live in one structure (social graphs, dependency DAGs, route maps).
+**Don't use when** you have only edges, no per-vertex values; use a plain adjacency `Dictionary<TKey, List<TKey>>`.
+
+#### `LinkedMultiMap<TKey, TValue>` — Hybrid (multi-value)
+
+Dictionary where each key maps to an *ordered* list of values. Append per key is O(1); insertion order within a key is preserved.
+
+| Operation | Time | Space |
+|---|---|---|
+| `Add(key, value)` | O(1) avg | O(1) |
+| `this[key]` (get) | O(1) avg, returns `IReadOnlyList<TValue>` | — |
+| `TryGetValues(key)` | O(1) avg | O(1) |
+| `RemoveKey(key)` | O(values for that key) | O(1) |
+| `Remove(key, value)` | O(values for that key) | O(1) |
+| `ContainsKey` | O(1) avg | O(1) |
+| `Contains(key, value)` | O(values for that key) | O(1) |
+| `GetValueCount(key)` | O(1) | — |
+| `Clear` | O(total values) | — |
+| Storage | — | O(keys + total values) |
+
+```csharp
+var mm = new LinkedMultiMap<string, Tag>();
+mm.Add("photo1", tag1);
+mm.Add("photo1", tag2);
+IReadOnlyList<Tag> tags = mm["photo1"];
+```
+
+**Use when** one key naturally maps to many values and per-key insertion order matters (tag bags, event streams partitioned by topic).
+**Don't use when** values per key are unbounded and you query "give me the i-th value" — the per-key list is singly linked, so positional access is O(i).
+
+#### `ConcurrentLinkedDictionary<TKey, TValue>` — Hybrid (thread-safe LRU)
+
+Thread-safe `LinkedDictionary` variant. Per-bucket fine-grained locks for writes; reads acquire the bucket lock briefly to update the access timestamp used for eviction ordering.
+
+| Operation | Time | Space |
+|---|---|---|
+| `AddOrUpdate` | O(1) avg | O(1) |
+| `TryGetValue` | O(1) avg — *mutates per-node access timestamp* | O(1) |
+| `ContainsKey` | O(1) avg — *mutates per-node access timestamp* | O(1) |
+| `TryRemove` | O(1) avg | O(1) |
+| `this[key]` (get) | O(1) avg — *mutates per-node access timestamp* | — |
+| `Clear` | O(N) under write lock | — |
+| Storage | — | O(N) + one lock per bucket |
+
+```csharp
+var cache = new ConcurrentLinkedDictionary<string, byte[]>(
+    capacity: 10_000, CapacityMode.Fixed);
+cache.AddOrUpdate("k", payload);
+if (cache.TryGetValue("k", out var v)) { /* concurrent-safe */ }
+```
+
+**Use when** multiple threads share an LRU cache and you don't want one global lock around it.
+**Don't use when** you only have one writer thread — `LinkedDictionary` skips the lock cost.
+
+#### `PredictiveDictionary<TKey, TValue>` — Hybrid (n-gram prefetch)
+
+Dictionary that records short n-gram access patterns. `GetPredictions(context)` returns keys likely to follow; `PrefetchLikely(context, factory)` hydrates them through a caller-supplied value factory. Pattern learning happens synchronously on each access.
+
+| Operation | Time | Space |
+|---|---|---|
+| `AddOrUpdate` | O(1) avg + O(1) pattern update | O(1) |
+| `TryGetValue` | O(1) avg + O(1) pattern update | O(1) |
+| `this[key]` (get) | O(1) avg + O(1) pattern update | — |
+| `GetPredictions(context)` | O(p), p = predictions for that context | O(p) |
+| `PrefetchLikely(context, factory)` | O(p · factory cost) | O(p) |
+| `Remove` | O(1) avg | O(1) |
+| `Clear` | O(N + patterns) | — |
+| Storage | — | O(N + capped pattern table) |
+
+```csharp
+var d = new PredictiveDictionary<string, CachedRow>();
+d.AddOrUpdate("user123", row);
+var ctx = new[] { "user123", "user124" };
+int prefetched = d.PrefetchLikely(ctx, key => LoadFromDb(key));
+```
+
+**Use when** access has a sequential pattern (`A → B → C`) and the value factory is cheap enough that prefetching pays off.
+**Don't use when** access is random or the factory is expensive — pattern bookkeeping is dead weight; use `Dictionary<K,V>`.
 
 </details>
 
-### Probabilistic Structures
+### Probabilistic
 
-<details>
-<summary>BloomFilter, CountMinSketch, HyperLogLog, Digest (TDigest), DigestStreamingAnalytics (5 structures)</summary>
+<details><summary><strong>BloomFilter, CountMinSketch, HyperLogLog, Digest, DigestStreamingAnalytics</strong> (5 types)</summary>
 
-#### BloomFilter&lt;T&gt;
+#### `BloomFilter<T>` — Probabilistic
+
+Space-efficient set membership test with a tuneable false-positive rate and zero false negatives.
+
+| Operation | Time | Space |
+|---|---|---|
+| `Add` | O(k), k = hash-function count | O(1) |
+| `Contains` | O(k) | O(1) |
+| `AddRange(span)` | O(n·k) | O(1) |
+| `Clear` | O(m), m = bit-array size | — |
+| Storage | — | O(m) bits, m = ⌈−N·ln(p) / (ln 2)²⌉ |
+
+Where `N` is `expectedItems` and `p` is the configured false-positive rate. Memory does not grow with items inserted — undersized filters degrade FPR, they do not allocate.
+
 ```csharp
 var filter = new BloomFilter<string>(expectedItems: 1_000_000, falsePositiveRate: 0.01);
-filter.Add("exists");
-if (!filter.Contains("checkThis")) { /* definitely not present */ }
+filter.Add("token");
+if (filter.Contains("other")) { /* probably yes; verify against source if it matters */ }
 ```
-- **Slower than `HashSet<T>`:** ContainsHit ratio 1.92–2.32×, ContainsMiss ratio 1.32–1.62× across N. Fill at N=100k is **0.63 (37% faster)** because Fill amortizes the hash work across additions.
-- **Capability:** **fixed-size memory regardless of N** (HashSet is O(N)). At N=100k the bloom is ~50× smaller.
-- **Use it when** memory ceiling matters more than per-op cost (negative-cache pre-screen, "have I seen this before" at billions of items).
 
-#### CountMinSketch&lt;T&gt;
+**Use when** the set is large enough that a `HashSet<T>` is too expensive to hold in RAM, and false positives are acceptable.
+**Don't use when** the set fits in `HashSet<T>` comfortably — `HashSet.Contains` is faster per op and false-positive-free.
+
+#### `CountMinSketch<T>` — Probabilistic
+
+Frequency sketch with bounded over-estimation. Width and depth set the error envelope: estimated count is between true count and true count + ε·N with probability 1 − δ.
+
+| Operation | Time | Space |
+|---|---|---|
+| `Add(item)` / `Add(item, count)` | O(d), d = depth | O(1) |
+| `EstimateCount(item)` | O(d) | O(1) |
+| `EstimateFrequency(item)` | O(d) | O(1) |
+| `IsHeavyHitter(item, threshold)` | O(d) | O(1) |
+| `Merge(other)` | O(width · depth) | O(1) |
+| `Scale(factor)` | O(width · depth) | — |
+| `Clear` | O(width · depth) | — |
+| Storage | — | O(width · depth) `uint` cells |
+
 ```csharp
 var sketch = new CountMinSketch<string>(width: 1024, depth: 4);
 sketch.Add("event");
-long freq = sketch.EstimateCount("event");
-sketch.Merge(otherSketch);
+uint approx = sketch.EstimateCount("event");
+sketch.Merge(otherShard);
 ```
-- **Add @ N=100k:** ratio **0.71 (29% faster** than `Dictionary<T,int>` baseline). Slower at small N (5–6×).
-- **Capability:** ~constant 8 KB memory regardless of unique-key cardinality, vs `Dictionary<T,int>` which grows O(unique). Mergeable across shards.
-- **Use it when** unique-key cardinality is huge and approximate counts (within bounded error) are acceptable.
 
-#### HyperLogLog&lt;T&gt;
+**Use when** unique-key cardinality is huge and approximate counts (with one-sided over-estimate error) are acceptable — telemetry, top-K heavy hitters, log analysis. Mergeable across shards.
+**Don't use when** exact counts matter; a `Dictionary<T, int>` is exact and simpler when it fits in RAM.
+
+#### `HyperLogLog<T>` — Probabilistic
+
+Cardinality estimator. Estimates distinct-element count with bounded relative error using ~`2^bucketBits` bytes of storage regardless of N.
+
+| Operation | Time | Space |
+|---|---|---|
+| `Add(item)` | O(1) | O(1) |
+| `AddRange(span)` | O(n) | O(1) |
+| `EstimateCardinality()` | O(m) on first call after change, O(1) cached | O(1) |
+| `Merge(other)` | O(m) | O(1) |
+| `EstimateUnion(other)` / `EstimateIntersection(other)` | O(m) | O(1) |
+| `Clear` | O(m) | — |
+| Storage | — | O(m) bytes, m = 2^bucketBits |
+
+Standard error is ~1.04 / √m.
+
 ```csharp
 var hll = new HyperLogLog<string>(bucketBits: 14);
-hll.Add("unique_item");
-long cardinality = hll.EstimateCardinality();
-hll.Merge(otherHll);
+hll.Add("user-id-42");
+long unique = hll.EstimateCardinality();
+hll.Merge(otherShard);
 ```
-- **Add @ N=100k:** ratio **0.60 (~40% faster** than `HashSet<long>`). Slower at small N (1.6–1.8×).
-- **Memory:** constant ~4 KB regardless of N; at N=100k that's ~1500× less memory than `HashSet<long>`.
-- **Capability:** distinct-count estimation with bounded error and mergeable shards.
 
-#### Digest (TDigest)
+**Use when** you need distinct-count over an unbounded stream and approximate is fine — unique-visitor count, distinct-IP, distinct-URL.
+**Don't use when** you need exact cardinality — `HashSet<T>.Count` is exact when memory permits.
+
+#### `Digest` — Probabilistic (TDigest)
+
+Streaming approximate quantile sketch. Compresses observations into a bounded set of weighted centroids; quantile error is small near tails (P99, P999) and slightly larger near the median.
+
+| Operation | Time | Space |
+|---|---|---|
+| `Add(value)` / `Add(value, weight)` | O(log c) avg, c = centroid count | O(1) amortized |
+| `Quantile(q)` / `Percentile(p)` | O(log c) | O(1) |
+| `Cdf(x)` | O(log c) | O(1) |
+| `Merge(other)` | O(c₁ + c₂) | O(1) |
+| `Compress` | O(c log c) | — |
+| `Clone` | O(c) | O(c) |
+| `Clear` | O(c) | — |
+| Storage | — | O(compression), typically c ≤ ~`compression` centroids |
+
 ```csharp
-var digest = new Digest(compression: 100.0);
-digest.Add(latencyMs);
-double p99 = digest.Quantile(0.99);
-double median = digest.Quantile(0.5);
-digest.Merge(otherDigest);
+var d = new Digest(compression: 100.0);
+d.Add(latencyMs);
+double p99 = d.Quantile(0.99);
+d.Merge(otherShard);
 ```
-- **Slower than the manual workaround** (collect + sort): 87–318× per Add vs `List<double>.Add`. The `List` workaround pays at quantile-time (`O(N log N)` Sort).
-- **Capability:** streaming approximate quantiles in bounded memory; mergeable across distributed shards. **No BCL equivalent.**
-- **Use it when** you need running percentiles over an unbounded stream (SLA monitoring, latency dashboards).
 
-#### DigestStreamingAnalytics&lt;T&gt;
+**Use when** you need running percentiles over an unbounded stream in bounded memory — SLA monitoring, latency dashboards, distributed shards merged at query time.
+**Don't use when** the dataset is small enough to sort in memory; sort + index is exact and simpler.
+
+#### `DigestStreamingAnalytics<T>` — Probabilistic (windowed)
+
+`Digest` over a sliding time window. Old observations expire when their window passes; quantile queries operate on the live window only.
+
+| Operation | Time | Space |
+|---|---|---|
+| `Add(item, ts?)` | O(log c) amortized | O(1) |
+| `AddRange(items)` | O(n log c) | O(1) |
+| `GetPercentile(p)` | O(log c) | O(1) |
+| `GetPercentiles([...])` | O(p · log c) | O(p) |
+| `GetAnalytics()` | O(log c) | O(1) |
+| `Merge(other)` | O(c₁ + c₂) | O(1) |
+| `Clear` | O(c) | — |
+| Storage | — | O(compression) for the digest + bounded recent-value buffer |
+
 ```csharp
-var analytics = new DigestStreamingAnalytics<ResponseTime>(
-    windowSize:     TimeSpan.FromMinutes(5),
-    valueExtractor: r => r.Milliseconds);
-
-analytics.Add(responseTime);
-var p99 = analytics.GetPercentile(0.99);
+var stream = new DigestStreamingAnalytics<Sample>(
+    windowSize: TimeSpan.FromMinutes(5),
+    valueExtractor: s => s.Milliseconds);
+stream.Add(sample);
+double p99 = stream.GetPercentile(99.0);
 ```
-- Same per-op story as `Digest`.
-- **Capability:** *windowed* approximate quantile — old samples expire when their window passes.
+
+**Use when** you want "P99 over the last 5 minutes" rather than lifetime — SLO dashboards, alert thresholds, anomaly detection.
+**Don't use when** you want lifetime quantiles — `Digest` is leaner without the windowing machinery.
 
 </details>
 
-### Grid Structures
+### Grid
 
-<details>
-<summary>BitGrid2D, LayeredGrid2D, HexGrid2D (3 structures)</summary>
+<details><summary><strong>BitGrid2D, LayeredGrid2D, HexGrid2D</strong> (3 types)</summary>
 
-#### BitGrid2D
+#### `BitGrid2D` — Grid
+
+Boolean 2D grid backed by a bit-packed `ulong` array — one bit per cell. Bulk set operations (`And`, `Or`, `Xor`, area fill) operate on whole 64-bit words.
+
+| Operation | Time | Space |
+|---|---|---|
+| `this[x, y]` (get/set) | O(1) | O(1) |
+| `Toggle(x, y)` | O(1) | O(1) |
+| `FillArea(x, y, w, h, value)` | O(w · h / 64) | — |
+| `SetAll(value)` | O(W·H / 64) | — |
+| `And` / `Or` / `Xor` (other) | O(W·H / 64) | — |
+| `CountSetBits` | O(W·H / 64) | O(1) |
+| `CopyRowTo(y, span)` | O(W) | O(1) |
+| `EnumerateSetBits` | O(set bits + W·H / 64) | O(1) |
+| Storage | — | ⌈W · H / 8⌉ bytes |
+
 ```csharp
-var bitGrid = new BitGrid2D(width: 1024, height: 1024);
-bitGrid[x, y] = true;                    // O(1) bit-packed
-bitGrid.CopyRowTo(y, destSpan);          // explicit row copy (replaces removed GetRowSpan)
+using var fog = new BitGrid2D(width: 1024, height: 1024);
+fog[x, y] = true;
+fog.Or(otherMask);
 ```
-- **Fill @ 1024²:** ratio **0.10 (~10× faster** than `bool[,]` Fill) + **8× less memory** structurally.
-- **Honest non-win:** per-element `Get` is 1.6–1.75× slower than `bool[,]` indexing — bit-packing has a small per-access cost. Fill amortization wins; per-pixel sampling does not.
-- **Use it when** you have a large boolean grid (fog-of-war, collision mask, cellular automaton) and care about memory or bulk-fill speed.
 
-#### LayeredGrid2D&lt;T&gt;
+**Use when** the grid is large and Boolean — fog-of-war, collision masks, cellular automata, bitmap font glyphs.
+**Don't use when** values are non-Boolean; use `LayeredGrid2D<T>` or a flat `T[]`.
+
+#### `LayeredGrid2D<T>` — Grid
+
+2D grid with N parallel layers stored as a single contiguous `T[]`. Per-layer fill, copy, and span access. Indexer with two coordinates targets layer 0; the three-coordinate indexer takes a layer.
+
+| Operation | Time | Space |
+|---|---|---|
+| `this[x, y]` (layer 0) | O(1) | — |
+| `this[layer, x, y]` | O(1) | — |
+| `FillArea(x, y, w, h, value)` (layer 0) | O(w · h) | — |
+| `FillLayerArea(layer, x, y, w, h, v)` | O(w · h) | — |
+| `FillLayer(layer, value)` | O(W · H) | — |
+| `ClearLayer(layer)` | O(W · H) | — |
+| `CopyLayer(src, dst)` | O(W · H) | — |
+| `GetRowSpan(y)` (layer 0) | O(1) | — |
+| `GetLayerRowSpan(layer, y)` | O(1) | — |
+| Storage | — | O(W · H · layerCount), one contiguous buffer |
+
 ```csharp
-var layered = new LayeredGrid2D<int>(width: 100, height: 100, layerCount: 3);
-layered[layer, x, y] = value;
+using var map = new LayeredGrid2D<int>(width: 256, height: 256, layerCount: 3);
+map[layer: 0, x: 5, y: 7] = terrainId;
+map.FillLayer(layer: 1, value: 0);
 ```
-- **Fill @ 1024²:** ratio **0.22 (~5× faster** than `int[,,]`).
-- **Honest non-win:** per-element `Get` is 2.5–2.94× slower than flat-array indexing.
 
-#### HexGrid2D&lt;T&gt;
+**Use when** several aligned 2D grids share a coordinate system (terrain + decoration + collision; foreground/background tiles) and you want them in one allocation.
+**Don't use when** layers have different sizes or coordinate systems — they don't share the contiguous buffer.
+
+#### `HexGrid2D<T>` — Grid
+
+Sparse hexagonal grid keyed by axial `HexCoord(q, r)`. Supports neighbor lookup (six directions), distance, ring traversal, line interpolation, and A* pathfinding via a caller-supplied movement-cost function.
+
+| Operation | Time | Space |
+|---|---|---|
+| `this[coord]` (get/set) / `Set` / `Contains` / `Remove` | O(1) avg | — |
+| `GetNeighbors(coord)` | O(6) | O(6) |
+| `GetWithinDistance(center, d)` | O(d²) | O(d²) |
+| `GetRing(center, d)` / `GetLine(start, end)` | O(d) / O(distance) | O(d) / O(distance) |
+| `FindPath(start, goal, costFn)` | O((V + E) log V) A* | O(V) |
+| `GetReachable(start, points, costFn)` | O((V + E) log V) bounded by `points` | O(V) |
+| Storage | — | O(N) cells |
+
 ```csharp
 var hex = new HexGrid2D<Tile>();
-hex[new HexCoord(q, r)] = tile;
-foreach (var cell in hex.GetNeighbors(coord)) { … }   // O(6)
+hex[new HexCoord(q: 0, r: 0)] = startTile;
+foreach (var c in hex.GetNeighbors(new HexCoord(0, 0))) { /* six neighbors */ }
+var path = hex.FindPath(start, goal, costFn: c => c.Tile.MoveCost);
 ```
-- **Slower than `int[,]`** on per-element access (Get ratio 46–67×) — hex coordinate arithmetic is not cheap.
-- **Capability:** axial hex coordinates, neighbor traversal, hex pathfinding. **No BCL equivalent.**
+
+**Use when** the gameplay grid is hexagonal — strategy games, board games, hex-based simulation. Axial coordinate math is built in.
+**Don't use when** the grid is rectangular; the hex coordinate transforms are dead weight.
 
 </details>
 
-### Reactive Structures
+### Reactive
 
-<details>
-<summary>ObservableList, ObservableHashSet (2 structures)</summary>
+<details><summary><strong>ObservableList, ObservableHashSet</strong> (2 types)</summary>
 
-#### ObservableList&lt;T&gt;
+#### `ObservableList<T>` — Reactive
+
+`List<T>` plus `INotifyCollectionChanged` and `INotifyPropertyChanged`. Side-channel events (`ItemAdded`, `ItemInserted`, `ItemRemovedAt`, `ItemReplaced`, `ListCleared`) fire alongside the standard events. Re-entrant mutations from inside event handlers are blocked.
+
+| Operation | Time | Space |
+|---|---|---|
+| `Add` | O(1) amortized + O(s) notify | O(1) |
+| `AddRange` | O(n) + one batched notify | O(1) |
+| `Insert(i, item)` / `RemoveAt(i)` | O(N − i) + O(s) | O(1) |
+| `Remove(item)` | O(N) + O(s) | O(1) |
+| `RemoveAll(predicate)` / `Clear` / `BatchUpdate` | O(N) + one `Reset` notify | — |
+| `this[i]` (get / set) | O(1) (set: + O(s)) | — |
+| Storage | — | O(N) |
+
 ```csharp
 var list = new ObservableList<Item>();
-list.CollectionChanged += OnItemsChanged;
-list.ItemAdded += OnItemAdded;       // side-channel per-item event
-list.Add(item);                      // O(1)
+list.CollectionChanged += (s, e) => RefreshUi(e);
+list.Add(item);                                     // single Add notification
+list.BatchUpdate(l => { l.Add(a); l.Add(b); });     // single Reset notification
 ```
-- **Add @ N=100k:** ratio **0.41 (~2.4× faster** than `ObservableCollection<T>.Add`) under rigorous.
-- **Fill @ N=100k:** ratio **0.30 (~3.3× faster)**.
-- **Use it when** you bind a large collection to a UI (WPF/Avalonia/MAUI) — `ObservableCollection<T>` is the slow default, and v2.0's `RemoveAll` notification doctrine fixes WPF binding mis-positioning.
 
-#### ObservableHashSet&lt;T&gt;
+**Use when** a UI framework (WPF / Avalonia / MAUI) binds to the collection and you want batch mutations without per-item notification storms.
+**Don't use when** there are no subscribers — the bookkeeping has no payoff.
+
+#### `ObservableHashSet<T>` — Reactive
+
+`HashSet<T>` plus `INotifyCollectionChanged` and `INotifyPropertyChanged`. Set algebra (`UnionWith`, `IntersectWith`, `ExceptWith`, `SymmetricExceptWith`) batches notifications.
+
+| Operation | Time | Space |
+|---|---|---|
+| `Add(item)` / `Remove(item)` | O(1) avg + O(s) notify | O(1) |
+| `AddRange` / `RemoveWhere` | O(n) + one batched notify | O(1) |
+| `Contains(item)` | O(1) avg | — |
+| `UnionWith` | O(other.Count) + one notify | O(1) |
+| `IntersectWith` / `ExceptWith` / `SymmetricExceptWith` | O(N + other.Count) + one notify | O(1) |
+| `Clear` | O(N) + one `Reset` | — |
+| Storage | — | O(N) |
+
 ```csharp
 var achievements = new ObservableHashSet<string>();
-achievements.ItemAdded += OnAchievementUnlocked;
-achievements.CollectionChanged += OnAchievementsChanged;
-achievements.Add("FirstKill");
+achievements.CollectionChanged += (s, e) => Persist(e);
+achievements.Add("first-blood");
 ```
-- **Slower than `HashSet<T>`:** Add ratio 1.15–1.35× across N (notification cost). `Contains` is at parity (1.01–1.07).
-- **Capability:** `HashSet` semantics + `INotifyCollectionChanged` in one type. Workaround is `HashSet<T>` + manual event plumbing — this is ~15–35% slower than that workaround but free of plumbing bugs.
+
+**Use when** a UI or persistence layer needs to observe set membership changes without losing set algebra (`UnionWith` etc.).
+**Don't use when** there are no subscribers — `HashSet<T>` is leaner.
 
 </details>
 
-### Temporal Structures
+### Temporal
 
-<details>
-<summary>TimelineArray, TemporalSpatialGrid (2 structures)</summary>
+<details><summary><strong>TimelineArray</strong> (1 type)</summary>
 
-#### TimelineArray&lt;T&gt;
+#### `TimelineArray<T>` — Temporal
+
+Fixed-capacity ring buffer of `(timestamp, T)` pairs. Records are written at "now" or at an explicit timestamp; queries find the snapshot at a target time via binary search over the live window.
+
+| Operation | Time | Space |
+|---|---|---|
+| `Record(snapshot)` / `Record(snapshot, ts)` | O(1) | O(1) |
+| `GetAtTime(ts)` / `RewindTo` / `JumpForward` / `JumpBackward` | O(log N) | O(1) |
+| `Replay(start, end)` | O(log N + k) | O(1) streaming |
+| `ReplayAtFps(start, fps)` | O(log N + frames) | O(1) streaming |
+| `GetTimeWindow(start, duration)` | O(log N + k) | O(1) streaming |
+| Storage | — | O(capacity), buffer optionally rented from `ArrayPool<T>` |
+
 ```csharp
-var timeline = new TimelineArray<Event>(capacity: 10_000);
-timeline.Record(eventData);                         // O(1) at "now"
-timeline.Record(eventData, timestamp: explicitTs);  // O(1) at explicit ts
-
-var atTime = timeline.GetAtTime(targetTimestamp);   // O(log n) binary search
-var range  = timeline.Replay(startTime, endTime);   // O(log n + k)
+using var timeline = TimelineArray<GameState>.CreateWithArrayPool(capacity: 1800);
+timeline.Record(state);
+GameState? past = timeline.GetAtTime(targetTimestamp);
+foreach (var s in timeline.Replay(start, end)) { /* ... */ }
 ```
-- **GetAtTime:** ratio **0.17–0.22 (~5× faster** than `List<(long,T)>` linear scan) under rigorous.
-- **Capability:** ring-buffer-backed temporal log with binary-search GetAtTime and forward replay.
 
-#### TemporalSpatialGrid&lt;T&gt;
-```csharp
-var temporal = TemporalSpatialGrid<Entity>.CreateWithArrayPool(
-    capacity:      3600,        // 1 hour at 60 FPS
-    cellSize:      64.0f,
-    frameDuration: 16,          // milliseconds
-    autoRecord:    true);
-
-temporal.Insert(x, y, entity);
-temporal.RecordSnapshot();
-var atTime = temporal.GetObjectsInRadiusAtTime(x, y, radius, ts);
-var hist   = temporal.ReplaySpatialHistory(startTime, endTime);
-```
-- **Capability:** spatial-hash grid + per-frame snapshots → 4D (space + time) query and replay. **No BCL equivalent.**
+**Use when** you record per-frame or per-tick state and need to query "what did it look like at time T" — replay buffers, lag compensation, deterministic rollback netcode.
+**Don't use when** you only care about the latest value; a single field beats a ring buffer.
 
 </details>
 
-## Real-World Usage Examples
-
-### Unity Game Development
-
-<details>
-<summary>Click to expand Unity examples</summary>
-
-*Simplified for illustration. Production code typically uses jobs/Burst/ECS rather than `Update`/`FixedUpdate` for hot paths.*
-
-#### 2D Collision Detection — QuadTree
-```csharp
-public class CollisionSystem : MonoBehaviour
-{
-    private QuadTree<Collider2D> _spatialIndex;
-
-    void Start()
-    {
-        var bounds = new Rectangle(0, 0, worldWidth, worldHeight);
-        _spatialIndex = new QuadTree<Collider2D>(bounds);
-        foreach (var col in staticColliders)
-            _spatialIndex.Insert(new Point(col.transform.position.x, col.transform.position.y), col);
-    }
-
-    void CheckPlayerCollisions(Player player)
-    {
-        var nearby = _spatialIndex.Query(player.bounds);
-        foreach (var col in nearby)
-            if (Physics2D.OverlapBox(player.position, col))
-                HandleCollision(player, col);
-    }
-}
-```
-
-#### Uniform Object Collision — SpatialHashGrid
-```csharp
-public class BulletHellSystem : MonoBehaviour
-{
-    private SpatialHashGrid<Bullet> _bulletGrid = new(cellSize: 32f);
-
-    void Update()
-    {
-        _bulletGrid.Clear();
-        foreach (var b in activeBullets)
-            _bulletGrid.Insert(b.x, b.y, b);
-
-        var nearby = _bulletGrid.GetObjectsInRectangle(
-            player.bounds.min.x, player.bounds.min.y,
-            player.bounds.max.x, player.bounds.max.y);
-    }
-}
-```
-
-#### A* Pathfinding — MinHeap
-```csharp
-public class AStarPathfinder
-{
-    public List<Vector3> FindPath(Vector3 start, Vector3 goal)
-    {
-        var openSet = MinHeap<PathNode>.CreateWithArrayPool(initialCapacity: 1024);
-        openSet.Insert(new PathNode(start, fScore: 0));
-
-        while (openSet.Count > 0)
-        {
-            var current = openSet.ExtractMin();
-            // …expand neighbors…
-        }
-        return path;
-    }
-}
-```
-
-#### Decision Cache — BoundedDictionary
-```csharp
-public class EnemyAI : MonoBehaviour
-{
-    private BoundedDictionary<string, AIDecision> _decisionCache;
-
-    void Start() { _decisionCache = new BoundedDictionary<string, AIDecision>(capacity: 100); }
-}
-```
-
-#### Particle Burst — PooledList
-```csharp
-public class ParticleManager : MonoBehaviour
-{
-    void EmitBurst(Vector3 position, int count)
-    {
-        using var particles = PooledList<Particle>.CreateWithArrayPool(initialCapacity: count);
-        for (int i = 0; i < count; i++)
-            particles.Add(CreateParticle(position));
-        RenderParticles(particles);
-    } // buffer returned to ArrayPool
-}
-```
-
-#### Object Pool — PooledQueue
-```csharp
-public class ObjectPool<T> : IDisposable where T : Component
-{
-    private readonly PooledQueue<T> _available;
-    public ObjectPool(int capacity)
-    {
-        _available = PooledQueue<T>.CreateWithArrayPool(capacity);
-        for (int i = 0; i < capacity; i++) _available.Enqueue(CreateInstance());
-    }
-    public T Get() => _available.TryDequeue(out var x) ? x : CreateInstance();
-    public void Return(T obj) => _available.Enqueue(obj);
-    public void Dispose() => _available.Dispose();
-}
-```
-
-#### Fog of War — BitGrid2D
-```csharp
-public class FogOfWarSystem : MonoBehaviour
-{
-    private BitGrid2D _explored;
-    private BitGrid2D _visible;
-
-    void Initialize(int w, int h)
-    {
-        _explored = new BitGrid2D(w, h);   // 8× less memory than bool[w,h]
-        _visible  = new BitGrid2D(w, h);
-    }
-
-    void RevealArea(int x, int y, int radius)
-    {
-        for (int dy = -radius; dy <= radius; dy++)
-        for (int dx = -radius; dx <= radius; dx++)
-            if (dx * dx + dy * dy <= radius * radius)
-            {
-                _visible[x + dx, y + dy]  = true;
-                _explored[x + dx, y + dy] = true;
-            }
-    }
-}
-```
-
-#### Damage Stats — CountMinSketch
-```csharp
-public class DamageTracker
-{
-    private readonly CountMinSketch<string> _bySource = new(width: 2048, depth: 5);
-
-    public void Record(string sourceId, int damage)
-    {
-        _bySource.Add(sourceId, (uint)damage);
-    }
-
-    public long ApproxDamage(string sourceId) => _bySource.EstimateCount(sourceId);
-}
-```
-
-#### Replay Recorder — TimelineArray
-```csharp
-public class ReplayRecorder : MonoBehaviour
-{
-    private TimelineArray<GameState> _timeline;
-
-    void Start() { _timeline = new TimelineArray<GameState>(capacity: 30 * 60); }
-
-    void FixedUpdate() { _timeline.Record(CaptureGameState()); }
-
-    void PlaybackFrom(long ts)
-    {
-        foreach (var state in _timeline.Replay(ts - 500, ts + 500))
-            ApplyInterpolated(state);
-    }
-}
-```
-
-</details>
-
-### High-Throughput Web API Processing
-
-<details>
-<summary>🚀 Server-side example with v2.0 type names</summary>
-
-```csharp
-using Omni.Collections.Linear;
-
-/// <summary>
-/// Web API request processor:
-///  - PooledQueue: ArrayPool-backed buffer for the normal lane (parity Q&lt;T&gt; perf, pool reuse).
-///  - MinHeap: ~15% faster Insert than PriorityQueue&lt;T&gt;, ~2× less memory per slot.
-/// </summary>
-public class HighThroughputRequestProcessor : IDisposable
-{
-    private readonly PooledQueue<ApiRequest>     _normalQueue;
-    private readonly MinHeap<PriorityRequest>    _priorityQueue;
-    private readonly PooledQueue<ApiRequest>     _deadLetterQueue;
-
-    public HighThroughputRequestProcessor()
-    {
-        _normalQueue     = PooledQueue<ApiRequest>.CreateWithArrayPool(capacity: 100_000);
-        _priorityQueue   = MinHeap<PriorityRequest>.CreateWithArrayPool(initialCapacity: 10_000);
-        _deadLetterQueue = PooledQueue<ApiRequest>.CreateWithArrayPool(capacity: 5_000);
-    }
-
-    public void EnqueueRequest(ApiRequest request)
-    {
-        if (request.Priority > 0)
-            _priorityQueue.Insert(new PriorityRequest
-            {
-                Request     = request,
-                Priority    = request.Priority,
-                EnqueuedAt  = DateTime.UtcNow.Ticks,
-            });
-        else
-            _normalQueue.Enqueue(request);
-    }
-
-    public async Task<ProcessingStats> ProcessBatchAsync(int maxBatch = 1000)
-    {
-        var processed = 0;
-        var errors    = 0;
-        var startTime = DateTime.UtcNow;
-
-        while (_priorityQueue.Count > 0 && processed < maxBatch / 4)
-        {
-            var pri = _priorityQueue.ExtractMin();
-            try { await ProcessRequest(pri.Request); processed++; }
-            catch (Exception ex) { _deadLetterQueue.Enqueue(pri.Request); errors++; LogError(ex, pri.Request); }
-        }
-
-        while (_normalQueue.TryDequeue(out var req) && processed < maxBatch)
-        {
-            try { await ProcessRequest(req); processed++; }
-            catch (Exception ex) { _deadLetterQueue.Enqueue(req); errors++; LogError(ex, req); }
-        }
-
-        return new ProcessingStats
-        {
-            ProcessedCount    = processed,
-            ErrorCount        = errors,
-            ProcessingTimeMs  = (DateTime.UtcNow - startTime).TotalMilliseconds,
-            QueueSizes        = new QueueSizes
-            {
-                Normal     = _normalQueue.Count,
-                Priority   = _priorityQueue.Count,
-                DeadLetter = _deadLetterQueue.Count,
-            },
-        };
-    }
-
-    private async Task ProcessRequest(ApiRequest r) => await Task.Delay(r.EstimatedProcessingMs);
-    private void LogError(Exception ex, ApiRequest r) => Console.WriteLine($"Request {r.Id} failed: {ex.Message}");
-
-    public void Dispose()
-    {
-        _normalQueue.Dispose();
-        _priorityQueue.Dispose();
-        _deadLetterQueue.Dispose();
-    }
-}
-
-public class ApiRequest
-{
-    public string   Id { get; set; } = "";
-    public int      Priority { get; set; }
-    public int      EstimatedProcessingMs { get; set; } = 10;
-    public DateTime ReceivedAt { get; set; } = DateTime.UtcNow;
-}
-
-public class PriorityRequest : IComparable<PriorityRequest>
-{
-    public ApiRequest Request    { get; set; } = null!;
-    public int        Priority   { get; set; }
-    public long       EnqueuedAt { get; set; }
-    public int CompareTo(PriorityRequest? other)
-    {
-        if (other is null) return 1;
-        var cmp = other.Priority.CompareTo(Priority);
-        return cmp != 0 ? cmp : EnqueuedAt.CompareTo(other.EnqueuedAt);
-    }
-}
-
-public class ProcessingStats
-{
-    public int    ProcessedCount   { get; set; }
-    public int    ErrorCount       { get; set; }
-    public double ProcessingTimeMs { get; set; }
-    public QueueSizes QueueSizes   { get; set; } = new();
-}
-public class QueueSizes
-{
-    public int Normal     { get; set; }
-    public int Priority   { get; set; }
-    public int DeadLetter { get; set; }
-}
-```
-
-</details>
-
-### Streaming Analytics
-
-<details>
-<summary>Click to expand</summary>
-
-```csharp
-// Bounded-memory percentile stream — Digest is the BCL-less capability play.
-var latencyTracker = new Digest(compression: 100.0);
-foreach (var latency in stream)
-{
-    latencyTracker.Add(latency);
-    if (latencyTracker.Count % 1000 == 0)
-        Console.WriteLine($"Current P99: {latencyTracker.Quantile(0.99)} ms");
-}
-```
-
-</details>
-
-## Installation
-
-<details>
-<summary>📦 Package installation and requirements</summary>
-
-### Main Package
-```bash
-dotnet add package OmniCollections
-```
-
-### Focused Packages
-```bash
-dotnet add package OmniCollections.Spatial         # Spatial indexing
-dotnet add package OmniCollections.Linear          # Pooled / bounded linear types
-dotnet add package OmniCollections.Hybrid          # Dictionary variants
-dotnet add package OmniCollections.Probabilistic   # Bounded-memory analytics
-```
-
-### Requirements
-- **.NET 8.0** or **netstandard2.1** (libraries multi-target both).
-- No external runtime dependencies for core types.
-- `System.Reactive` only required for reactive structures.
-
-### Verify Installation
-```csharp
-using Omni.Collections.Linear;
-
-var queue = PooledQueue<string>.CreateWithArrayPool(100);
-queue.Enqueue("Hello Omni.Collections!");
-Console.WriteLine(queue.Dequeue());
-```
-
-</details>
-
-## Design Philosophy
-
-1. **Algorithmic efficiency over micro-optimization** — better algorithms scale better than faster loops.
-2. **Honest performance claims** — every claim is reproducible against `docs/perf/` numbers.
-3. **Capability is a valid axis** — types that offer something the BCL doesn't (KNN, hex grids, time-windowed cardinality) win by existence even when slower per-op.
-4. **Transparent trade-offs** — the cost is documented next to the benefit in every type's section.
-
-## Security Considerations
-
-<details>
-<summary>🔒 Hash collision attacks and security options</summary>
-
-### Hash Collision Attacks
-By default, our dictionaries prioritize performance over collision-attack resistance — the same trade-off as `Dictionary<K,V>`. An attacker who controls keys could force O(n²) chain behavior.
-
-```csharp
-// Internet-facing or untrusted input
-var secure = new LinkedDictionary<string, Data>(
-    capacity:    16,
-    mode:        CapacityMode.Dynamic,
-    loadFactor:  0.75f,
-    comparer:    null,
-    hashOptions: SecureHashOptions.Production);
-
-// Internal services or trusted data
-var fast = new LinkedDictionary<string, Data>();   // default
-```
-
-**Recommendation:** enable secure-hashing for public APIs, leave default for internal processing.
-
-</details>
-
-## Choosing the Right Structure
-
-These structures solve specific problems — use them when you have those problems:
-
-- **Start with .NET's built-in collections.** They're well-tuned and simple.
-- **Reach for an Omni type** only when you hit a measurable bottleneck (slow spatial queries, GC pressure on hot paths, memory bounds, missing capability like KNN or windowed quantile).
-- **`ArrayPool` variants** mostly pay off when you create+drop many short-lived instances per second. For one long-lived instance the rental is overhead.
-- **Benchmark your own workload** — relative ratios in `docs/perf/` are i7-13700KF rigorous; your hardware will differ.
-
-## Contributing
-
-<details>
-<summary>🤝 How to contribute</summary>
-
-### Report Issues
-- **Bug reports:** [issues](https://github.com/Codeturion/omni-collections/issues/new?template=bug_report.md)
-- **Feature requests:** [feature template](https://github.com/Codeturion/omni-collections/issues/new?template=feature_request.md)
-- **Performance issues:** include benchmark output (`bench.ps1 --rigorous --filter '...'`) with your hardware.
-
-### Discuss
-- **Questions:** [GitHub Discussions](https://github.com/Codeturion/omni-collections/discussions)
-
-### Develop
-```bash
-git clone https://github.com/Codeturion/omni-collections.git
-cd omni-collections
-dotnet restore
-dotnet build -c Release
-dotnet test  -c Release
-.\bench.ps1 --filter "*YourType*"   # optional: standard-profile bench
-```
-
-### Contribution rules
-- **Performance changes** ship with before/after numbers from `bench.ps1 --standard` (or `--rigorous` for claims).
-- **New types** must justify themselves against a BCL counterpart — either faster on a clear axis, or capability the BCL doesn't have. State the cost in XML docs.
-- **Maintain test coverage**, follow project style, include a usage example.
-
-</details>
+## Complexity reference
+
+Summary across all 32 types. `*` denotes amortized; `c` is centroid / cell count, `m` is bucket / register count, `k` is result size, `d` is sketch depth, `s` is subscriber count.
+
+| Type | Add / Insert | Lookup / Query | Remove | Iterate | Space |
+|---|---|---|---|---|---|
+| **Linear** |
+| `BoundedList<T>` | O(1) | O(1) index, O(N) Contains | O(N − i) | O(N) | O(capacity) |
+| `PooledList<T>` | O(1)* | O(1) index, O(N) Contains | O(N − i) | O(N) | O(capacity) |
+| `PooledStack<T>` | O(1)* Push | O(1) Peek | O(1) Pop | O(N) | O(capacity) |
+| `PooledQueue<T>` | O(1)* Enqueue | O(1) Peek | O(1) Dequeue | O(N) | O(capacity) |
+| `MinHeap<T>` | O(log N) Insert | O(1) PeekMin | O(log N) ExtractMin | O(N) | O(capacity) |
+| `MaxHeap<T>` | O(log N) Insert | O(1) PeekMax | O(log N) ExtractMax | O(N) | O(capacity) |
+| **Spatial** |
+| `QuadTree<T>` | O(log N) avg | O(log N + k) Query | O(log N) avg | O(N) | O(N) |
+| `OctTree<T>` | O(log N) avg | O(log N + k) Sphere/AABB/Frustum | — | O(N) | O(N) |
+| `KdTree<T>` | O(log N) avg | O(log N) Nearest, O(N^(1−1/d) + k) Range | — | O(N) | O(N) |
+| `SpatialHashGrid<T>` | O(1) avg | O((r/cell)² · c) Radius | O(1) avg | O(N) | O(N + cells) |
+| `TemporalSpatialHashGrid<T>` | O(1) avg | O((r/cell)² · c) live, + O(snapshots) at past time | O(1) avg | O(N) | O(N + snapshots) |
+| `BloomRTreeDictionary<TKey,TValue>` | O(log N) avg | O(1) by key, O(log N + k) by region | O(log N) avg | O(N) | O(N) |
+| **Hybrid** |
+| `BoundedDictionary<TKey,TValue>` | O(1) avg | O(1) avg | O(1) avg | O(N) | O(capacity) |
+| `LinkedDictionary<TKey,TValue>` | O(1) avg | O(1) avg (*mutates LRU on `TryGetValue` / get*) | O(1) avg | O(N) | O(N) |
+| `QueueDictionary<TKey,TValue>` | O(1) avg Enqueue | O(1) avg by key | O(1) Dequeue, O(1) avg by key | O(N) | O(N) |
+| `DequeDictionary<TKey,TValue>` | O(1) avg Push{Front,Back} | O(1) avg by key | O(1) Pop{Front,Back}, O(1) avg by key | O(N) | O(N) |
+| `CounterDictionary<TKey,TValue>` | O(1) avg | O(1) avg (*count++ on `TryGetValue`*) | O(1) avg | O(N) | O(N + freq buckets) |
+| `GraphDictionary<TKey,TValue>` | O(1) avg vertex / edge | O(V+E) ShortestPath, O(V+E) SCC | O(deg) vertex, O(1) avg edge | O(V+E) | O(V + E) |
+| `LinkedMultiMap<TKey,TValue>` | O(1) avg | O(1) avg key, O(values) per-key membership | O(values) per key | O(keys + values) | O(keys + values) |
+| `ConcurrentLinkedDictionary<TKey,TValue>` | O(1) avg | O(1) avg (*mutates access timestamp*) | O(1) avg | O(N) | O(N + 1 lock per bucket) |
+| `PredictiveDictionary<TKey,TValue>` | O(1) avg + pattern update | O(1) avg + pattern update; O(p) GetPredictions | O(1) avg | O(N) | O(N + capped patterns) |
+| **Probabilistic** |
+| `BloomFilter<T>` | O(k) | O(k) Contains (one-sided FP) | — | — | O(m) bits |
+| `CountMinSketch<T>` | O(d) | O(d) Estimate | — | — | O(width · depth) |
+| `HyperLogLog<T>` | O(1) | O(m) first call, O(1) cached | — | — | O(m) bytes |
+| `Digest` | O(log c)* | O(log c) Quantile | — | — | O(compression) |
+| `DigestStreamingAnalytics<T>` | O(log c)* | O(log c) Percentile | — | — | O(compression + window buffer) |
+| **Grid** |
+| `BitGrid2D` | O(1) set | O(1) get | — | O(W·H) | ⌈W·H / 8⌉ bytes |
+| `LayeredGrid2D<T>` | O(1) set | O(1) get | — | O(W·H·layers) | O(W·H·layers) |
+| `HexGrid2D<T>` | O(1) avg set | O(1) avg get; O((V+E) log V) FindPath | O(1) avg | O(N) | O(N) |
+| **Reactive** |
+| `ObservableList<T>` | O(1)* + O(s) | O(1) index, O(N) Contains | O(N − i) + O(s) | O(N) | O(N) |
+| `ObservableHashSet<T>` | O(1) avg + O(s) | O(1) avg | O(1) avg + O(s) | O(N) | O(N) |
+| **Temporal** |
+| `TimelineArray<T>` | O(1) Record | O(log N) GetAtTime | — | O(log N + k) Replay | O(capacity) |
+
+## Benchmarks
+
+Reference benchmark numbers live at [`docs/perf/i7-13700KF/`](docs/perf/i7-13700KF/) — both `--standard` and `--rigorous` BenchmarkDotNet profiles, machine-tagged. Reproduce on your hardware with `.\bench.ps1 --rigorous --filter '*<TypeName>Benchmarks*'`. Methodology at [`docs/benchmarks.md`](docs/benchmarks.md).
+
+## Compatibility
+
+Libraries multi-target `net8.0;netstandard2.1`. Tests cover `net8.0` and `net6.0`. Public surface is baselined with `Microsoft.CodeAnalysis.PublicApiAnalyzers` — patch releases will not break consumers without an explicit major-version bump. SourceLink and `.snupkg` symbol packages ship with every release.
 
 ## License
 
-[PolyForm Noncommercial 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0/)
+[PolyForm Noncommercial 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0/). Free for personal and non-commercial use, including forks and modifications. Commercial use requires permission.
 
-Free for personal and non-commercial use, including forks and modifications. Commercial use requires permission.
+## Contributing
 
-## Acknowledgments
-
-Architecture, design, and implementation by the author. AI coding assistants may have been used for selected development tasks (scaffolding, documentation, test coverage).
-
----
-
-**Bottom line:** Omni types address two kinds of limit:
-- **Algorithmic limits** — when O(n) doesn't scale (spatial / tree / probabilistic).
-- **Capability limits** — when the BCL has no equivalent (KNN, hex grids, windowed quantile, thread-safe LRU, n-gram prefetch).
-
-Measure before reaching. Numbers and reproduction commands are in `docs/perf/` and `docs/benchmarks.md`.
+Issues and pull requests welcome — file against [`dev/omni-collections-v2`](https://github.com/Codeturion/omni-collections/tree/dev/omni-collections-v2). Performance-affecting PRs need before/after numbers from `bench.ps1 --standard` (or `--rigorous` for headline claims).
