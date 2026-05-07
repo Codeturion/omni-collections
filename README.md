@@ -131,7 +131,7 @@ Binary min-heap over `T : IComparable<T>`. Smallest element always at the root. 
 | Storage | — | O(capacity) |
 
 ```csharp
-var heap = MinHeap<Task>.CreateWithArrayPool(initialCapacity: 1000);
+using var heap = MinHeap<Task>.CreateWithArrayPool(initialCapacity: 1000);
 heap.Insert(task);
 var urgent = heap.ExtractMin();
 ```
@@ -153,7 +153,7 @@ Binary max-heap over `T : IComparable<T>`. Largest element always at the root. O
 | Storage | — | O(capacity) |
 
 ```csharp
-var heap = MaxHeap<int>.CreateWithArrayPool(initialCapacity: 1000);
+using var heap = MaxHeap<int>.CreateWithArrayPool(initialCapacity: 1000);
 heap.Insert(score);
 var top = heap.ExtractMax();
 ```
@@ -220,7 +220,7 @@ K-dimensional tree for nearest-neighbor and range queries on multi-dimensional p
 | `Insert` | O(log N) avg, O(N) worst (degenerate input) | O(1) |
 | `FindNearest` | O(log N) avg | O(1) |
 | `FindNearestK(k)` | O(k log N) avg | O(k) |
-| `RangeQuery` | O(N^(1−1/d) + r) where r = result size | O(r) |
+| `RangeQuery` | O(N^(1−1/d) + k) where k = result size | O(k) |
 | `Clear` | O(N) | — |
 
 ```csharp
@@ -551,9 +551,9 @@ Space-efficient set membership test with a tuneable false-positive rate and zero
 
 | Operation | Time | Space |
 |---|---|---|
-| `Add` | O(k), k = hash-function count | O(1) |
-| `Contains` | O(k) | O(1) |
-| `AddRange(span)` | O(n·k) | O(1) |
+| `Add` | O(h), h = hash-function count | O(1) |
+| `Contains` | O(h) | O(1) |
+| `AddRange(span)` | O(n·h) | O(1) |
 | `Clear` | O(m), m = bit-array size | — |
 | Storage | — | O(m) bits, m = ⌈−N·ln(p) / (ln 2)²⌉ |
 
@@ -837,7 +837,20 @@ foreach (var s in timeline.Replay(start, end)) { /* ... */ }
 
 ## Complexity reference
 
-Summary across all 32 types. `*` denotes amortized; `c` is centroid / cell count, `m` is bucket / register count, `k` is result size, `d` is sketch depth, `s` is subscriber count.
+Summary across all 32 types. Symbols used in this table:
+
+- `N` — items currently in the collection
+- `i` — index passed to a positional operation
+- `k` — result-set size (number of items returned by a query)
+- `h` — hash-function count (BloomFilter only — disambiguated from `k` to avoid the collision)
+- `m` — bit-array size (BloomFilter) or HLL register count, depending on the row
+- `c` — Digest centroid count, or SpatialHashGrid cell count, depending on the row
+- `d` — sketch depth (CountMinSketch)
+- `r` — query radius (Spatial)
+- `s` — subscriber count on `INotifyCollectionChanged` (Reactive)
+- `V`, `E` — graph vertex / edge count (GraphDictionary)
+- `W`, `H` — grid width / height in cells (Grid)
+- `*` — amortized (typical for resize-on-grow containers)
 
 | Type | Add / Insert | Lookup / Query | Remove | Iterate | Space |
 |---|---|---|---|---|---|
@@ -866,7 +879,7 @@ Summary across all 32 types. `*` denotes amortized; `c` is centroid / cell count
 | `ConcurrentLinkedDictionary<TKey,TValue>` | O(1) avg | O(1) avg (*mutates access timestamp*) | O(1) avg | O(N) | O(N + 1 lock per bucket) |
 | `PredictiveDictionary<TKey,TValue>` | O(1) avg + pattern update | O(1) avg + pattern update; O(p) GetPredictions | O(1) avg | O(N) | O(N + capped patterns) |
 | **Probabilistic** |
-| `BloomFilter<T>` | O(k) | O(k) Contains (one-sided FP) | — | — | O(m) bits |
+| `BloomFilter<T>` | O(h) | O(h) Contains (one-sided FP) | — | — | O(m) bits |
 | `CountMinSketch<T>` | O(d) | O(d) Estimate | — | — | O(width · depth) |
 | `HyperLogLog<T>` | O(1) | O(m) first call, O(1) cached | — | — | O(m) bytes |
 | `Digest` | O(log c)* | O(log c) Quantile | — | — | O(compression) |
