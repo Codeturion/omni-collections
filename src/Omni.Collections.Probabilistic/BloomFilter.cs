@@ -1,6 +1,7 @@
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using Omni.Collections.Core.Hashing;
 
 namespace Omni.Collections.Probabilistic;
 
@@ -18,21 +19,33 @@ public class BloomFilter<T> : IDisposable where T : notnull
     private readonly double _falsePositiveRate;
     private readonly ArrayPool<ulong>? _arrayPool;
     private readonly bool _usePooling;
+    private readonly IHasher<T> _hasher;
     private int _itemCount;
     public int Count => _itemCount;
     public double FalsePositiveRate => _falsePositiveRate;
     public int HashFunctionCount => _hashFunctionCount;
     public int BitCount => _bitCount;
-    public BloomFilter(int expectedItems, double falsePositiveRate = 0.01) : this(expectedItems, falsePositiveRate, arrayPool: null)
+    public BloomFilter(int expectedItems, double falsePositiveRate = 0.01)
+        : this(expectedItems, falsePositiveRate, Hashers.Default<T>(), arrayPool: null)
+    {
+    }
+
+    public BloomFilter(int expectedItems, double falsePositiveRate, IHasher<T> hasher)
+        : this(expectedItems, falsePositiveRate, hasher, arrayPool: null)
     {
     }
 
     public static BloomFilter<T> CreateWithArrayPool(int expectedItems, double falsePositiveRate = 0.01)
     {
-        return new BloomFilter<T>(expectedItems, falsePositiveRate, ArrayPool<ulong>.Shared);
+        return new BloomFilter<T>(expectedItems, falsePositiveRate, Hashers.Default<T>(), ArrayPool<ulong>.Shared);
     }
 
-    private BloomFilter(int expectedItems, double falsePositiveRate, ArrayPool<ulong>? arrayPool)
+    public static BloomFilter<T> CreateWithArrayPool(int expectedItems, double falsePositiveRate, IHasher<T> hasher)
+    {
+        return new BloomFilter<T>(expectedItems, falsePositiveRate, hasher, ArrayPool<ulong>.Shared);
+    }
+
+    private BloomFilter(int expectedItems, double falsePositiveRate, IHasher<T> hasher, ArrayPool<ulong>? arrayPool)
     {
         if (expectedItems <= 0)
             throw new ArgumentOutOfRangeException(nameof(expectedItems));
@@ -40,8 +53,11 @@ public class BloomFilter<T> : IDisposable where T : notnull
             throw new ArgumentOutOfRangeException(nameof(expectedItems), "Expected items cannot exceed 100 million");
         if (falsePositiveRate <= 0 || falsePositiveRate >= 1)
             throw new ArgumentOutOfRangeException(nameof(falsePositiveRate));
-        
+        if (hasher is null)
+            throw new ArgumentNullException(nameof(hasher));
+
         _falsePositiveRate = falsePositiveRate;
+        _hasher = hasher;
         _arrayPool = arrayPool;
         _usePooling = arrayPool != null;
         
@@ -137,35 +153,11 @@ public class BloomFilter<T> : IDisposable where T : notnull
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private (ulong Hash1, ulong Hash2) GetHashes(T item)
     {
-        uint hash = (uint)item.GetHashCode();
-        ulong hash1 = Hash32To64A(hash);
-        ulong hash2 = Hash32To64B(hash);
-        hash2 |= 1;
+        // Two independent hash families via distinct seeds (Kirsch & Mitzenmacher
+        // double-hashing). h2 forced odd to avoid degenerate cycles when bitCount is even.
+        ulong hash1 = _hasher.Hash(item, 0UL);
+        ulong hash2 = _hasher.Hash(item, 0x9E3779B97F4A7C15UL) | 1UL;
         return (hash1, hash2);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static private ulong Hash32To64A(uint hash)
-    {
-        ulong h = hash;
-        h ^= h >> 16;
-        h *= 0x85ebca6b;
-        h ^= h >> 13;
-        h *= 0xc2b2ae35;
-        h ^= h >> 16;
-        return h;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static private ulong Hash32To64B(uint hash)
-    {
-        ulong h = hash;
-        h ^= h >> 15;
-        h *= 0x9e3779b97f4a7c15;
-        h ^= h >> 23;
-        h *= 0xbf58476d1ce4e5b9;
-        h ^= h >> 27;
-        return h;
     }
 
     public BloomFilterStats GetStats()

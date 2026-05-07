@@ -1,25 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <LangVersion>latest</LangVersion>
-    <Nullable>enable</Nullable>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
-  </PropertyGroup>
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <PackageId>OmniCollections.Hybrid</PackageId>
-    <Version>1.0.1</Version>
-    <Authors>Codeturion</Authors>
     <Description>Hybrid data structures (QueueDictionary, LinkedDictionary, CircularDictionary) for Omni.Collections</Description>
     <PackageTags>collections;hybrid;dictionary;queue;performance</PackageTags>
-    <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <RepositoryUrl>https://github.com/Codeturion/omni-collections</RepositoryUrl>
-    <PackageProjectUrl>https://github.com/Codeturion/omni-collections</PackageProjectUrl>
     <PackageReleaseNotes>Hybrid data structures: QueueDictionary, LinkedDictionary, CircularDictionary</PackageReleaseNotes>
-    <IsPackable>true</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>

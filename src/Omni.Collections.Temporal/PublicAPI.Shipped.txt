@@ -1,0 +1,100 @@
+#nullable enable
+Omni.Collections.Temporal.SpatialSnapshot<T>
+Omni.Collections.Temporal.SpatialSnapshot<T>.Grid.get -> Omni.Collections.Spatial.SpatialHashGrid<T>!
+Omni.Collections.Temporal.SpatialSnapshot<T>.Grid.set -> void
+Omni.Collections.Temporal.SpatialSnapshot<T>.ObjectCount.get -> int
+Omni.Collections.Temporal.SpatialSnapshot<T>.ObjectCount.set -> void
+Omni.Collections.Temporal.SpatialSnapshot<T>.SpatialSnapshot() -> void
+Omni.Collections.Temporal.SpatialSnapshot<T>.Timestamp.get -> long
+Omni.Collections.Temporal.SpatialSnapshot<T>.Timestamp.set -> void
+Omni.Collections.Temporal.TemporalSpatialGrid<T>
+Omni.Collections.Temporal.TemporalSpatialGrid<T>.CellSize.get -> float
+Omni.Collections.Temporal.TemporalSpatialGrid<T>.Clear() -> void
+Omni.Collections.Temporal.TemporalSpatialGrid<T>.CurrentObjectCount.get -> int
+Omni.Collections.Temporal.TemporalSpatialGrid<T>.CurrentTime.get -> long
+Omni.Collections.Temporal.TemporalSpatialGrid<T>.Dispose() -> void
+Omni.Collections.Temporal.TemporalSpatialGrid<T>.GenerateHeatMap(float minX, float minY, float maxX, float maxY, long startTime, long endTime, float cellSize) -> System.Collections.Generic.Dictionary<(int cellX, int cellY), int>!
+Omni.Collections.Temporal.TemporalSpatialGrid<T>.GetObjectsInRadius(float x, float y, float radius) -> System.Collections.Generic.IEnumerable<T>!
+Omni.Collections.Temporal.TemporalSpatialGrid<T>.GetObjectsInRadiusAtTime(float x, float y, float radius, long timestamp) -> System.Collections.Generic.IEnumerable<T>!
+Omni.Collections.Temporal.TemporalSpatialGrid<T>.GetObjectsInRectangle(float minX, float minY, float maxX, float maxY) -> System.Collections.Generic.IEnumerable<T>!
+Omni.Collections.Temporal.TemporalSpatialGrid<T>.GetObjectsInRectangleAtTime(float minX, float minY, float maxX, float maxY, long timestamp) -> System.Collections.Generic.IEnumerable<T>!
+Omni.Collections.Temporal.TemporalSpatialGrid<T>.GetSpatialStateAtTime(long timestamp) -> Omni.Collections.Spatial.SpatialHashGrid<T>?
+Omni.Collections.Temporal.TemporalSpatialGrid<T>.GetStats() -> Omni.Collections.Temporal.TemporalSpatialStats
+Omni.Collections.Temporal.TemporalSpatialGrid<T>.Insert(float x, float y, T item) -> void
+Omni.Collections.Temporal.TemporalSpatialGrid<T>.RecordSnapshot(long? timestamp = null) -> void
+Omni.Collections.Temporal.TemporalSpatialGrid<T>.Remove(float x, float y, T item) -> bool
+Omni.Collections.Temporal.TemporalSpatialGrid<T>.ReplaySpatialHistory(long startTime, long endTime) -> System.Collections.Generic.IEnumerable<Omni.Collections.Temporal.SpatialSnapshot<T>!>!
+Omni.Collections.Temporal.TemporalSpatialGrid<T>.Return() -> void
+Omni.Collections.Temporal.TemporalSpatialGrid<T>.SnapshotCount.get -> int
+Omni.Collections.Temporal.TemporalSpatialGrid<T>.StartAutoRecording(long intervalMs) -> void
+Omni.Collections.Temporal.TemporalSpatialGrid<T>.StepInTime(bool forward = true) -> Omni.Collections.Spatial.SpatialHashGrid<T>?
+Omni.Collections.Temporal.TemporalSpatialGrid<T>.StopAutoRecording() -> void
+Omni.Collections.Temporal.TemporalSpatialGrid<T>.TemporalSpatialGrid(Omni.Collections.Core.Time.IClock! clock, int capacity = 3600, float cellSize = 64, long frameDuration = 16, bool autoRecord = false) -> void
+Omni.Collections.Temporal.TemporalSpatialGrid<T>.TemporalSpatialGrid(int capacity = 3600, float cellSize = 64, long frameDuration = 16, bool autoRecord = false) -> void
+Omni.Collections.Temporal.TemporalSpatialGrid<T>.TimeRange.get -> (long start, long end)
+Omni.Collections.Temporal.TemporalSpatialGrid<T>.TrackObjectMovement(T targetObject, long startTime, long endTime) -> System.Collections.Generic.List<(long timestamp, float x, float y)>!
+Omni.Collections.Temporal.TemporalSpatialGrid<T>.WereObjectsCollidingAtTime(long timestamp, T objectA, T objectB, float collisionRadius) -> bool
+Omni.Collections.Temporal.TemporalSpatialGridExtensions
+Omni.Collections.Temporal.TemporalSpatialStats
+Omni.Collections.Temporal.TemporalSpatialStats.AutoRecording.get -> bool
+Omni.Collections.Temporal.TemporalSpatialStats.AutoRecording.set -> void
+Omni.Collections.Temporal.TemporalSpatialStats.AverageObjectsPerSnapshot.get -> double
+Omni.Collections.Temporal.TemporalSpatialStats.AverageObjectsPerSnapshot.set -> void
+Omni.Collections.Temporal.TemporalSpatialStats.LastRecordingTime.get -> long
+Omni.Collections.Temporal.TemporalSpatialStats.LastRecordingTime.set -> void
+Omni.Collections.Temporal.TemporalSpatialStats.SnapshotCount.get -> int
+Omni.Collections.Temporal.TemporalSpatialStats.SnapshotCount.set -> void
+Omni.Collections.Temporal.TemporalSpatialStats.SpatialCellCount.get -> int
+Omni.Collections.Temporal.TemporalSpatialStats.SpatialCellCount.set -> void
+Omni.Collections.Temporal.TemporalSpatialStats.SpatialCellSize.get -> float
+Omni.Collections.Temporal.TemporalSpatialStats.SpatialCellSize.set -> void
+Omni.Collections.Temporal.TemporalSpatialStats.TemporalSpatialStats() -> void
+Omni.Collections.Temporal.TemporalSpatialStats.TimeRange.get -> (long start, long end)
+Omni.Collections.Temporal.TemporalSpatialStats.TimeRange.set -> void
+Omni.Collections.Temporal.TemporalSpatialStats.TotalMemoryUsage.get -> long
+Omni.Collections.Temporal.TemporalSpatialStats.TotalMemoryUsage.set -> void
+Omni.Collections.Temporal.TimelineArray<T>
+Omni.Collections.Temporal.TimelineArray<T>.Capacity.get -> int
+Omni.Collections.Temporal.TimelineArray<T>.Clear() -> void
+Omni.Collections.Temporal.TimelineArray<T>.Count.get -> int
+Omni.Collections.Temporal.TimelineArray<T>.Current.get -> T?
+Omni.Collections.Temporal.TimelineArray<T>.CurrentTime.get -> long
+Omni.Collections.Temporal.TimelineArray<T>.Dispose() -> void
+Omni.Collections.Temporal.TimelineArray<T>.EndTime.get -> long
+Omni.Collections.Temporal.TimelineArray<T>.GetAtTime(long time) -> T?
+Omni.Collections.Temporal.TimelineArray<T>.GetStats() -> Omni.Collections.Temporal.TimelineStats
+Omni.Collections.Temporal.TimelineArray<T>.GetTimeWindow(long startTime, long duration) -> System.Collections.Generic.IEnumerable<T>!
+Omni.Collections.Temporal.TimelineArray<T>.JumpBackward(long milliseconds) -> bool
+Omni.Collections.Temporal.TimelineArray<T>.JumpForward(long milliseconds) -> bool
+Omni.Collections.Temporal.TimelineArray<T>.NextFrame() -> bool
+Omni.Collections.Temporal.TimelineArray<T>.PreviousFrame() -> bool
+Omni.Collections.Temporal.TimelineArray<T>.Record(T snapshot) -> void
+Omni.Collections.Temporal.TimelineArray<T>.Record(T snapshot, long timestamp) -> void
+Omni.Collections.Temporal.TimelineArray<T>.Replay(long startTime) -> System.Collections.Generic.IEnumerable<T>!
+Omni.Collections.Temporal.TimelineArray<T>.Replay(long startTime, long endTime) -> System.Collections.Generic.IEnumerable<T>!
+Omni.Collections.Temporal.TimelineArray<T>.ReplayAtFps(long startTime, int fps = 60) -> System.Collections.Generic.IEnumerable<(T snapshot, long timestamp)>!
+Omni.Collections.Temporal.TimelineArray<T>.RewindTo(long time) -> bool
+Omni.Collections.Temporal.TimelineArray<T>.StartTime.get -> long
+Omni.Collections.Temporal.TimelineArray<T>.TimelineArray(int capacity, int frameDurationMs = 16) -> void
+Omni.Collections.Temporal.TimelineArray<T>.ToArray() -> T[]!
+Omni.Collections.Temporal.TimelineStats
+Omni.Collections.Temporal.TimelineStats.AverageFrameTime.get -> double
+Omni.Collections.Temporal.TimelineStats.AverageFrameTime.init -> void
+Omni.Collections.Temporal.TimelineStats.Capacity.get -> int
+Omni.Collections.Temporal.TimelineStats.Capacity.init -> void
+Omni.Collections.Temporal.TimelineStats.Duration.get -> long
+Omni.Collections.Temporal.TimelineStats.Duration.init -> void
+Omni.Collections.Temporal.TimelineStats.EndTime.get -> long
+Omni.Collections.Temporal.TimelineStats.EndTime.init -> void
+Omni.Collections.Temporal.TimelineStats.MemoryUsage.get -> long
+Omni.Collections.Temporal.TimelineStats.MemoryUsage.init -> void
+Omni.Collections.Temporal.TimelineStats.SnapshotCount.get -> int
+Omni.Collections.Temporal.TimelineStats.SnapshotCount.init -> void
+Omni.Collections.Temporal.TimelineStats.StartTime.get -> long
+Omni.Collections.Temporal.TimelineStats.StartTime.init -> void
+Omni.Collections.Temporal.TimelineStats.TimelineStats() -> void
+static Omni.Collections.Temporal.TemporalSpatialGrid<T>.CreateWithArrayPool(int capacity = 3600, float cellSize = 64, long frameDuration = 16, bool autoRecord = false) -> Omni.Collections.Temporal.TemporalSpatialGrid<T>!
+static Omni.Collections.Temporal.TemporalSpatialGrid<T>.Rent(int capacity = 3600, float cellSize = 64, long frameDuration = 16, bool autoRecord = false) -> Omni.Collections.Temporal.TemporalSpatialGrid<T>!
+static Omni.Collections.Temporal.TemporalSpatialGridExtensions.CreateForReplay<T>(int fps = 60, int maxHistorySeconds = 300) -> Omni.Collections.Temporal.TemporalSpatialGrid<T>!
+static Omni.Collections.Temporal.TemporalSpatialGridExtensions.CreateForRts<T>(float mapSize, int maxHistoryMinutes = 10) -> Omni.Collections.Temporal.TemporalSpatialGrid<T>!
+static Omni.Collections.Temporal.TimelineArray<T>.CreateWithArrayPool(int capacity, int frameDurationMs = 16) -> Omni.Collections.Temporal.TimelineArray<T>!

@@ -757,6 +757,25 @@ public class BloomRTreeDictionaryTests : IDisposable
         dictionary.Count.Should().Be(0);
     }
 
+    /// <summary>
+    /// Regression test for the BoundingRectangle.Contains convention: an entry
+    /// inserted with the point-only constructor (Add(key, value, x, y)) must be
+    /// findable by FindAtPoint at its own coordinates. Half-open semantics
+    /// would silently exclude these.
+    /// </summary>
+    [Fact]
+    public void FindAtPoint_PointBoundedEntry_FindsItself()
+    {
+        var dictionary = new BloomRTreeDictionary<string, int>();
+        dictionary.Add("origin", 1, new BoundingRectangle(5f, 7f));
+        dictionary.Add("other", 2, new BoundingRectangle(10f, 10f));
+
+        var hits = dictionary.FindAtPoint(5f, 7f).ToList();
+
+        hits.Should().ContainSingle()
+            .Which.Should().Be(new KeyValuePair<string, int>("origin", 1));
+    }
+
     #endregion
 
     public void Dispose()

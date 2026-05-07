@@ -126,12 +126,18 @@ public class BoundedList<T> : IList<T>, IDisposable
         return ref _items[index];
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Add(T item)
     {
-        if (_count >= _items.Length)
-            throw new InvalidOperationException("BoundedList has reached its capacity");
-        _items[_count++] = item;
+        int count = _count;
+        if ((uint)count >= (uint)_items.Length)
+            ThrowFull();
+        _items[count] = item;
+        _count = count + 1;
     }
+
+    private static void ThrowFull() =>
+        throw new InvalidOperationException("BoundedList has reached its capacity");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAdd(T item)
@@ -265,14 +271,7 @@ public class BoundedList<T> : IList<T>, IDisposable
     {
         if (_count > 0)
         {
-            if (_usePooling)
-            {
-                Array.Clear(_items, 0, _count);
-            }
-            else
-            {
-                Array.Clear(_items, 0, _count);
-            }
+            Array.Clear(_items, 0, _count);
             _count = 0;
         }
     }

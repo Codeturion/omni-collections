@@ -1,6 +1,7 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using Omni.Collections.Core.Hashing;
 
 namespace Omni.Collections.Probabilistic;
 
@@ -16,6 +17,7 @@ public class HyperLogLog<T> where T : notnull
     private readonly int _bucketCount;
     private readonly int _bucketBits;
     private readonly double _alpha;
+    private readonly IHasher<T> _hasher;
     private bool _hasSmallRangeCorrection;
     private long _cachedCardinality = 0;
     private bool _cardinalityDirty = true;
@@ -23,12 +25,20 @@ public class HyperLogLog<T> where T : notnull
     public int BucketBits => _bucketBits;
     public double StandardError => 1.04 / Math.Sqrt(_bucketCount);
     public HyperLogLog(int bucketBits = 12)
+        : this(bucketBits, Hashers.Default<T>())
+    {
+    }
+
+    public HyperLogLog(int bucketBits, IHasher<T> hasher)
     {
         if (bucketBits < 4 || bucketBits > 16)
             throw new ArgumentOutOfRangeException(nameof(bucketBits), "Bucket bits must be between 4 and 16");
+        if (hasher is null)
+            throw new ArgumentNullException(nameof(hasher));
         _bucketBits = bucketBits;
         _bucketCount = 1 << bucketBits;
         _buckets = new byte[_bucketCount];
+        _hasher = hasher;
         _alpha = bucketBits switch
         {
             4 => 0.673,
@@ -42,18 +52,17 @@ public class HyperLogLog<T> where T : notnull
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Add(T item)
     {
-        var hash = (uint)item.GetHashCode();
-        hash ^= hash >> 16;
-        hash *= 0x85ebca6b;
-        hash ^= hash >> 13;
-        hash *= 0xc2b2ae35;
-        hash ^= hash >> 16;
-        var bucketIndex = (int)(hash & ((1u << _bucketBits) - 1));
-        var remainingBits = hash >> _bucketBits;
-        var leadingZeros = BitOperations.LeadingZeroCount(remainingBits) - _bucketBits + 1;
+        // 64-bit hash: low _bucketBits select the bucket, the remaining bits feed leading-zero count.
+        ulong hash = _hasher.Hash(item, 0UL);
+        int bucketIndex = (int)(hash & ((1UL << _bucketBits) - 1));
+        ulong remainingBits = hash >> _bucketBits;
+        int width = 64 - _bucketBits;
+        int leadingZeros = remainingBits == 0
+            ? width + 1
+            : BitOperations.LeadingZeroCount(remainingBits) - _bucketBits + 1;
         if (leadingZeros > _buckets[bucketIndex])
         {
-            _buckets[bucketIndex] = (byte)Math.Min(leadingZeros, 255);
+            _buckets[bucketIndex] = (byte)Math.Min(leadingZeros, byte.MaxValue);
             _cardinalityDirty = true;
         }
     }
@@ -120,7 +129,7 @@ public class HyperLogLog<T> where T : notnull
 
     public void Clear()
     {
-        Array.Clear(_buckets);
+        Array.Clear(_buckets, 0, _buckets.Length);
         _hasSmallRangeCorrection = false;
         _cardinalityDirty = true;
     }

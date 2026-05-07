@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.CompilerServices;
+using Omni.Collections.Core.Hashing;
 
 namespace Omni.Collections.Probabilistic;
 
@@ -13,14 +14,21 @@ public class CountMinSketch<T> where T : notnull
 {
     private readonly uint[,] _table;
     private readonly int _width;
+    private readonly ulong _widthMask;
     private readonly int _depth;
-    private readonly uint[] _hashSeeds;
+    private readonly ulong[] _hashSeeds;
+    private readonly IHasher<T> _hasher;
     private long _totalCount;
     public long TotalCount => _totalCount;
     public int Width => _width;
     public int Depth => _depth;
     public double MaxError => (double)_totalCount / _width;
     public CountMinSketch(int width = 1024, int depth = 4)
+        : this(width, depth, Hashers.Default<T>(), seed: 0UL)
+    {
+    }
+
+    public CountMinSketch(int width, int depth, IHasher<T> hasher, ulong seed = 0UL)
     {
         if (width <= 0)
             throw new ArgumentOutOfRangeException(nameof(width), "Width must be positive");
@@ -28,33 +36,38 @@ public class CountMinSketch<T> where T : notnull
             throw new ArgumentOutOfRangeException(nameof(depth), "Depth must be positive");
         if (depth > 32)
             throw new ArgumentOutOfRangeException(nameof(depth), "Depth cannot exceed 32");
-        _width = width;
+        if (hasher is null)
+            throw new ArgumentNullException(nameof(hasher));
+        // Round up to next power of two so we can replace `% _width` (slow modulo on a
+        // non-constant divisor, ~5–8 cycles) with `& _widthMask` (~1 cycle) in the hot path.
+        _width = NextPowerOfTwo(width);
+        _widthMask = (ulong)(_width - 1);
         _depth = depth;
         _table = new uint[_depth, _width];
-        _hashSeeds = new uint[_depth];
-        var random = new Random(42);
-        for (int i = 0; i < _depth; i++)
-        {
-            _hashSeeds[i] = (uint)random.Next();
-        }
+        _hasher = hasher;
+        _hashSeeds = BuildRowSeeds(_depth, seed);
     }
 
     public CountMinSketch(double maxError, double confidence = 0.99)
+        : this(maxError, confidence, Hashers.Default<T>(), seed: 0UL)
+    {
+    }
+
+    public CountMinSketch(double maxError, double confidence, IHasher<T> hasher, ulong seed = 0UL)
     {
         if (maxError <= 0 || maxError >= 1)
             throw new ArgumentOutOfRangeException(nameof(maxError), "Error must be between 0 and 1");
         if (confidence <= 0 || confidence >= 1)
             throw new ArgumentOutOfRangeException(nameof(confidence), "Confidence must be between 0 and 1");
-        _width = (int)Math.Ceiling(Math.E / maxError);
+        if (hasher is null)
+            throw new ArgumentNullException(nameof(hasher));
+        _width = NextPowerOfTwo((int)Math.Ceiling(Math.E / maxError));
+        _widthMask = (ulong)(_width - 1);
         _depth = (int)Math.Ceiling(Math.Log(1.0 / (1.0 - confidence)));
         _depth = Math.Max(1, Math.Min(_depth, 32));
         _table = new uint[_depth, _width];
-        _hashSeeds = new uint[_depth];
-        var random = new Random(42);
-        for (int i = 0; i < _depth; i++)
-        {
-            _hashSeeds[i] = (uint)random.Next();
-        }
+        _hasher = hasher;
+        _hashSeeds = BuildRowSeeds(_depth, seed);
     }
 
     public void Add(T item)
@@ -66,10 +79,9 @@ public class CountMinSketch<T> where T : notnull
     {
         if (count == 0)
             return;
-        var hash = (uint)item.GetHashCode();
         for (int i = 0; i < _depth; i++)
         {
-            var bucketIndex = HashToBucket(hash, _hashSeeds[i]);
+            var bucketIndex = (int)(_hasher.Hash(item, _hashSeeds[i]) & _widthMask);
             if (_table[i, bucketIndex] <= uint.MaxValue - count)
                 _table[i, bucketIndex] += count;
             else
@@ -80,11 +92,10 @@ public class CountMinSketch<T> where T : notnull
 
     public uint EstimateCount(T item)
     {
-        var hash = (uint)item.GetHashCode();
         uint minCount = uint.MaxValue;
         for (int i = 0; i < _depth; i++)
         {
-            var bucketIndex = HashToBucket(hash, _hashSeeds[i]);
+            var bucketIndex = (int)(_hasher.Hash(item, _hashSeeds[i]) & _widthMask);
             var count = _table[i, bucketIndex];
             if (count < minCount)
                 minCount = count;
@@ -109,7 +120,7 @@ public class CountMinSketch<T> where T : notnull
 
     public void Clear()
     {
-        Array.Clear(_table);
+        Array.Clear(_table, 0, _table.Length);
         _totalCount = 0;
     }
 
@@ -183,16 +194,32 @@ public class CountMinSketch<T> where T : notnull
         return (_depth * _width * sizeof(uint)) + (_depth * sizeof(uint)) + 64;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private int HashToBucket(uint hash, uint seed)
+    private static int NextPowerOfTwo(int value)
     {
-        hash ^= seed;
-        hash ^= hash >> 16;
-        hash *= 0x85ebca6b;
-        hash ^= hash >> 13;
-        hash *= 0xc2b2ae35;
-        hash ^= hash >> 16;
-        return (int)(hash % (uint)_width);
+        if (value <= 1) return 1;
+        int v = value - 1;
+        v |= v >> 1;
+        v |= v >> 2;
+        v |= v >> 4;
+        v |= v >> 8;
+        v |= v >> 16;
+        return v + 1;
+    }
+
+    private static ulong[] BuildRowSeeds(int depth, ulong baseSeed)
+    {
+        // SplitMix64-derived per-row seeds: deterministic, uncorrelated across rows.
+        var seeds = new ulong[depth];
+        ulong x = baseSeed;
+        for (int i = 0; i < depth; i++)
+        {
+            x += 0x9E3779B97F4A7C15UL;
+            ulong s = x;
+            s = (s ^ (s >> 30)) * 0xBF58476D1CE4E5B9UL;
+            s = (s ^ (s >> 27)) * 0x94D049BB133111EBUL;
+            seeds[i] = s ^ (s >> 31);
+        }
+        return seeds;
     }
 }
 

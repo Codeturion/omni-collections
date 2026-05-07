@@ -3,6 +3,20 @@ using System.Runtime.CompilerServices;
 
 namespace Omni.Collections.Spatial;
 
+/// <summary>
+/// Axis-aligned bounding rectangle.
+///
+/// Convention note: <see cref="Contains(float, float)"/> uses the closed interval
+/// <c>[min, max]</c> for point membership. The internal cell-indexing in
+/// <c>QuadTree</c>, <c>SpatialHashGrid</c>, and <c>BloomRTreeDictionary</c> use the
+/// half-open convention <c>[min, max)</c>, but they do their bounds math directly
+/// on coordinates rather than calling <see cref="Contains(float, float)"/>. The
+/// closed interval here matters for <see cref="BloomRTreeDictionary{TKey, TValue}.FindAtPoint"/>,
+/// which expects degenerate point-bounded entries (Min==Max) to match their own
+/// point. Unifying both into a single <c>[min, max)</c> shared helper requires
+/// updating the structural bounds checks across all spatial types and is deferred
+/// past v2.0.
+/// </summary>
 public readonly struct BoundingRectangle : IEquatable<BoundingRectangle>
 {
     public readonly float MinX;
@@ -45,6 +59,8 @@ public readonly struct BoundingRectangle : IEquatable<BoundingRectangle>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Contains(float x, float y)
     {
+        // Closed interval [min, max] — degenerate point bounds (Min==Max) must
+        // match their own point so BloomRTreeDictionary.FindAtPoint works.
         return x >= MinX && x <= MaxX && y >= MinY && y <= MaxY;
     }
 

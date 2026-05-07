@@ -1,26 +1,15 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <LangVersion>latest</LangVersion>
-    <Nullable>enable</Nullable>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
-  </PropertyGroup>
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <PackageId>OmniCollections.Temporal</PackageId>
-    <Version>1.0.1</Version>
-    <Authors>Codeturion</Authors>
     <Description>Temporal data structures (TimelineArray, TemporalSpatialGrid) for Omni.Collections</Description>
     <PackageTags>collections;temporal;timeline;performance</PackageTags>
-    <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <RepositoryUrl>https://github.com/Codeturion/omni-collections</RepositoryUrl>
-    <PackageProjectUrl>https://github.com/Codeturion/omni-collections</PackageProjectUrl>
     <PackageReleaseNotes>Temporal data structures: TimelineArray, TemporalSpatialGrid</PackageReleaseNotes>
-    <IsPackable>true</IsPackable>
   </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../Omni.Collections.Core/Omni.Collections.Core.csproj" />

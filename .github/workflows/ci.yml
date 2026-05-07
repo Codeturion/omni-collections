@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "dev/**"]
+  pull_request:
+    branches: [main, "dev/**"]
+
+jobs:
+  build-and-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        # Run the suite three times with distinct RNG seeds — any flake from a
+        # randomized property test or seeded probabilistic test blocks the merge.
+        seed: ["42", "1337", "20260503"]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            6.0.x
+            8.0.x
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Test (seed ${{ matrix.seed }})
+        env:
+          OMNI_TEST_SEED: ${{ matrix.seed }}
+        run: dotnet test --configuration Release --no-build --verbosity normal
+
+      - name: Validate benchmarks
+        if: matrix.seed == '42'
+        run: dotnet run --project src/Omni.Collections.Benchmarks -c Release --no-build -- --list flat

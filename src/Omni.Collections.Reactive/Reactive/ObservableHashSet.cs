@@ -20,6 +20,7 @@ public class ObservableHashSet<T> : ISet<T>, INotifyCollectionChanged, INotifyPr
     private int _version;
     private readonly IEventArgsPool? _eventArgsPool;
     private readonly bool _useEventPooling;
+    private bool _isNotifying;
     public event NotifyCollectionChangedEventHandler? CollectionChanged;
     public event PropertyChangedEventHandler? PropertyChanged;
     public event Action<T>? ItemAdded;
@@ -82,6 +83,7 @@ public class ObservableHashSet<T> : ISet<T>, INotifyCollectionChanged, INotifyPr
 
     public bool Add(T item)
     {
+        ThrowIfNotifying();
         if (_items.Add(item))
         {
             IncrementVersion();
@@ -95,6 +97,7 @@ public class ObservableHashSet<T> : ISet<T>, INotifyCollectionChanged, INotifyPr
     void ICollection<T>.Add(T item) => Add(item);
     public int AddRange(IEnumerable<T> items)
     {
+        ThrowIfNotifying();
         var addedItems = new List<T>();
         foreach (var item in items)
         {
@@ -118,6 +121,7 @@ public class ObservableHashSet<T> : ISet<T>, INotifyCollectionChanged, INotifyPr
 
     public bool Remove(T item)
     {
+        ThrowIfNotifying();
         if (_items.Remove(item))
         {
             IncrementVersion();
@@ -131,6 +135,7 @@ public class ObservableHashSet<T> : ISet<T>, INotifyCollectionChanged, INotifyPr
 
     public int RemoveWhere(Predicate<T> predicate)
     {
+        ThrowIfNotifying();
         var removedItems = new List<T>();
         foreach (var item in _items)
         {
@@ -158,6 +163,7 @@ public class ObservableHashSet<T> : ISet<T>, INotifyCollectionChanged, INotifyPr
 
     public void Clear()
     {
+        ThrowIfNotifying();
         if (_items.Count > 0)
         {
             _items.Clear();
@@ -178,6 +184,7 @@ public class ObservableHashSet<T> : ISet<T>, INotifyCollectionChanged, INotifyPr
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     public void UnionWith(IEnumerable<T> other)
     {
+        ThrowIfNotifying();
         var addedItems = new List<T>();
         foreach (var item in other)
         {
@@ -200,6 +207,7 @@ public class ObservableHashSet<T> : ISet<T>, INotifyCollectionChanged, INotifyPr
 
     public void IntersectWith(IEnumerable<T> other)
     {
+        ThrowIfNotifying();
         HashSet<T>? otherSet = other as HashSet<T> ?? [..other];
         var removedItems = new List<T>();
         foreach (var item in _items.ToArray())
@@ -224,6 +232,7 @@ public class ObservableHashSet<T> : ISet<T>, INotifyCollectionChanged, INotifyPr
 
     public void ExceptWith(IEnumerable<T> other)
     {
+        ThrowIfNotifying();
         var removedItems = new List<T>();
         foreach (var item in other)
         {
@@ -246,6 +255,7 @@ public class ObservableHashSet<T> : ISet<T>, INotifyCollectionChanged, INotifyPr
 
     public void SymmetricExceptWith(IEnumerable<T> other)
     {
+        ThrowIfNotifying();
         HashSet<T>? otherSet = other as HashSet<T> ?? [..other];
         var originalItems = new HashSet<T>(_items);
         var addedItems = new List<T>();
@@ -331,15 +341,15 @@ public class ObservableHashSet<T> : ISet<T>, INotifyCollectionChanged, INotifyPr
     {
         if (PropertyChanged != null && propertyName != null)
         {
-            if (_useEventPooling)
+            var pool = _eventArgsPool ?? OmniEventArgsPool.Shared;
+            var eventArgs = pool.RentPropertyChangedEventArgs(propertyName);
+            try
             {
-                var eventArgs = _eventArgsPool!.RentPropertyChangedEventArgs(propertyName);
                 PropertyChanged.Invoke(this, eventArgs);
-                _eventArgsPool.ReturnPropertyChangedEventArgs(eventArgs);
             }
-            else
+            finally
             {
-                PropertyChanged.Invoke(this, new PropertyChangedEventArgs(propertyName));
+                pool.ReturnPropertyChangedEventArgs(eventArgs);
             }
         }
     }
@@ -349,15 +359,17 @@ public class ObservableHashSet<T> : ISet<T>, INotifyCollectionChanged, INotifyPr
     {
         if (CollectionChanged != null)
         {
-            if (_useEventPooling && action == NotifyCollectionChangedAction.Reset)
+            var pool = _eventArgsPool ?? OmniEventArgsPool.Shared;
+            var eventArgs = pool.RentCollectionChangedEventArgs(action);
+            _isNotifying = true;
+            try
             {
-                var eventArgs = _eventArgsPool!.RentCollectionChangedEventArgs(action);
                 CollectionChanged.Invoke(this, eventArgs);
-                _eventArgsPool.ReturnCollectionChangedEventArgs(eventArgs);
             }
-            else
+            finally
             {
-                CollectionChanged.Invoke(this, new NotifyCollectionChangedEventArgs(action));
+                _isNotifying = false;
+                pool.ReturnCollectionChangedEventArgs(eventArgs);
             }
         }
     }
@@ -367,7 +379,20 @@ public class ObservableHashSet<T> : ISet<T>, INotifyCollectionChanged, INotifyPr
     {
         if (CollectionChanged != null)
         {
-            CollectionChanged.Invoke(this, new NotifyCollectionChangedEventArgs(action, item));
+            var pool = _eventArgsPool ?? OmniEventArgsPool.Shared;
+            NotifyCollectionChangedEventArgs eventArgs = action == NotifyCollectionChangedAction.Add
+                ? pool.RentAdd(item)
+                : pool.RentRemove(item);
+            _isNotifying = true;
+            try
+            {
+                CollectionChanged.Invoke(this, eventArgs);
+            }
+            finally
+            {
+                _isNotifying = false;
+                pool.ReturnCollectionChangedEventArgs(eventArgs);
+            }
         }
     }
 
@@ -376,8 +401,83 @@ public class ObservableHashSet<T> : ISet<T>, INotifyCollectionChanged, INotifyPr
     {
         if (CollectionChanged != null)
         {
-            CollectionChanged.Invoke(this, new NotifyCollectionChangedEventArgs(action, items));
+            var pool = _eventArgsPool ?? OmniEventArgsPool.Shared;
+            NotifyCollectionChangedEventArgs eventArgs = action == NotifyCollectionChangedAction.Add
+                ? pool.RentAddRange(items)
+                : pool.RentRemoveRange(items);
+            _isNotifying = true;
+            try
+            {
+                CollectionChanged.Invoke(this, eventArgs);
+            }
+            finally
+            {
+                _isNotifying = false;
+                pool.ReturnCollectionChangedEventArgs(eventArgs);
+            }
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void ThrowIfNotifying()
+    {
+        if (_isNotifying)
+            throw new InvalidOperationException("Cannot mutate the collection during a notification callback.");
+    }
+}
+
+/// <summary>
+/// A live filtered view over an <see cref="ObservableHashSet{T}"/>. Subscribes to the source's
+/// item events on construction; <see cref="Dispose"/> unsubscribes those handlers so the source
+/// no longer holds a reference to this view.
+/// </summary>
+/// <remarks>
+/// Direct mutation of the view (e.g., <c>view.Add(item)</c>) modifies the view in isolation —
+/// the source is unaffected, and a subsequent source-side mutation that the predicate filters
+/// can overwrite the view's local change. Treat the view as a read projection driven by the
+/// source; mutate the source instead.
+/// </remarks>
+public sealed class FilteredObservableHashSetView<T> : ObservableHashSet<T>, IDisposable
+{
+    private ObservableHashSet<T>? _source;
+    private readonly Action<T> _onSourceItemAdded;
+    private readonly Action<T> _onSourceItemRemoved;
+    private readonly Action _onSourceSetCleared;
+    private bool _disposed;
+
+    internal FilteredObservableHashSetView(ObservableHashSet<T> source, Predicate<T> predicate)
+        : base()
+    {
+        _source = source;
+        foreach (var item in source)
+        {
+            if (predicate(item))
+                Add(item);
+        }
+        _onSourceItemAdded = item =>
+        {
+            if (predicate(item))
+                Add(item);
+        };
+        _onSourceItemRemoved = item => Remove(item);
+        _onSourceSetCleared = () => Clear();
+        source.ItemAdded += _onSourceItemAdded;
+        source.ItemRemoved += _onSourceItemRemoved;
+        source.SetCleared += _onSourceSetCleared;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+            return;
+        if (_source != null)
+        {
+            _source.ItemAdded -= _onSourceItemAdded;
+            _source.ItemRemoved -= _onSourceItemRemoved;
+            _source.SetCleared -= _onSourceSetCleared;
+            _source = null;
+        }
+        _disposed = true;
     }
 }
 
@@ -396,25 +496,14 @@ public static class ObservableHashSetExtensions
             set.ItemRemoved += onRemoved;
     }
 
-    public static ObservableHashSet<T> CreateFilteredView<T>(this ObservableHashSet<T> source, Predicate<T> predicate)
+    /// <summary>
+    /// Creates a live filtered view over <paramref name="source"/>. The returned view subscribes
+    /// to the source's item events; dispose the view to release those subscriptions and prevent
+    /// the source from keeping the view alive.
+    /// </summary>
+    public static FilteredObservableHashSetView<T> CreateFilteredView<T>(this ObservableHashSet<T> source, Predicate<T> predicate)
     {
-        var filtered = new ObservableHashSet<T>();
-        foreach (var item in source)
-        {
-            if (predicate(item))
-                filtered.Add(item);
-        }
-        source.ItemAdded += item =>
-        {
-            if (predicate(item))
-                filtered.Add(item);
-        };
-        source.ItemRemoved += item =>
-        {
-            filtered.Remove(item);
-        };
-        source.SetCleared += () => filtered.Clear();
-        return filtered;
+        return new FilteredObservableHashSetView<T>(source, predicate);
     }
 
     public static bool Toggle<T>(this ObservableHashSet<T> set, T item)

@@ -370,6 +370,7 @@ public class DigestStreamingAnalyticsTests
             {
                 var p50 = analytics.GetPercentile(0.5);
                 var stats = analytics.GetAnalytics();
+                // Real wall-clock yield: this is a concurrency stress probe, not deterministic time advance.
                 Thread.Sleep(10);
             }
         }));

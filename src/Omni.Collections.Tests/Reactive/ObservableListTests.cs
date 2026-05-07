@@ -975,5 +975,328 @@ public class ObservableListTests
 
     #endregion
 
+    #region Filtered View Lifecycle (4.1)
+
+    [Fact]
+    public void CreateFilteredView_AfterDispose_DoesNotReceiveEventsFromSource()
+    {
+        var source = new ObservableList<int> { 1, 2, 3, 4 };
+        var view = source.CreateFilteredView(x => x % 2 == 0);
+        view.Should().Equal(new[] { 2, 4 });
+
+        var viewItemAddedFired = 0;
+        var viewItemRemovedFired = 0;
+        var viewListClearedFired = 0;
+        var viewCollectionChangedFired = 0;
+        view.ItemAdded += _ => viewItemAddedFired++;
+        view.ItemRemoved += _ => viewItemRemovedFired++;
+        view.ListCleared += () => viewListClearedFired++;
+        view.CollectionChanged += (_, _) => viewCollectionChangedFired++;
+
+        view.Dispose();
+
+        // Mutating the source must no longer reach the view.
+        source.Add(6);
+        source.Add(7); // Doesn't match predicate but still tests the path.
+        source.Remove(2);
+        source.Clear();
+
+        viewItemAddedFired.Should().Be(0);
+        viewItemRemovedFired.Should().Be(0);
+        viewListClearedFired.Should().Be(0);
+        viewCollectionChangedFired.Should().Be(0);
+    }
+
+    [Fact]
+    public void CreateFilteredView_BeforeDispose_TracksSource()
+    {
+        var source = new ObservableList<int> { 1, 2, 3 };
+        using var view = source.CreateFilteredView(x => x % 2 == 1);
+        view.Should().Equal(new[] { 1, 3 });
+
+        source.Add(5);
+        view.Should().Contain(5);
+
+        source.Add(4); // Doesn't match.
+        view.Should().NotContain(4);
+
+        source.Remove(1);
+        view.Should().NotContain(1);
+
+        source.Clear();
+        view.Count.Should().Be(0);
+    }
+
+    [Fact]
+    public void CreateFilteredView_DisposeIsIdempotent()
+    {
+        var source = new ObservableList<int> { 1, 2, 3 };
+        var view = source.CreateFilteredView(x => true);
+        view.Dispose();
+        var act = () => view.Dispose();
+        act.Should().NotThrow();
+    }
+
+    #endregion
+
+    #region Re-entrancy Guard (4.2)
+
+    [Fact]
+    public void Add_DuringCollectionChangedHandler_Throws()
+    {
+        var list = new ObservableList<int>();
+        Exception? captured = null;
+        list.CollectionChanged += (_, _) =>
+        {
+            try { list.Add(99); }
+            catch (Exception ex) { captured = ex; }
+        };
+
+        list.Add(1);
+        captured.Should().BeOfType<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void Remove_DuringCollectionChangedHandler_Throws()
+    {
+        var list = new ObservableList<int> { 1, 2, 3 };
+        Exception? captured = null;
+        list.CollectionChanged += (_, _) =>
+        {
+            try { list.Remove(2); }
+            catch (Exception ex) { captured = ex; }
+        };
+
+        list.Add(4);
+        captured.Should().BeOfType<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void Clear_DuringCollectionChangedHandler_Throws()
+    {
+        var list = new ObservableList<int> { 1, 2 };
+        Exception? captured = null;
+        list.CollectionChanged += (_, _) =>
+        {
+            try { list.Clear(); }
+            catch (Exception ex) { captured = ex; }
+        };
+
+        list.Add(3);
+        captured.Should().BeOfType<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void IndexerSet_DuringCollectionChangedHandler_Throws()
+    {
+        var list = new ObservableList<int> { 1, 2, 3 };
+        Exception? captured = null;
+        list.CollectionChanged += (_, _) =>
+        {
+            try { list[0] = 99; }
+            catch (Exception ex) { captured = ex; }
+        };
+
+        list.Add(4);
+        captured.Should().BeOfType<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void Insert_DuringCollectionChangedHandler_Throws()
+    {
+        var list = new ObservableList<int> { 1 };
+        Exception? captured = null;
+        list.CollectionChanged += (_, _) =>
+        {
+            try { list.Insert(0, 99); }
+            catch (Exception ex) { captured = ex; }
+        };
+
+        list.Add(2);
+        captured.Should().BeOfType<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void NotifyingFlag_ResetsAfterEachCallback()
+    {
+        var list = new ObservableList<int>();
+        list.CollectionChanged += (_, _) => { /* noop */ };
+        list.Add(1);
+        // After the callback returns, the next Add must succeed.
+        var act = () => list.Add(2);
+        act.Should().NotThrow();
+        list.Count.Should().Be(2);
+    }
+
+    #endregion
+
+    #region Batch Notification Consistency (4.3)
+
+    /// <summary>
+    /// Tests that AddRange fires exactly one CollectionChanged event with action Add,
+    /// all added items in NewItems, and the correct starting index.
+    /// </summary>
+    [Fact]
+    public void AddRange_FiresExactlyOneCollectionChangedEventWithAllItems()
+    {
+        var list = new ObservableList<int> { 10 };
+        var events = new List<NotifyCollectionChangedEventArgs>();
+        list.CollectionChanged += (_, e) => events.Add(e);
+
+        list.AddRange(new[] { 20, 30, 40 });
+
+        events.Should().HaveCount(1);
+        events[0].Action.Should().Be(NotifyCollectionChangedAction.Add);
+        events[0].NewItems!.Cast<int>().Should().Equal(new[] { 20, 30, 40 });
+        events[0].NewStartingIndex.Should().Be(1);
+    }
+
+    /// <summary>
+    /// Tests that InsertRange fires exactly one CollectionChanged event with action Add,
+    /// all inserted items in NewItems, and the correct insertion index.
+    /// </summary>
+    [Fact]
+    public void InsertRange_FiresExactlyOneCollectionChangedEventWithAllItems()
+    {
+        var list = new ObservableList<int> { 1, 4 };
+        var events = new List<NotifyCollectionChangedEventArgs>();
+        list.CollectionChanged += (_, e) => events.Add(e);
+
+        list.InsertRange(1, new[] { 2, 3 });
+
+        events.Should().HaveCount(1);
+        events[0].Action.Should().Be(NotifyCollectionChangedAction.Add);
+        events[0].NewItems!.Cast<int>().Should().Equal(new[] { 2, 3 });
+        events[0].NewStartingIndex.Should().Be(1);
+    }
+
+    /// <summary>
+    /// Tests that RemoveAll fires exactly one CollectionChanged event with action Remove
+    /// fires Reset (the INotifyCollectionChanged contract requires a single contiguous
+    /// range when an index is supplied, which doesn't hold for arbitrary removals).
+    /// </summary>
+    [Fact]
+    public void RemoveAll_FiresExactlyOneResetEvent()
+    {
+        var list = new ObservableList<int> { 1, 2, 3, 4, 5 };
+        var events = new List<NotifyCollectionChangedEventArgs>();
+        list.CollectionChanged += (_, e) => events.Add(e);
+
+        list.RemoveAll(x => x % 2 == 0); // remove 2, 4 (non-contiguous)
+
+        events.Should().HaveCount(1);
+        events[0].Action.Should().Be(NotifyCollectionChangedAction.Reset);
+    }
+
+    /// <summary>
+    /// Tests that AddRangeAsync fires exactly one CollectionChanged event with action Add
+    /// (matching the synchronous AddRange contract — no Reset).
+    /// </summary>
+    [Fact]
+    public async Task AddRangeAsync_FiresExactlyOneAddEventNotReset()
+    {
+        var list = new ObservableList<int> { 100 };
+        var events = new List<NotifyCollectionChangedEventArgs>();
+        list.CollectionChanged += (_, e) => events.Add(e);
+
+        await list.AddRangeAsync(new[] { 1, 2, 3 });
+
+        events.Should().HaveCount(1);
+        events[0].Action.Should().Be(NotifyCollectionChangedAction.Add);
+        events[0].NewItems!.Cast<int>().Should().Equal(new[] { 1, 2, 3 });
+        events[0].NewStartingIndex.Should().Be(1);
+    }
+
+    /// <summary>
+    /// Tests that RemoveAllAsync fires exactly one Reset event (matching the synchronous
+    /// RemoveAll contract — non-contiguous removals must use Reset, not Remove+index).
+    /// </summary>
+    [Fact]
+    public async Task RemoveAllAsync_FiresExactlyOneResetEvent()
+    {
+        var list = new ObservableList<int> { 1, 2, 3, 4, 5 };
+        var events = new List<NotifyCollectionChangedEventArgs>();
+        list.CollectionChanged += (_, e) => events.Add(e);
+
+        await list.RemoveAllAsync(x => x % 2 == 0); // remove 2, 4 (non-contiguous)
+
+        events.Should().HaveCount(1);
+        events[0].Action.Should().Be(NotifyCollectionChangedAction.Reset);
+    }
+
+    /// <summary>
+    /// Tests that AddRange still fires per-item ItemAdded events for fine-grained subscribers
+    /// (the item-level event channel is independent of the CollectionChanged batch channel).
+    /// </summary>
+    [Fact]
+    public void AddRange_FiresPerItemItemAddedEvents()
+    {
+        var list = new ObservableList<int>();
+        var added = new List<int>();
+        list.ItemAdded += added.Add;
+
+        list.AddRange(new[] { 1, 2, 3 });
+
+        added.Should().Equal(new[] { 1, 2, 3 });
+    }
+
+    /// <summary>
+    /// Tests that AddRangeAsync still fires per-item ItemAdded events.
+    /// </summary>
+    [Fact]
+    public async Task AddRangeAsync_FiresPerItemItemAddedEvents()
+    {
+        var list = new ObservableList<int>();
+        var added = new List<int>();
+        list.ItemAdded += added.Add;
+
+        await list.AddRangeAsync(new[] { 1, 2, 3 });
+
+        added.Should().Equal(new[] { 1, 2, 3 });
+    }
+
+    /// <summary>
+    /// Tests that RemoveAllAsync still fires per-item ItemRemoved events.
+    /// </summary>
+    [Fact]
+    public async Task RemoveAllAsync_FiresPerItemItemRemovedEvents()
+    {
+        var list = new ObservableList<int> { 1, 2, 3, 4, 5 };
+        var removed = new List<int>();
+        list.ItemRemoved += removed.Add;
+
+        await list.RemoveAllAsync(x => x % 2 == 0);
+
+        removed.Should().BeEquivalentTo(new[] { 2, 4 });
+    }
+
+    /// <summary>
+    /// Async batch mutators must also be guarded by the re-entrancy flag.
+    /// </summary>
+    [Fact]
+    public void AddRangeAsync_DuringCollectionChangedHandler_Throws()
+    {
+        var list = new ObservableList<int> { 1 };
+        list.CollectionChanged += (_, _) => list.AddRangeAsync(new[] { 99 }).GetAwaiter().GetResult();
+
+        Action act = () => list.Add(2);
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*notification callback*");
+    }
+
+    [Fact]
+    public void RemoveAllAsync_DuringCollectionChangedHandler_Throws()
+    {
+        var list = new ObservableList<int> { 1, 2, 3 };
+        list.CollectionChanged += (_, _) => list.RemoveAllAsync(x => x == 1).GetAwaiter().GetResult();
+
+        Action act = () => list.Add(4);
+
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    #endregion
+
     private record Person(string Name, int Age);
 }

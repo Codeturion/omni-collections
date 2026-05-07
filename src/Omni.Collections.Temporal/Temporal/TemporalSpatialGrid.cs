@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using Omni.Collections.Core.Time;
 using Omni.Collections.Spatial;
 
 namespace Omni.Collections.Temporal;
@@ -22,6 +23,7 @@ public class TemporalSpatialGrid<T> : IDisposable where T : notnull
     static private readonly ConcurrentQueue<SpatialSnapshot<T>> SnapshotPool = new ConcurrentQueue<SpatialSnapshot<T>>();
     static private readonly ConcurrentQueue<SpatialHashGrid<T>> GridPool = new ConcurrentQueue<SpatialHashGrid<T>>();
     private readonly bool _usePooling;
+    private readonly IClock _clock;
     private SpatialHashGrid<T> _currentGrid;
     private long _lastRecordedTime;
     private bool _autoRecord;
@@ -31,15 +33,19 @@ public class TemporalSpatialGrid<T> : IDisposable where T : notnull
     public int CurrentObjectCount => _currentGrid.Count;
     public float CellSize => _cellSize;
     public TemporalSpatialGrid(int capacity = 3600, float cellSize = 64.0f, long frameDuration = 16, bool autoRecord = false)
-        : this(capacity, cellSize, frameDuration, autoRecord, usePooling: false) { }
+        : this(capacity, cellSize, frameDuration, autoRecord, usePooling: false, clock: SystemClock.Instance) { }
 
-    private TemporalSpatialGrid(int capacity, float cellSize, long frameDuration, bool autoRecord, bool usePooling)
+    public TemporalSpatialGrid(IClock clock, int capacity = 3600, float cellSize = 64.0f, long frameDuration = 16, bool autoRecord = false)
+        : this(capacity, cellSize, frameDuration, autoRecord, usePooling: false, clock: clock ?? throw new ArgumentNullException(nameof(clock))) { }
+
+    private TemporalSpatialGrid(int capacity, float cellSize, long frameDuration, bool autoRecord, bool usePooling, IClock clock)
     {
         _timeline = new TimelineArray<SpatialSnapshot<T>>(capacity, (int)frameDuration);
         _cellSize = cellSize;
         _frameDuration = frameDuration;
         _autoRecord = autoRecord;
         _usePooling = usePooling;
+        _clock = clock;
         if (_usePooling && GridPool.TryDequeue(out SpatialHashGrid<T>? pooledGrid))
         {
             pooledGrid.Clear();
@@ -54,7 +60,7 @@ public class TemporalSpatialGrid<T> : IDisposable where T : notnull
 
     public static TemporalSpatialGrid<T> CreateWithArrayPool(int capacity = 3600, float cellSize = 64.0f, long frameDuration = 16, bool autoRecord = false)
     {
-        return new TemporalSpatialGrid<T>(capacity, cellSize, frameDuration, autoRecord, usePooling: true);
+        return new TemporalSpatialGrid<T>(capacity, cellSize, frameDuration, autoRecord, usePooling: true, clock: SystemClock.Instance);
     }
 
     static private readonly ConcurrentQueue<TemporalSpatialGrid<T>> InstancePool = new ConcurrentQueue<TemporalSpatialGrid<T>>();
@@ -67,6 +73,8 @@ public class TemporalSpatialGrid<T> : IDisposable where T : notnull
         }
         return new TemporalSpatialGrid<T>(capacity, cellSize, frameDuration, autoRecord);
     }
+
+
 
     public void Return()
     {
@@ -89,7 +97,7 @@ public class TemporalSpatialGrid<T> : IDisposable where T : notnull
             _currentGrid.Insert(x, y, item);
             if (_autoRecord)
             {
-                var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                var currentTime = _clock.UtcNow.ToUnixTimeMilliseconds();
                 if (_lastRecordedTime == 0 || currentTime - _lastRecordedTime >= _frameDuration)
                 {
                     RecordCurrentState(currentTime);
@@ -106,7 +114,7 @@ public class TemporalSpatialGrid<T> : IDisposable where T : notnull
             var removed = _currentGrid.Remove(x, y, item);
             if (removed && _autoRecord)
             {
-                var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                var currentTime = _clock.UtcNow.ToUnixTimeMilliseconds();
                 if (currentTime - _lastRecordedTime >= _frameDuration)
                 {
                     RecordCurrentState(currentTime);
@@ -136,7 +144,7 @@ public class TemporalSpatialGrid<T> : IDisposable where T : notnull
 
     public void RecordSnapshot(long? timestamp = null)
     {
-        var time = timestamp ?? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var time = timestamp ?? _clock.UtcNow.ToUnixTimeMilliseconds();
         lock (_lock)
         {
             RecordCurrentState(time);
@@ -185,8 +193,32 @@ public class TemporalSpatialGrid<T> : IDisposable where T : notnull
         {
             SpatialSnapshot<T>? snapshot = _timeline.GetAtTime(timestamp);
             if (snapshot == null) return false;
-            IEnumerable<(T first, T second)>? collisions = snapshot.Grid.GetPotentialCollisions();
-            return false;
+            var comparer = EqualityComparer<T>.Default;
+            float aX = 0f, aY = 0f, bX = 0f, bY = 0f;
+            bool foundA = false, foundB = false;
+            foreach (var (x, y, item) in snapshot.Grid.GetAllObjects())
+            {
+                // Independent matches: the same item must be allowed to satisfy both A and B
+                // when objectA equals objectB (same instance, or equal by comparer). The previous
+                // `else if` short-circuited that case and silently returned false at zero distance.
+                if (!foundA && comparer.Equals(item, objectA))
+                {
+                    aX = x;
+                    aY = y;
+                    foundA = true;
+                }
+                if (!foundB && comparer.Equals(item, objectB))
+                {
+                    bX = x;
+                    bY = y;
+                    foundB = true;
+                }
+                if (foundA && foundB) break;
+            }
+            if (!foundA || !foundB) return false;
+            var dx = aX - bX;
+            var dy = aY - bY;
+            return (dx * dx + dy * dy) <= (collisionRadius * collisionRadius);
         }
     }
 
@@ -214,10 +246,20 @@ public class TemporalSpatialGrid<T> : IDisposable where T : notnull
     public List<(long timestamp, float x, float y)> TrackObjectMovement(T targetObject, long startTime, long endTime)
     {
         var path = new List<(long, float, float)>();
+        var comparer = EqualityComparer<T>.Default;
         lock (_lock)
         {
             foreach (SpatialSnapshot<T>? snapshot in _timeline.Replay(startTime, endTime))
             {
+                if (snapshot?.Grid == null) continue;
+                foreach (var (x, y, item) in snapshot.Grid.GetAllObjects())
+                {
+                    if (comparer.Equals(item, targetObject))
+                    {
+                        path.Add((snapshot.Timestamp, x, y));
+                        break;
+                    }
+                }
             }
         }
         return path;
@@ -289,7 +331,7 @@ public class TemporalSpatialGrid<T> : IDisposable where T : notnull
         {
             _timeline.Clear();
             _currentGrid.Clear();
-            _lastRecordedTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            _lastRecordedTime = _clock.UtcNow.ToUnixTimeMilliseconds();
         }
     }
 

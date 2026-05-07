@@ -635,5 +635,276 @@ public class ObservableHashSetTests
         set.Count.Should().Be(0);
     }
 
+    #region Filtered View Lifecycle (4.1)
+
+    [Fact]
+    public void CreateFilteredView_AfterDispose_DoesNotReceiveEventsFromSource()
+    {
+        var source = new ObservableHashSet<int> { 1, 2, 3, 4 };
+        var view = source.CreateFilteredView(x => x % 2 == 0);
+        view.Count.Should().Be(2);
+        view.Should().Contain(new[] { 2, 4 });
+
+        var viewItemAddedFired = 0;
+        var viewItemRemovedFired = 0;
+        var viewSetClearedFired = 0;
+        var viewCollectionChangedFired = 0;
+        view.ItemAdded += _ => viewItemAddedFired++;
+        view.ItemRemoved += _ => viewItemRemovedFired++;
+        view.SetCleared += () => viewSetClearedFired++;
+        view.CollectionChanged += (_, _) => viewCollectionChangedFired++;
+
+        view.Dispose();
+
+        source.Add(6);
+        source.Add(7);
+        source.Remove(2);
+        source.Clear();
+
+        viewItemAddedFired.Should().Be(0);
+        viewItemRemovedFired.Should().Be(0);
+        viewSetClearedFired.Should().Be(0);
+        viewCollectionChangedFired.Should().Be(0);
+    }
+
+    [Fact]
+    public void CreateFilteredView_BeforeDispose_TracksSource()
+    {
+        var source = new ObservableHashSet<int> { 1, 2, 3 };
+        using var view = source.CreateFilteredView(x => x % 2 == 1);
+        view.Should().Contain(new[] { 1, 3 });
+
+        source.Add(5);
+        view.Should().Contain(5);
+
+        source.Add(4);
+        view.Should().NotContain(4);
+
+        source.Remove(1);
+        view.Should().NotContain(1);
+
+        source.Clear();
+        view.Count.Should().Be(0);
+    }
+
+    [Fact]
+    public void CreateFilteredView_DisposeIsIdempotent()
+    {
+        var source = new ObservableHashSet<int> { 1, 2, 3 };
+        var view = source.CreateFilteredView(x => true);
+        view.Dispose();
+        var act = () => view.Dispose();
+        act.Should().NotThrow();
+    }
+
+    #endregion
+
+    #region Re-entrancy Guard (4.2)
+
+    [Fact]
+    public void Add_DuringCollectionChangedHandler_Throws()
+    {
+        var set = new ObservableHashSet<int>();
+        Exception? captured = null;
+        set.CollectionChanged += (_, _) =>
+        {
+            try { set.Add(99); }
+            catch (Exception ex) { captured = ex; }
+        };
+
+        set.Add(1);
+        captured.Should().BeOfType<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void Remove_DuringCollectionChangedHandler_Throws()
+    {
+        var set = new ObservableHashSet<int> { 1, 2, 3 };
+        Exception? captured = null;
+        set.CollectionChanged += (_, _) =>
+        {
+            try { set.Remove(2); }
+            catch (Exception ex) { captured = ex; }
+        };
+
+        set.Add(4);
+        captured.Should().BeOfType<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void Clear_DuringCollectionChangedHandler_Throws()
+    {
+        var set = new ObservableHashSet<int> { 1, 2 };
+        Exception? captured = null;
+        set.CollectionChanged += (_, _) =>
+        {
+            try { set.Clear(); }
+            catch (Exception ex) { captured = ex; }
+        };
+
+        set.Add(3);
+        captured.Should().BeOfType<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void NotifyingFlag_ResetsAfterEachCallback()
+    {
+        var set = new ObservableHashSet<int>();
+        set.CollectionChanged += (_, _) => { /* noop */ };
+        set.Add(1);
+        var act = () => set.Add(2);
+        act.Should().NotThrow();
+        set.Count.Should().Be(2);
+    }
+
+    #endregion
+
+    #region Batch Notification Consistency (4.3)
+
+    /// <summary>
+    /// Tests that AddRange fires exactly one CollectionChanged event with action Add
+    /// containing all added items.
+    /// </summary>
+    [Fact]
+    public void AddRange_FiresExactlyOneCollectionChangedEventWithAllItems()
+    {
+        var set = new ObservableHashSet<int> { 0 };
+        var events = new List<NotifyCollectionChangedEventArgs>();
+        set.CollectionChanged += (_, e) => events.Add(e);
+
+        set.AddRange(new[] { 1, 2, 3 });
+
+        events.Should().HaveCount(1);
+        events[0].Action.Should().Be(NotifyCollectionChangedAction.Add);
+        events[0].NewItems!.Cast<int>().Should().BeEquivalentTo(new[] { 1, 2, 3 });
+    }
+
+    /// <summary>
+    /// Tests that RemoveWhere fires exactly one CollectionChanged event with action Remove
+    /// containing all removed items.
+    /// </summary>
+    [Fact]
+    public void RemoveWhere_FiresExactlyOneCollectionChangedEventWithAllItems()
+    {
+        var set = new ObservableHashSet<int> { 1, 2, 3, 4, 5 };
+        var events = new List<NotifyCollectionChangedEventArgs>();
+        set.CollectionChanged += (_, e) => events.Add(e);
+
+        set.RemoveWhere(x => x % 2 == 0); // remove 2, 4
+
+        events.Should().HaveCount(1);
+        events[0].Action.Should().Be(NotifyCollectionChangedAction.Remove);
+        events[0].OldItems!.Cast<int>().Should().BeEquivalentTo(new[] { 2, 4 });
+    }
+
+    /// <summary>
+    /// Tests that UnionWith fires exactly one CollectionChanged event when items are added.
+    /// </summary>
+    [Fact]
+    public void UnionWith_FiresExactlyOneCollectionChangedEventWithAddedItems()
+    {
+        var set = new ObservableHashSet<int> { 1, 2 };
+        var events = new List<NotifyCollectionChangedEventArgs>();
+        set.CollectionChanged += (_, e) => events.Add(e);
+
+        set.UnionWith(new[] { 2, 3, 4 });
+
+        events.Should().HaveCount(1);
+        events[0].Action.Should().Be(NotifyCollectionChangedAction.Add);
+        events[0].NewItems!.Cast<int>().Should().BeEquivalentTo(new[] { 3, 4 });
+    }
+
+    /// <summary>
+    /// Tests that IntersectWith fires exactly one CollectionChanged event when items are removed.
+    /// </summary>
+    [Fact]
+    public void IntersectWith_FiresExactlyOneCollectionChangedEventWithRemovedItems()
+    {
+        var set = new ObservableHashSet<int> { 1, 2, 3, 4 };
+        var events = new List<NotifyCollectionChangedEventArgs>();
+        set.CollectionChanged += (_, e) => events.Add(e);
+
+        set.IntersectWith(new[] { 2, 3, 5 });
+
+        events.Should().HaveCount(1);
+        events[0].Action.Should().Be(NotifyCollectionChangedAction.Remove);
+        events[0].OldItems!.Cast<int>().Should().BeEquivalentTo(new[] { 1, 4 });
+    }
+
+    /// <summary>
+    /// Tests that ExceptWith fires exactly one CollectionChanged event when items are removed.
+    /// </summary>
+    [Fact]
+    public void ExceptWith_FiresExactlyOneCollectionChangedEventWithRemovedItems()
+    {
+        var set = new ObservableHashSet<int> { 1, 2, 3, 4 };
+        var events = new List<NotifyCollectionChangedEventArgs>();
+        set.CollectionChanged += (_, e) => events.Add(e);
+
+        set.ExceptWith(new[] { 2, 3, 5 });
+
+        events.Should().HaveCount(1);
+        events[0].Action.Should().Be(NotifyCollectionChangedAction.Remove);
+        events[0].OldItems!.Cast<int>().Should().BeEquivalentTo(new[] { 2, 3 });
+    }
+
+    /// <summary>
+    /// Tests that AddRange still fires per-item ItemAdded events for fine-grained subscribers.
+    /// </summary>
+    [Fact]
+    public void AddRange_FiresPerItemItemAddedEvents()
+    {
+        var set = new ObservableHashSet<int>();
+        var added = new List<int>();
+        set.ItemAdded += added.Add;
+
+        set.AddRange(new[] { 1, 2, 3 });
+
+        added.Should().BeEquivalentTo(new[] { 1, 2, 3 });
+    }
+
+    /// <summary>
+    /// Tests that RemoveWhere still fires per-item ItemRemoved events.
+    /// </summary>
+    [Fact]
+    public void RemoveWhere_FiresPerItemItemRemovedEvents()
+    {
+        var set = new ObservableHashSet<int> { 1, 2, 3, 4, 5 };
+        var removed = new List<int>();
+        set.ItemRemoved += removed.Add;
+
+        set.RemoveWhere(x => x % 2 == 0);
+
+        removed.Should().BeEquivalentTo(new[] { 2, 4 });
+    }
+
+    /// <summary>
+    /// Set-algebra mutators must also be guarded by the re-entrancy flag.
+    /// </summary>
+    [Fact]
+    public void UnionWith_DuringCollectionChangedHandler_Throws()
+    {
+        var set = new ObservableHashSet<int> { 1 };
+        set.CollectionChanged += (_, _) => set.UnionWith(new[] { 99 });
+
+        Action act = () => set.Add(2);
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*notification callback*");
+    }
+
+    [Fact]
+    public void IntersectWith_DuringCollectionChangedHandler_Throws()
+    {
+        var set = new ObservableHashSet<int> { 1, 2, 3 };
+        set.CollectionChanged += (_, _) => set.IntersectWith(new[] { 1 });
+
+        Action act = () => set.Add(4);
+
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    #endregion
+
     private record Person(string Name, int Age);
 }

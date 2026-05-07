@@ -1,0 +1,277 @@
+#nullable enable
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.Add(TKey key, TValue value) -> void
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.BoundedDictionary(int capacity, System.Collections.Generic.IEqualityComparer<TKey>? comparer = null, Omni.Collections.Core.Security.SecureHashOptions? hashOptions = null) -> void
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.Capacity.get -> int
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.Clear() -> void
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.ContainsKey(TKey key) -> bool
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.Count.get -> int
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.Dispose() -> void
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.Entry
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.Entry.Entry() -> void
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.Entry.HashCode -> int
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.Entry.IsOccupied -> bool
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.Entry.Key -> TKey
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.Entry.NextIndex -> int
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.Entry.Timestamp -> long
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.Entry.Value -> TValue
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.Enumerator
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.Enumerator.Current.get -> System.Collections.Generic.KeyValuePair<TKey, TValue>
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.Enumerator.Dispose() -> void
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.Enumerator.Enumerator() -> void
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.Enumerator.MoveNext() -> bool
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.Enumerator.Reset() -> void
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.GetEnumerator() -> Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.Enumerator
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.GetNewest() -> System.Collections.Generic.KeyValuePair<TKey, TValue>
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.GetOldest() -> System.Collections.Generic.KeyValuePair<TKey, TValue>
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.GetRecentWindow(int windowSize) -> System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, TValue>>!
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.GetStatistics() -> (int oldestIndex, int newestIndex, double averageAge)
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.IsEmpty.get -> bool
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.IsFull.get -> bool
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.Remove(TKey key) -> bool
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.TryGetValue(TKey key, out TValue value) -> bool
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.this[TKey key].get -> TValue
+Omni.Collections.Hybrid.BoundedDictionary<TKey, TValue>.this[TKey key].set -> void
+Omni.Collections.Hybrid.ConcurrentLinkedDictionary<TKey, TValue>
+Omni.Collections.Hybrid.ConcurrentLinkedDictionary<TKey, TValue>.AddOrUpdate(TKey key, TValue value) -> void
+Omni.Collections.Hybrid.ConcurrentLinkedDictionary<TKey, TValue>.Clear() -> void
+Omni.Collections.Hybrid.ConcurrentLinkedDictionary<TKey, TValue>.ConcurrentLinkedDictionary() -> void
+Omni.Collections.Hybrid.ConcurrentLinkedDictionary<TKey, TValue>.ConcurrentLinkedDictionary(int capacity, Omni.Collections.Core.Time.IClock! clock) -> void
+Omni.Collections.Hybrid.ConcurrentLinkedDictionary<TKey, TValue>.ConcurrentLinkedDictionary(int capacity, Omni.Collections.Hybrid.LinkedDictionary.CapacityMode mode = Omni.Collections.Hybrid.LinkedDictionary.CapacityMode.Dynamic) -> void
+Omni.Collections.Hybrid.ConcurrentLinkedDictionary<TKey, TValue>.ContainsKey(TKey key) -> bool
+Omni.Collections.Hybrid.ConcurrentLinkedDictionary<TKey, TValue>.Count.get -> int
+Omni.Collections.Hybrid.ConcurrentLinkedDictionary<TKey, TValue>.Dispose() -> void
+Omni.Collections.Hybrid.ConcurrentLinkedDictionary<TKey, TValue>.GetEnumerator() -> System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<TKey, TValue>>!
+Omni.Collections.Hybrid.ConcurrentLinkedDictionary<TKey, TValue>.Mode.get -> Omni.Collections.Hybrid.LinkedDictionary.CapacityMode
+Omni.Collections.Hybrid.ConcurrentLinkedDictionary<TKey, TValue>.TryGetValue(TKey key, out TValue value) -> bool
+Omni.Collections.Hybrid.ConcurrentLinkedDictionary<TKey, TValue>.TryRemove(TKey key, out TValue value) -> bool
+Omni.Collections.Hybrid.ConcurrentLinkedDictionary<TKey, TValue>.this[TKey key].get -> TValue
+Omni.Collections.Hybrid.ConcurrentLinkedDictionary<TKey, TValue>.this[TKey key].set -> void
+Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>
+Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>.AddOrUpdate(TKey key, TValue value, bool incrementCount = true) -> void
+Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>.Clear() -> void
+Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>.ContainsKey(TKey key) -> bool
+Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>.Count.get -> int
+Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>.CounterDictionary() -> void
+Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>.CounterDictionary(int capacity, bool trackWrites = true) -> void
+Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>.CounterDictionary(int capacity, bool trackWrites, float loadFactor, System.Collections.Generic.IEqualityComparer<TKey>? comparer, Omni.Collections.Core.Security.SecureHashOptions? hashOptions = null) -> void
+Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>.Dispose() -> void
+Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>.Enumerator
+Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>.Enumerator.Current.get -> System.Collections.Generic.KeyValuePair<TKey, (TValue value, long count)>
+Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>.Enumerator.Dispose() -> void
+Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>.Enumerator.Enumerator() -> void
+Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>.Enumerator.MoveNext() -> bool
+Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>.Enumerator.Reset() -> void
+Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>.GetAccessCount(TKey key) -> long
+Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>.GetEnumerator() -> Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>.Enumerator
+Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>.GetItemsWithCount(long count) -> System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, TValue>>!
+Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>.GetLeastFrequent(int count = 1) -> System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, (TValue value, long count)>>!
+Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>.GetMostFrequent(int count = 1) -> System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, (TValue value, long count)>>!
+Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>.GetStatistics() -> (double averageAccessCount, long minCount, long maxCount, double standardDeviation)
+Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>.IncrementCount(TKey key) -> bool
+Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>.Remove(TKey key) -> bool
+Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>.RemoveLeastFrequent() -> System.Collections.Generic.KeyValuePair<TKey, TValue>
+Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>.TotalAccessCount.get -> long
+Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>.TrackWrites.get -> bool
+Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>.TryGetValue(TKey key, out TValue value) -> bool
+Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>.TryPeek(TKey key, out TValue value, out long accessCount) -> bool
+Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>.this[TKey key].get -> TValue
+Omni.Collections.Hybrid.CounterDictionary<TKey, TValue>.this[TKey key].set -> void
+Omni.Collections.Hybrid.DequeDictionary<TKey, TValue>
+Omni.Collections.Hybrid.DequeDictionary<TKey, TValue>.Clear() -> void
+Omni.Collections.Hybrid.DequeDictionary<TKey, TValue>.ContainsKey(TKey key) -> bool
+Omni.Collections.Hybrid.DequeDictionary<TKey, TValue>.Count.get -> int
+Omni.Collections.Hybrid.DequeDictionary<TKey, TValue>.DequeDictionary() -> void
+Omni.Collections.Hybrid.DequeDictionary<TKey, TValue>.DequeDictionary(int capacity) -> void
+Omni.Collections.Hybrid.DequeDictionary<TKey, TValue>.DequeDictionary(int capacity, float loadFactor, System.Collections.Generic.IEqualityComparer<TKey>? comparer = null, Omni.Collections.Core.Security.SecureHashOptions? hashOptions = null) -> void
+Omni.Collections.Hybrid.DequeDictionary<TKey, TValue>.Dispose() -> void
+Omni.Collections.Hybrid.DequeDictionary<TKey, TValue>.GetEnumerator() -> System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<TKey, TValue>>!
+Omni.Collections.Hybrid.DequeDictionary<TKey, TValue>.IsEmpty.get -> bool
+Omni.Collections.Hybrid.DequeDictionary<TKey, TValue>.MoveToBack(TKey key) -> bool
+Omni.Collections.Hybrid.DequeDictionary<TKey, TValue>.MoveToFront(TKey key) -> bool
+Omni.Collections.Hybrid.DequeDictionary<TKey, TValue>.PeekBack() -> System.Collections.Generic.KeyValuePair<TKey, TValue>
+Omni.Collections.Hybrid.DequeDictionary<TKey, TValue>.PeekFront() -> System.Collections.Generic.KeyValuePair<TKey, TValue>
+Omni.Collections.Hybrid.DequeDictionary<TKey, TValue>.PopBack() -> System.Collections.Generic.KeyValuePair<TKey, TValue>
+Omni.Collections.Hybrid.DequeDictionary<TKey, TValue>.PopFront() -> System.Collections.Generic.KeyValuePair<TKey, TValue>
+Omni.Collections.Hybrid.DequeDictionary<TKey, TValue>.PushBack(TKey key, TValue value) -> void
+Omni.Collections.Hybrid.DequeDictionary<TKey, TValue>.PushFront(TKey key, TValue value) -> void
+Omni.Collections.Hybrid.DequeDictionary<TKey, TValue>.Remove(TKey key) -> bool
+Omni.Collections.Hybrid.DequeDictionary<TKey, TValue>.Reverse() -> System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, TValue>>!
+Omni.Collections.Hybrid.DequeDictionary<TKey, TValue>.ToArray() -> System.Collections.Generic.KeyValuePair<TKey, TValue>[]!
+Omni.Collections.Hybrid.DequeDictionary<TKey, TValue>.TryGetValue(TKey key, out TValue value) -> bool
+Omni.Collections.Hybrid.DequeDictionary<TKey, TValue>.TryPopBack(out System.Collections.Generic.KeyValuePair<TKey, TValue> result) -> bool
+Omni.Collections.Hybrid.DequeDictionary<TKey, TValue>.TryPopFront(out System.Collections.Generic.KeyValuePair<TKey, TValue> result) -> bool
+Omni.Collections.Hybrid.DequeDictionary<TKey, TValue>.this[TKey key].get -> TValue
+Omni.Collections.Hybrid.DequeDictionary<TKey, TValue>.this[TKey key].set -> void
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.Add(TKey key, TValue value) -> void
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.AddBidirectionalEdge(TKey from, TKey to, double weight = 1, object? metadata = null) -> bool
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.AddEdge(TKey from, TKey to, double weight = 1, object? metadata = null) -> bool
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.ClearCache() -> void
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.ContainsKey(TKey key) -> bool
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.Count.get -> int
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.Dispose() -> void
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.Enumerator
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.Enumerator.Current.get -> System.Collections.Generic.KeyValuePair<TKey, TValue>
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.Enumerator.Dispose() -> void
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.Enumerator.Enumerator() -> void
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.Enumerator.MoveNext() -> bool
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.Enumerator.Reset() -> void
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.FindNodesWithinDistance(TKey source, double maxDistance) -> System.Collections.Generic.IEnumerable<(TKey Key, double Distance)>!
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.FindShortestPath(TKey start, TKey end) -> Omni.Collections.Hybrid.GraphDictionary.GraphPath<TKey>?
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.FindStronglyConnectedComponents() -> System.Collections.Generic.IEnumerable<System.Collections.Generic.IEnumerable<TKey>!>!
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.GetChunkedEnumerator(int chunkSize = 1000) -> System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, TValue>>!
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.GetClusteringCoefficient(TKey key) -> double
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.GetEnumerator() -> Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.Enumerator
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.GetNeighbors(TKey key) -> System.Collections.Generic.IEnumerable<TKey>!
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.GetNeighborsWithEdgeInfo(TKey key) -> System.Collections.Generic.IEnumerable<(TKey Key, double Weight, object? Metadata)>!
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.GetStatistics() -> Omni.Collections.Hybrid.GraphDictionary.GraphStatistics!
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.GetUnsafeEnumerator() -> System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, TValue>>!
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.GraphDictionary() -> void
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.GraphDictionary(int capacity) -> void
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.GraphDictionary(int capacity, Omni.Collections.Core.Time.IClock! clock) -> void
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.HasEdge(TKey from, TKey to) -> bool
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.Keys.get -> System.Collections.Generic.ICollection<TKey>!
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.Remove(TKey key) -> bool
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.RemoveEdge(TKey from, TKey to) -> bool
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.TryGetEdgeCreated(TKey from, TKey to, out System.DateTime created) -> bool
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.TryGetValue(TKey key, out TValue value) -> bool
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.Values.get -> System.Collections.Generic.ICollection<TValue>!
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.this[TKey key].get -> TValue
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.this[TKey key].set -> void
+Omni.Collections.Hybrid.GraphDictionary.GraphPath<TKey>
+Omni.Collections.Hybrid.GraphDictionary.GraphPath<TKey>.GraphPath(System.Collections.Generic.IEnumerable<TKey>! path, double totalWeight) -> void
+Omni.Collections.Hybrid.GraphDictionary.GraphPath<TKey>.Length.get -> int
+Omni.Collections.Hybrid.GraphDictionary.GraphPath<TKey>.Path.get -> System.Collections.Generic.IReadOnlyList<TKey>!
+Omni.Collections.Hybrid.GraphDictionary.GraphPath<TKey>.TotalWeight.get -> double
+Omni.Collections.Hybrid.GraphDictionary.GraphStatistics
+Omni.Collections.Hybrid.GraphDictionary.GraphStatistics.AverageDegree.get -> double
+Omni.Collections.Hybrid.GraphDictionary.GraphStatistics.AverageDegree.set -> void
+Omni.Collections.Hybrid.GraphDictionary.GraphStatistics.CacheHits.get -> int
+Omni.Collections.Hybrid.GraphDictionary.GraphStatistics.CacheHits.set -> void
+Omni.Collections.Hybrid.GraphDictionary.GraphStatistics.Density.get -> double
+Omni.Collections.Hybrid.GraphDictionary.GraphStatistics.Density.set -> void
+Omni.Collections.Hybrid.GraphDictionary.GraphStatistics.EdgeCount.get -> long
+Omni.Collections.Hybrid.GraphDictionary.GraphStatistics.EdgeCount.set -> void
+Omni.Collections.Hybrid.GraphDictionary.GraphStatistics.GraphStatistics() -> void
+Omni.Collections.Hybrid.GraphDictionary.GraphStatistics.LookupCount.get -> long
+Omni.Collections.Hybrid.GraphDictionary.GraphStatistics.LookupCount.set -> void
+Omni.Collections.Hybrid.GraphDictionary.GraphStatistics.MaxDegree.get -> int
+Omni.Collections.Hybrid.GraphDictionary.GraphStatistics.MaxDegree.set -> void
+Omni.Collections.Hybrid.GraphDictionary.GraphStatistics.MemoryUsageBytes.get -> long
+Omni.Collections.Hybrid.GraphDictionary.GraphStatistics.MemoryUsageBytes.set -> void
+Omni.Collections.Hybrid.GraphDictionary.GraphStatistics.MinDegree.get -> int
+Omni.Collections.Hybrid.GraphDictionary.GraphStatistics.MinDegree.set -> void
+Omni.Collections.Hybrid.GraphDictionary.GraphStatistics.NodeCount.get -> int
+Omni.Collections.Hybrid.GraphDictionary.GraphStatistics.NodeCount.set -> void
+Omni.Collections.Hybrid.GraphDictionary.GraphStatistics.TraversalCount.get -> long
+Omni.Collections.Hybrid.GraphDictionary.GraphStatistics.TraversalCount.set -> void
+Omni.Collections.Hybrid.HybridUtils
+Omni.Collections.Hybrid.LinkedDictionary.CapacityMode
+Omni.Collections.Hybrid.LinkedDictionary.CapacityMode.Dynamic = 1 -> Omni.Collections.Hybrid.LinkedDictionary.CapacityMode
+Omni.Collections.Hybrid.LinkedDictionary.CapacityMode.Fixed = 0 -> Omni.Collections.Hybrid.LinkedDictionary.CapacityMode
+Omni.Collections.Hybrid.LinkedDictionary.LinkedDictionary<TKey, TValue>
+Omni.Collections.Hybrid.LinkedDictionary.LinkedDictionary<TKey, TValue>.AddOrUpdate(TKey key, TValue value) -> void
+Omni.Collections.Hybrid.LinkedDictionary.LinkedDictionary<TKey, TValue>.Clear() -> void
+Omni.Collections.Hybrid.LinkedDictionary.LinkedDictionary<TKey, TValue>.ContainsKey(TKey key) -> bool
+Omni.Collections.Hybrid.LinkedDictionary.LinkedDictionary<TKey, TValue>.Count.get -> int
+Omni.Collections.Hybrid.LinkedDictionary.LinkedDictionary<TKey, TValue>.Dispose() -> void
+Omni.Collections.Hybrid.LinkedDictionary.LinkedDictionary<TKey, TValue>.Enumerator
+Omni.Collections.Hybrid.LinkedDictionary.LinkedDictionary<TKey, TValue>.Enumerator.Current.get -> System.Collections.Generic.KeyValuePair<TKey, TValue>
+Omni.Collections.Hybrid.LinkedDictionary.LinkedDictionary<TKey, TValue>.Enumerator.Dispose() -> void
+Omni.Collections.Hybrid.LinkedDictionary.LinkedDictionary<TKey, TValue>.Enumerator.Enumerator() -> void
+Omni.Collections.Hybrid.LinkedDictionary.LinkedDictionary<TKey, TValue>.Enumerator.MoveNext() -> bool
+Omni.Collections.Hybrid.LinkedDictionary.LinkedDictionary<TKey, TValue>.Enumerator.Reset() -> void
+Omni.Collections.Hybrid.LinkedDictionary.LinkedDictionary<TKey, TValue>.GetEnumerator() -> Omni.Collections.Hybrid.LinkedDictionary.LinkedDictionary<TKey, TValue>.Enumerator
+Omni.Collections.Hybrid.LinkedDictionary.LinkedDictionary<TKey, TValue>.LinkedDictionary() -> void
+Omni.Collections.Hybrid.LinkedDictionary.LinkedDictionary<TKey, TValue>.LinkedDictionary(int capacity) -> void
+Omni.Collections.Hybrid.LinkedDictionary.LinkedDictionary<TKey, TValue>.LinkedDictionary(int capacity, Omni.Collections.Hybrid.LinkedDictionary.CapacityMode mode, float loadFactor = 0.75) -> void
+Omni.Collections.Hybrid.LinkedDictionary.LinkedDictionary<TKey, TValue>.LinkedDictionary(int capacity, Omni.Collections.Hybrid.LinkedDictionary.CapacityMode mode, float loadFactor, System.Collections.Generic.IEqualityComparer<TKey>? comparer, Omni.Collections.Core.Security.SecureHashOptions? hashOptions = null) -> void
+Omni.Collections.Hybrid.LinkedDictionary.LinkedDictionary<TKey, TValue>.Mode.get -> Omni.Collections.Hybrid.LinkedDictionary.CapacityMode
+Omni.Collections.Hybrid.LinkedDictionary.LinkedDictionary<TKey, TValue>.PeekLru() -> System.Collections.Generic.KeyValuePair<TKey, TValue>
+Omni.Collections.Hybrid.LinkedDictionary.LinkedDictionary<TKey, TValue>.PeekMru() -> System.Collections.Generic.KeyValuePair<TKey, TValue>
+Omni.Collections.Hybrid.LinkedDictionary.LinkedDictionary<TKey, TValue>.Remove(TKey key) -> bool
+Omni.Collections.Hybrid.LinkedDictionary.LinkedDictionary<TKey, TValue>.TryGetValue(TKey key, out TValue value) -> bool
+Omni.Collections.Hybrid.LinkedDictionary.LinkedDictionary<TKey, TValue>.this[TKey key].get -> TValue
+Omni.Collections.Hybrid.LinkedDictionary.LinkedDictionary<TKey, TValue>.this[TKey key].set -> void
+Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>
+Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.Add(TKey key, TValue value) -> void
+Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.Clear() -> void
+Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.Contains(TKey key, TValue value) -> bool
+Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.ContainsKey(TKey key) -> bool
+Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.Dispose() -> void
+Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.GetEnumerator() -> System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<TKey, System.Collections.Generic.IReadOnlyList<TValue>!>>!
+Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.GetValueCount(TKey key) -> int
+Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.KeyCount.get -> int
+Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.Keys.get -> System.Collections.Generic.IEnumerable<TKey>!
+Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.LinkedMultiMap() -> void
+Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.LinkedMultiMap(int capacity, Omni.Collections.Hybrid.LinkedDictionary.CapacityMode mode = Omni.Collections.Hybrid.LinkedDictionary.CapacityMode.Dynamic, bool allowDuplicateValues = true) -> void
+Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.LinkedMultiMap(int capacity, Omni.Collections.Hybrid.LinkedDictionary.CapacityMode mode, bool allowDuplicateValues, System.Collections.Generic.IEqualityComparer<TKey>? keyComparer, System.Collections.Generic.IEqualityComparer<TValue>? valueComparer, bool enableLruOptimization = false, Omni.Collections.Core.Security.SecureHashOptions? hashOptions = null) -> void
+Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.Remove(TKey key, TValue value) -> bool
+Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.RemoveKey(TKey key) -> bool
+Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.TotalValueCount.get -> int
+Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.TryGetValues(TKey key, out System.Collections.Generic.IReadOnlyList<TValue>! values) -> bool
+Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.this[TKey key].get -> System.Collections.Generic.IReadOnlyList<TValue>!
+Omni.Collections.Hybrid.PredictiveDictionary.PredictiveDictionary<TKey, TValue>
+Omni.Collections.Hybrid.PredictiveDictionary.PredictiveDictionary<TKey, TValue>.AddOrUpdate(TKey key, TValue value) -> void
+Omni.Collections.Hybrid.PredictiveDictionary.PredictiveDictionary<TKey, TValue>.Clear() -> void
+Omni.Collections.Hybrid.PredictiveDictionary.PredictiveDictionary<TKey, TValue>.Count.get -> int
+Omni.Collections.Hybrid.PredictiveDictionary.PredictiveDictionary<TKey, TValue>.Dispose() -> void
+Omni.Collections.Hybrid.PredictiveDictionary.PredictiveDictionary<TKey, TValue>.GetPredictions(TKey[]! contextKeys) -> System.Collections.Generic.IEnumerable<Omni.Collections.Hybrid.PredictiveDictionary.PredictiveDictionary<TKey, TValue>.PredictionResult>!
+Omni.Collections.Hybrid.PredictiveDictionary.PredictiveDictionary<TKey, TValue>.PatternCount.get -> int
+Omni.Collections.Hybrid.PredictiveDictionary.PredictiveDictionary<TKey, TValue>.PredictionResult
+Omni.Collections.Hybrid.PredictiveDictionary.PredictiveDictionary<TKey, TValue>.PredictionResult.PredictionResult() -> void
+Omni.Collections.Hybrid.PredictiveDictionary.PredictiveDictionary<TKey, TValue>.PredictionResult.PredictionResult(TKey key, double confidence, string! reason) -> void
+Omni.Collections.Hybrid.PredictiveDictionary.PredictiveDictionary<TKey, TValue>.PredictiveCacheCount.get -> int
+Omni.Collections.Hybrid.PredictiveDictionary.PredictiveDictionary<TKey, TValue>.PredictiveDictionary() -> void
+Omni.Collections.Hybrid.PredictiveDictionary.PredictiveDictionary<TKey, TValue>.PredictiveDictionary(int patternLength, int maxPatterns, int maxCacheSize, double confidenceThreshold) -> void
+Omni.Collections.Hybrid.PredictiveDictionary.PredictiveDictionary<TKey, TValue>.PrefetchLikely(TKey[]! contextKeys, System.Func<TKey, TValue>! valueFactory) -> int
+Omni.Collections.Hybrid.PredictiveDictionary.PredictiveDictionary<TKey, TValue>.Remove(TKey key) -> bool
+Omni.Collections.Hybrid.PredictiveDictionary.PredictiveDictionary<TKey, TValue>.TryGetValue(TKey key, out TValue value) -> bool
+Omni.Collections.Hybrid.PredictiveDictionary.PredictiveDictionary<TKey, TValue>.this[TKey key].get -> TValue
+Omni.Collections.Hybrid.PredictiveDictionary.PredictiveDictionary<TKey, TValue>.this[TKey key].set -> void
+Omni.Collections.Hybrid.QueueDictionary.EnumerationMode
+Omni.Collections.Hybrid.QueueDictionary.EnumerationMode.Cached = 2 -> Omni.Collections.Hybrid.QueueDictionary.EnumerationMode
+Omni.Collections.Hybrid.QueueDictionary.EnumerationMode.Fast = 0 -> Omni.Collections.Hybrid.QueueDictionary.EnumerationMode
+Omni.Collections.Hybrid.QueueDictionary.EnumerationMode.InsertionOrder = 1 -> Omni.Collections.Hybrid.QueueDictionary.EnumerationMode
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.Clear() -> void
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.ContainsKey(TKey key) -> bool
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.Count.get -> int
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.Dequeue() -> System.Collections.Generic.KeyValuePair<TKey, TValue>
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.Dispose() -> void
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.Enqueue(TKey key, TValue value) -> void
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.Enumerator
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.Enumerator.Current.get -> System.Collections.Generic.KeyValuePair<TKey, TValue>
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.Enumerator.Dispose() -> void
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.Enumerator.Enumerator() -> void
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.Enumerator.MoveNext() -> bool
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.Enumerator.Reset() -> void
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.FastEnumerator
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.FastEnumerator.Current.get -> System.Collections.Generic.KeyValuePair<TKey, TValue>
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.FastEnumerator.FastEnumerator() -> void
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.FastEnumerator.MoveNext() -> bool
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.GetEnumerator() -> System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<TKey, TValue>>!
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.GetEnumerator(Omni.Collections.Hybrid.QueueDictionary.EnumerationMode mode) -> System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<TKey, TValue>>!
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.GetFastEnumerator() -> Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.FastEnumerator
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.IsEmpty.get -> bool
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.PeekBack() -> System.Collections.Generic.KeyValuePair<TKey, TValue>
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.PeekFront() -> System.Collections.Generic.KeyValuePair<TKey, TValue>
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.QueueDictionary() -> void
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.QueueDictionary(int capacity) -> void
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.QueueDictionary(int capacity, float loadFactor, System.Collections.Generic.IEqualityComparer<TKey>? comparer = null, Omni.Collections.Core.Security.SecureHashOptions? hashOptions = null) -> void
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.Remove(TKey key) -> bool
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.ToArray() -> System.Collections.Generic.KeyValuePair<TKey, TValue>[]!
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.TryDequeue(out System.Collections.Generic.KeyValuePair<TKey, TValue> result) -> bool
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.TryGetValue(TKey key, out TValue value) -> bool
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.WarmEnumerationCache() -> void
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.this[TKey key].get -> TValue
+Omni.Collections.Hybrid.QueueDictionary.QueueDictionary<TKey, TValue>.this[TKey key].set -> void
+override Omni.Collections.Hybrid.GraphDictionary.GraphPath<TKey>.ToString() -> string!
+override Omni.Collections.Hybrid.GraphDictionary.GraphStatistics.ToString() -> string!
+readonly Omni.Collections.Hybrid.PredictiveDictionary.PredictiveDictionary<TKey, TValue>.PredictionResult.Confidence -> double
+readonly Omni.Collections.Hybrid.PredictiveDictionary.PredictiveDictionary<TKey, TValue>.PredictionResult.Key -> TKey
+readonly Omni.Collections.Hybrid.PredictiveDictionary.PredictiveDictionary<TKey, TValue>.PredictionResult.Reason -> string!
+static Omni.Collections.Hybrid.ConcurrentLinkedDictionary<TKey, TValue>.CreateWithoutPooling(int capacity = 1024, Omni.Collections.Hybrid.LinkedDictionary.CapacityMode mode = Omni.Collections.Hybrid.LinkedDictionary.CapacityMode.Dynamic, System.Collections.Generic.IEqualityComparer<TKey>? comparer = null, Omni.Collections.Core.Security.SecureHashOptions? hashOptions = null) -> Omni.Collections.Hybrid.ConcurrentLinkedDictionary<TKey, TValue>!
+static Omni.Collections.Hybrid.HybridUtils.GetNextPowerOfTwo(int n) -> int
+static Omni.Collections.Hybrid.HybridUtils.GetPrime(int min) -> int

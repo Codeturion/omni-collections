@@ -1,0 +1,236 @@
+#nullable enable
+Omni.Collections.Probabilistic.BloomFilter<T>
+Omni.Collections.Probabilistic.BloomFilter<T>.Add(T item) -> void
+Omni.Collections.Probabilistic.BloomFilter<T>.AddRange(System.ReadOnlySpan<T> items) -> void
+Omni.Collections.Probabilistic.BloomFilter<T>.BitCount.get -> int
+Omni.Collections.Probabilistic.BloomFilter<T>.BloomFilter(int expectedItems, double falsePositiveRate = 0.01) -> void
+Omni.Collections.Probabilistic.BloomFilter<T>.BloomFilter(int expectedItems, double falsePositiveRate, Omni.Collections.Core.Hashing.IHasher<T>! hasher) -> void
+Omni.Collections.Probabilistic.BloomFilter<T>.Clear() -> void
+Omni.Collections.Probabilistic.BloomFilter<T>.Contains(T item) -> bool
+Omni.Collections.Probabilistic.BloomFilter<T>.Count.get -> int
+Omni.Collections.Probabilistic.BloomFilter<T>.Dispose() -> void
+Omni.Collections.Probabilistic.BloomFilter<T>.EstimateItemCount() -> long
+Omni.Collections.Probabilistic.BloomFilter<T>.FalsePositiveRate.get -> double
+Omni.Collections.Probabilistic.BloomFilter<T>.GetActualFalsePositiveRate() -> double
+Omni.Collections.Probabilistic.BloomFilter<T>.GetFillRatio() -> double
+Omni.Collections.Probabilistic.BloomFilter<T>.GetMemoryUsage() -> long
+Omni.Collections.Probabilistic.BloomFilter<T>.GetStats() -> Omni.Collections.Probabilistic.BloomFilterStats
+Omni.Collections.Probabilistic.BloomFilter<T>.HashFunctionCount.get -> int
+Omni.Collections.Probabilistic.BloomFilter<T>.Union(Omni.Collections.Probabilistic.BloomFilter<T>! other) -> void
+Omni.Collections.Probabilistic.BloomFilterStats
+Omni.Collections.Probabilistic.BloomFilterStats.ActualFalsePositiveRate.get -> double
+Omni.Collections.Probabilistic.BloomFilterStats.ActualFalsePositiveRate.init -> void
+Omni.Collections.Probabilistic.BloomFilterStats.BitCount.get -> int
+Omni.Collections.Probabilistic.BloomFilterStats.BitCount.init -> void
+Omni.Collections.Probabilistic.BloomFilterStats.BloomFilterStats() -> void
+Omni.Collections.Probabilistic.BloomFilterStats.DesignedFalsePositiveRate.get -> double
+Omni.Collections.Probabilistic.BloomFilterStats.DesignedFalsePositiveRate.init -> void
+Omni.Collections.Probabilistic.BloomFilterStats.FillRatio.get -> double
+Omni.Collections.Probabilistic.BloomFilterStats.FillRatio.init -> void
+Omni.Collections.Probabilistic.BloomFilterStats.HashFunctionCount.get -> int
+Omni.Collections.Probabilistic.BloomFilterStats.HashFunctionCount.init -> void
+Omni.Collections.Probabilistic.BloomFilterStats.ItemCount.get -> int
+Omni.Collections.Probabilistic.BloomFilterStats.ItemCount.init -> void
+Omni.Collections.Probabilistic.CountMinSketch<T>
+Omni.Collections.Probabilistic.CountMinSketch<T>.Add(T item) -> void
+Omni.Collections.Probabilistic.CountMinSketch<T>.Add(T item, uint count) -> void
+Omni.Collections.Probabilistic.CountMinSketch<T>.Clear() -> void
+Omni.Collections.Probabilistic.CountMinSketch<T>.CountMinSketch(double maxError, double confidence = 0.99) -> void
+Omni.Collections.Probabilistic.CountMinSketch<T>.CountMinSketch(double maxError, double confidence, Omni.Collections.Core.Hashing.IHasher<T>! hasher, ulong seed = 0) -> void
+Omni.Collections.Probabilistic.CountMinSketch<T>.CountMinSketch(int width = 1024, int depth = 4) -> void
+Omni.Collections.Probabilistic.CountMinSketch<T>.CountMinSketch(int width, int depth, Omni.Collections.Core.Hashing.IHasher<T>! hasher, ulong seed = 0) -> void
+Omni.Collections.Probabilistic.CountMinSketch<T>.Depth.get -> int
+Omni.Collections.Probabilistic.CountMinSketch<T>.EstimateCount(T item) -> uint
+Omni.Collections.Probabilistic.CountMinSketch<T>.EstimateFrequency(T item) -> double
+Omni.Collections.Probabilistic.CountMinSketch<T>.GetMemoryUsage() -> long
+Omni.Collections.Probabilistic.CountMinSketch<T>.GetStats() -> Omni.Collections.Probabilistic.CountMinSketchStats
+Omni.Collections.Probabilistic.CountMinSketch<T>.IsHeavyHitter(T item, double threshold) -> bool
+Omni.Collections.Probabilistic.CountMinSketch<T>.MaxError.get -> double
+Omni.Collections.Probabilistic.CountMinSketch<T>.Merge(Omni.Collections.Probabilistic.CountMinSketch<T>! other) -> void
+Omni.Collections.Probabilistic.CountMinSketch<T>.Scale(double factor) -> void
+Omni.Collections.Probabilistic.CountMinSketch<T>.TotalCount.get -> long
+Omni.Collections.Probabilistic.CountMinSketch<T>.Width.get -> int
+Omni.Collections.Probabilistic.CountMinSketchStats
+Omni.Collections.Probabilistic.CountMinSketchStats.AverageCellValue.get -> double
+Omni.Collections.Probabilistic.CountMinSketchStats.AverageCellValue.init -> void
+Omni.Collections.Probabilistic.CountMinSketchStats.CountMinSketchStats() -> void
+Omni.Collections.Probabilistic.CountMinSketchStats.FillRatio.get -> double
+Omni.Collections.Probabilistic.CountMinSketchStats.FillRatio.init -> void
+Omni.Collections.Probabilistic.CountMinSketchStats.MaxCellValue.get -> uint
+Omni.Collections.Probabilistic.CountMinSketchStats.MaxCellValue.init -> void
+Omni.Collections.Probabilistic.CountMinSketchStats.MinCellValue.get -> uint
+Omni.Collections.Probabilistic.CountMinSketchStats.MinCellValue.init -> void
+Omni.Collections.Probabilistic.CountMinSketchStats.NonZeroCells.get -> int
+Omni.Collections.Probabilistic.CountMinSketchStats.NonZeroCells.init -> void
+Omni.Collections.Probabilistic.CountMinSketchStats.TheoreticalMaxError.get -> double
+Omni.Collections.Probabilistic.CountMinSketchStats.TheoreticalMaxError.init -> void
+Omni.Collections.Probabilistic.CountMinSketchStats.TotalCells.get -> int
+Omni.Collections.Probabilistic.CountMinSketchStats.TotalCells.init -> void
+Omni.Collections.Probabilistic.CountMinSketchStats.TotalItems.get -> long
+Omni.Collections.Probabilistic.CountMinSketchStats.TotalItems.init -> void
+Omni.Collections.Probabilistic.Digest
+Omni.Collections.Probabilistic.Digest.Add(double value) -> void
+Omni.Collections.Probabilistic.Digest.Add(double value, double weight = 1) -> void
+Omni.Collections.Probabilistic.Digest.AddRange(System.Collections.Generic.IEnumerable<double>! values) -> void
+Omni.Collections.Probabilistic.Digest.Cdf(double x) -> double
+Omni.Collections.Probabilistic.Digest.Clear() -> void
+Omni.Collections.Probabilistic.Digest.Clone() -> Omni.Collections.Probabilistic.Digest!
+Omni.Collections.Probabilistic.Digest.ClusterCount.get -> int
+Omni.Collections.Probabilistic.Digest.Compress() -> void
+Omni.Collections.Probabilistic.Digest.Count.get -> double
+Omni.Collections.Probabilistic.Digest.Digest(double compression = 100) -> void
+Omni.Collections.Probabilistic.Digest.EstimatedMemoryUsage.get -> long
+Omni.Collections.Probabilistic.Digest.Max.get -> double
+Omni.Collections.Probabilistic.Digest.Merge(Omni.Collections.Probabilistic.Digest! other) -> void
+Omni.Collections.Probabilistic.Digest.Min.get -> double
+Omni.Collections.Probabilistic.Digest.Percentile(double p) -> double
+Omni.Collections.Probabilistic.Digest.Quantile(double q) -> double
+Omni.Collections.Probabilistic.DigestAnalyticsResult
+Omni.Collections.Probabilistic.DigestAnalyticsResult.CompressionRatio.get -> double
+Omni.Collections.Probabilistic.DigestAnalyticsResult.CompressionRatio.set -> void
+Omni.Collections.Probabilistic.DigestAnalyticsResult.Count.get -> double
+Omni.Collections.Probabilistic.DigestAnalyticsResult.Count.set -> void
+Omni.Collections.Probabilistic.DigestAnalyticsResult.DigestAnalyticsResult() -> void
+Omni.Collections.Probabilistic.DigestAnalyticsResult.DigestVersion.get -> long
+Omni.Collections.Probabilistic.DigestAnalyticsResult.DigestVersion.set -> void
+Omni.Collections.Probabilistic.DigestAnalyticsResult.EstimatedMemoryUsage.get -> long
+Omni.Collections.Probabilistic.DigestAnalyticsResult.EstimatedMemoryUsage.set -> void
+Omni.Collections.Probabilistic.DigestAnalyticsResult.IsP95Above(double threshold) -> bool
+Omni.Collections.Probabilistic.DigestAnalyticsResult.IsP99Above(double threshold) -> bool
+Omni.Collections.Probabilistic.DigestAnalyticsResult.Max.get -> double
+Omni.Collections.Probabilistic.DigestAnalyticsResult.Max.set -> void
+Omni.Collections.Probabilistic.DigestAnalyticsResult.Min.get -> double
+Omni.Collections.Probabilistic.DigestAnalyticsResult.Min.set -> void
+Omni.Collections.Probabilistic.DigestAnalyticsResult.P50.get -> double
+Omni.Collections.Probabilistic.DigestAnalyticsResult.P50.set -> void
+Omni.Collections.Probabilistic.DigestAnalyticsResult.P75.get -> double
+Omni.Collections.Probabilistic.DigestAnalyticsResult.P75.set -> void
+Omni.Collections.Probabilistic.DigestAnalyticsResult.P90.get -> double
+Omni.Collections.Probabilistic.DigestAnalyticsResult.P90.set -> void
+Omni.Collections.Probabilistic.DigestAnalyticsResult.P95.get -> double
+Omni.Collections.Probabilistic.DigestAnalyticsResult.P95.set -> void
+Omni.Collections.Probabilistic.DigestAnalyticsResult.P99.get -> double
+Omni.Collections.Probabilistic.DigestAnalyticsResult.P99.set -> void
+Omni.Collections.Probabilistic.DigestAnalyticsResult.P999.get -> double
+Omni.Collections.Probabilistic.DigestAnalyticsResult.P999.set -> void
+Omni.Collections.Probabilistic.DigestAnalyticsResult.RatePerSecond.get -> double
+Omni.Collections.Probabilistic.DigestAnalyticsResult.Timestamp.get -> long
+Omni.Collections.Probabilistic.DigestAnalyticsResult.Timestamp.set -> void
+Omni.Collections.Probabilistic.DigestAnalyticsResult.TotalProcessed.get -> long
+Omni.Collections.Probabilistic.DigestAnalyticsResult.TotalProcessed.set -> void
+Omni.Collections.Probabilistic.DigestAnalyticsResult.WindowSizeMs.get -> long
+Omni.Collections.Probabilistic.DigestAnalyticsResult.WindowSizeMs.set -> void
+Omni.Collections.Probabilistic.DigestStreamingAnalytics<T>
+Omni.Collections.Probabilistic.DigestStreamingAnalytics<T>.Add(T item, long? timestamp = null) -> void
+Omni.Collections.Probabilistic.DigestStreamingAnalytics<T>.AddRange(System.Collections.Generic.IEnumerable<T>! items, long? timestamp = null) -> void
+Omni.Collections.Probabilistic.DigestStreamingAnalytics<T>.Clear() -> void
+Omni.Collections.Probabilistic.DigestStreamingAnalytics<T>.DigestStreamingAnalytics(System.TimeSpan windowSize, System.Func<T, double>! valueExtractor, Omni.Collections.Core.Time.IClock! clock, double compression = 100) -> void
+Omni.Collections.Probabilistic.DigestStreamingAnalytics<T>.DigestStreamingAnalytics(System.TimeSpan windowSize, System.Func<T, double>! valueExtractor, double compression = 100) -> void
+Omni.Collections.Probabilistic.DigestStreamingAnalytics<T>.Dispose() -> void
+Omni.Collections.Probabilistic.DigestStreamingAnalytics<T>.EstimatedMemoryUsage.get -> long
+Omni.Collections.Probabilistic.DigestStreamingAnalytics<T>.GetAnalytics() -> Omni.Collections.Probabilistic.DigestAnalyticsResult!
+Omni.Collections.Probabilistic.DigestStreamingAnalytics<T>.GetDpsAnalytics() -> Omni.Collections.Probabilistic.DpsAnalyticsResult!
+Omni.Collections.Probabilistic.DigestStreamingAnalytics<T>.GetPercentile(double percentile) -> double
+Omni.Collections.Probabilistic.DigestStreamingAnalytics<T>.GetPercentiles(params double[]! percentiles) -> System.Collections.Generic.Dictionary<double, double>!
+Omni.Collections.Probabilistic.DigestStreamingAnalytics<T>.GetRateAnalytics() -> Omni.Collections.Probabilistic.RateAnalytics!
+Omni.Collections.Probabilistic.DigestStreamingAnalytics<T>.Merge(Omni.Collections.Probabilistic.DigestStreamingAnalytics<T>! other) -> void
+Omni.Collections.Probabilistic.DigestStreamingAnalytics<T>.TotalProcessed.get -> long
+Omni.Collections.Probabilistic.DigestStreamingAnalytics<T>.WindowCount.get -> double
+Omni.Collections.Probabilistic.DigestStreamingAnalytics<T>.WindowSize.get -> System.TimeSpan
+Omni.Collections.Probabilistic.DigestStreamingAnalyticsExtensions
+Omni.Collections.Probabilistic.DpsAnalyticsResult
+Omni.Collections.Probabilistic.DpsAnalyticsResult.AverageDps.get -> double
+Omni.Collections.Probabilistic.DpsAnalyticsResult.AverageDps.set -> void
+Omni.Collections.Probabilistic.DpsAnalyticsResult.Count.get -> double
+Omni.Collections.Probabilistic.DpsAnalyticsResult.Count.set -> void
+Omni.Collections.Probabilistic.DpsAnalyticsResult.DpsAnalyticsResult() -> void
+Omni.Collections.Probabilistic.DpsAnalyticsResult.MaxDps.get -> double
+Omni.Collections.Probabilistic.DpsAnalyticsResult.MaxDps.set -> void
+Omni.Collections.Probabilistic.DpsAnalyticsResult.P95Dps.get -> double
+Omni.Collections.Probabilistic.DpsAnalyticsResult.P95Dps.set -> void
+Omni.Collections.Probabilistic.DpsAnalyticsResult.P99Dps.get -> double
+Omni.Collections.Probabilistic.DpsAnalyticsResult.P99Dps.set -> void
+Omni.Collections.Probabilistic.DpsAnalyticsResult.Timestamp.get -> long
+Omni.Collections.Probabilistic.DpsAnalyticsResult.Timestamp.set -> void
+Omni.Collections.Probabilistic.HyperLogLog<T>
+Omni.Collections.Probabilistic.HyperLogLog<T>.Add(T item) -> void
+Omni.Collections.Probabilistic.HyperLogLog<T>.AddRange(System.ReadOnlySpan<T> items) -> void
+Omni.Collections.Probabilistic.HyperLogLog<T>.BucketBits.get -> int
+Omni.Collections.Probabilistic.HyperLogLog<T>.BucketCount.get -> int
+Omni.Collections.Probabilistic.HyperLogLog<T>.Clear() -> void
+Omni.Collections.Probabilistic.HyperLogLog<T>.Clone() -> Omni.Collections.Probabilistic.HyperLogLog<T>!
+Omni.Collections.Probabilistic.HyperLogLog<T>.EstimateCardinality() -> long
+Omni.Collections.Probabilistic.HyperLogLog<T>.EstimateIntersection(Omni.Collections.Probabilistic.HyperLogLog<T>! other) -> long
+Omni.Collections.Probabilistic.HyperLogLog<T>.EstimateUnion(Omni.Collections.Probabilistic.HyperLogLog<T>! other) -> long
+Omni.Collections.Probabilistic.HyperLogLog<T>.GetMemoryUsage() -> long
+Omni.Collections.Probabilistic.HyperLogLog<T>.GetRelativeError() -> double
+Omni.Collections.Probabilistic.HyperLogLog<T>.GetStats() -> Omni.Collections.Probabilistic.HyperLogLogStats
+Omni.Collections.Probabilistic.HyperLogLog<T>.HyperLogLog(int bucketBits = 12) -> void
+Omni.Collections.Probabilistic.HyperLogLog<T>.HyperLogLog(int bucketBits, Omni.Collections.Core.Hashing.IHasher<T>! hasher) -> void
+Omni.Collections.Probabilistic.HyperLogLog<T>.IsSmallRange.get -> bool
+Omni.Collections.Probabilistic.HyperLogLog<T>.Merge(Omni.Collections.Probabilistic.HyperLogLog<T>! other) -> void
+Omni.Collections.Probabilistic.HyperLogLog<T>.StandardError.get -> double
+Omni.Collections.Probabilistic.HyperLogLogStats
+Omni.Collections.Probabilistic.HyperLogLogStats.AverageBucketValue.get -> double
+Omni.Collections.Probabilistic.HyperLogLogStats.AverageBucketValue.init -> void
+Omni.Collections.Probabilistic.HyperLogLogStats.BucketCount.get -> int
+Omni.Collections.Probabilistic.HyperLogLogStats.BucketCount.init -> void
+Omni.Collections.Probabilistic.HyperLogLogStats.EstimatedCardinality.get -> long
+Omni.Collections.Probabilistic.HyperLogLogStats.EstimatedCardinality.init -> void
+Omni.Collections.Probabilistic.HyperLogLogStats.FillRatio.get -> double
+Omni.Collections.Probabilistic.HyperLogLogStats.FillRatio.init -> void
+Omni.Collections.Probabilistic.HyperLogLogStats.HyperLogLogStats() -> void
+Omni.Collections.Probabilistic.HyperLogLogStats.IsSmallRange.get -> bool
+Omni.Collections.Probabilistic.HyperLogLogStats.IsSmallRange.init -> void
+Omni.Collections.Probabilistic.HyperLogLogStats.MaxBucketValue.get -> int
+Omni.Collections.Probabilistic.HyperLogLogStats.MaxBucketValue.init -> void
+Omni.Collections.Probabilistic.HyperLogLogStats.StandardError.get -> double
+Omni.Collections.Probabilistic.HyperLogLogStats.StandardError.init -> void
+Omni.Collections.Probabilistic.HyperLogLogStats.ZeroBuckets.get -> int
+Omni.Collections.Probabilistic.HyperLogLogStats.ZeroBuckets.init -> void
+Omni.Collections.Probabilistic.P2QuantileEstimator<T>
+Omni.Collections.Probabilistic.P2QuantileEstimator<T>.AccuracyEstimate.get -> double
+Omni.Collections.Probabilistic.P2QuantileEstimator<T>.Add(T value) -> void
+Omni.Collections.Probabilistic.P2QuantileEstimator<T>.Clear() -> void
+Omni.Collections.Probabilistic.P2QuantileEstimator<T>.Count.get -> long
+Omni.Collections.Probabilistic.P2QuantileEstimator<T>.GetPercentile(double percentile) -> T
+Omni.Collections.Probabilistic.P2QuantileEstimator<T>.GetPercentiles(double[]! percentiles) -> T[]!
+Omni.Collections.Probabilistic.P2QuantileEstimator<T>.GetStats() -> Omni.Collections.Probabilistic.P2QuantileEstimatorStats
+Omni.Collections.Probabilistic.P2QuantileEstimator<T>.MemoryUsage.get -> long
+Omni.Collections.Probabilistic.P2QuantileEstimator<T>.P2QuantileEstimator(double targetPercentile = 0.95) -> void
+Omni.Collections.Probabilistic.P2QuantileEstimator<T>.TargetPercentile.get -> double
+Omni.Collections.Probabilistic.P2QuantileEstimator<T>.ValidateAccuracy(T[]! exactData, double tolerance = 0.05) -> bool
+Omni.Collections.Probabilistic.P2QuantileEstimatorStats
+Omni.Collections.Probabilistic.P2QuantileEstimatorStats.AccuracyEstimate.get -> double
+Omni.Collections.Probabilistic.P2QuantileEstimatorStats.AccuracyEstimate.init -> void
+Omni.Collections.Probabilistic.P2QuantileEstimatorStats.Count.get -> int
+Omni.Collections.Probabilistic.P2QuantileEstimatorStats.Count.init -> void
+Omni.Collections.Probabilistic.P2QuantileEstimatorStats.MarkerPositions.get -> int[]!
+Omni.Collections.Probabilistic.P2QuantileEstimatorStats.MarkerPositions.init -> void
+Omni.Collections.Probabilistic.P2QuantileEstimatorStats.Markers.get -> System.Array!
+Omni.Collections.Probabilistic.P2QuantileEstimatorStats.Markers.init -> void
+Omni.Collections.Probabilistic.P2QuantileEstimatorStats.MemoryUsage.get -> long
+Omni.Collections.Probabilistic.P2QuantileEstimatorStats.MemoryUsage.init -> void
+Omni.Collections.Probabilistic.P2QuantileEstimatorStats.P2QuantileEstimatorStats() -> void
+Omni.Collections.Probabilistic.P2QuantileEstimatorStats.TargetPercentile.get -> double
+Omni.Collections.Probabilistic.P2QuantileEstimatorStats.TargetPercentile.init -> void
+Omni.Collections.Probabilistic.RateAnalytics
+Omni.Collections.Probabilistic.RateAnalytics.EventsPerHour.get -> double
+Omni.Collections.Probabilistic.RateAnalytics.EventsPerHour.set -> void
+Omni.Collections.Probabilistic.RateAnalytics.EventsPerMinute.get -> double
+Omni.Collections.Probabilistic.RateAnalytics.EventsPerMinute.set -> void
+Omni.Collections.Probabilistic.RateAnalytics.EventsPerSecond.get -> double
+Omni.Collections.Probabilistic.RateAnalytics.EventsPerSecond.set -> void
+Omni.Collections.Probabilistic.RateAnalytics.RateAnalytics() -> void
+Omni.Collections.Probabilistic.RateAnalytics.WindowCount.get -> double
+Omni.Collections.Probabilistic.RateAnalytics.WindowCount.set -> void
+Omni.Collections.Probabilistic.RateAnalytics.WindowSizeSeconds.get -> double
+Omni.Collections.Probabilistic.RateAnalytics.WindowSizeSeconds.set -> void
+static Omni.Collections.Probabilistic.BloomFilter<T>.CreateWithArrayPool(int expectedItems, double falsePositiveRate = 0.01) -> Omni.Collections.Probabilistic.BloomFilter<T>!
+static Omni.Collections.Probabilistic.BloomFilter<T>.CreateWithArrayPool(int expectedItems, double falsePositiveRate, Omni.Collections.Core.Hashing.IHasher<T>! hasher) -> Omni.Collections.Probabilistic.BloomFilter<T>!
+static Omni.Collections.Probabilistic.DigestStreamingAnalytics<T>.CreateNumeric(System.TimeSpan windowSize, Omni.Collections.Core.Time.IClock! clock, double compression = 100) -> Omni.Collections.Probabilistic.DigestStreamingAnalytics<double>!
+static Omni.Collections.Probabilistic.DigestStreamingAnalytics<T>.CreateNumeric(System.TimeSpan windowSize, double compression = 100) -> Omni.Collections.Probabilistic.DigestStreamingAnalytics<double>!
+static Omni.Collections.Probabilistic.DigestStreamingAnalyticsExtensions.CreateDpsAnalytics(System.TimeSpan windowSize, double compression = 100) -> Omni.Collections.Probabilistic.DigestStreamingAnalytics<double>!
+static Omni.Collections.Probabilistic.DigestStreamingAnalyticsExtensions.CreateFor<TNumeric>(System.TimeSpan windowSize, System.Func<TNumeric, double>! converter, double compression = 100) -> Omni.Collections.Probabilistic.DigestStreamingAnalytics<TNumeric>!
+static Omni.Collections.Probabilistic.DigestStreamingAnalyticsExtensions.CreateLatencyAnalytics(System.TimeSpan windowSize, double compression = 100) -> Omni.Collections.Probabilistic.DigestStreamingAnalytics<System.TimeSpan>!
+static Omni.Collections.Probabilistic.DigestStreamingAnalyticsExtensions.CreateScoreAnalytics<TPlayer>(System.TimeSpan windowSize, System.Func<TPlayer, double>! scoreExtractor, double compression = 100) -> Omni.Collections.Probabilistic.DigestStreamingAnalytics<TPlayer>!

@@ -15,6 +15,7 @@ namespace Omni.Collections.Spatial;
 public class SpatialHashGrid<T> : IDisposable where T : notnull
 {
     private const int SpatialThreshold = 5000;
+    private const float PositionEpsilon = 0.001f;
     private Dictionary<long, List<SpatialEntry<T>>>? _grid;
     private readonly float _cellSize;
     private readonly float _inverseCellSize;
@@ -187,7 +188,7 @@ public class SpatialHashGrid<T> : IDisposable where T : notnull
             for (int i = _linearList!.Count - 1; i >= 0; i--)
             {
                 SpatialEntry<T> entry = _linearList[i];
-                if (Math.Abs(entry.X - x) < 0.001f && Math.Abs(entry.Y - y) < 0.001f &&
+                if (Math.Abs(entry.X - x) < PositionEpsilon && Math.Abs(entry.Y - y) < PositionEpsilon &&
                     EqualityComparer<T>.Default.Equals(entry.Item, item))
                 {
                     _linearList.RemoveAt(i);
@@ -208,7 +209,7 @@ public class SpatialHashGrid<T> : IDisposable where T : notnull
             {
                 foreach (SpatialEntry<T> entry in cell)
                 {
-                    if (Math.Abs(entry.X - x) < 0.001f && Math.Abs(entry.Y - y) < 0.001f)
+                    if (Math.Abs(entry.X - x) < PositionEpsilon && Math.Abs(entry.Y - y) < PositionEpsilon)
                         yield return entry.Item;
                 }
             }
@@ -217,7 +218,7 @@ public class SpatialHashGrid<T> : IDisposable where T : notnull
         {
             foreach (SpatialEntry<T> entry in _linearList!)
             {
-                if (Math.Abs(entry.X - x) < 0.001f && Math.Abs(entry.Y - y) < 0.001f)
+                if (Math.Abs(entry.X - x) < PositionEpsilon && Math.Abs(entry.Y - y) < PositionEpsilon)
                     yield return entry.Item;
             }
         }
@@ -411,18 +412,28 @@ public class SpatialHashGrid<T> : IDisposable where T : notnull
     {
         if (_useSpatialMode)
         {
-            Span<int> cellCountsBuffer = stackalloc int[Math.Min(_grid!.Count, 1024)];
-            Span<int> cellCounts = _grid.Count <= 1024 ? cellCountsBuffer : new int[_grid.Count];
+            int cellCount = _grid!.Count;
+#if NET6_0_OR_GREATER
+            // Stack-allocate small grids to avoid heap churn; heap fallback for big ones.
+            // netstandard2.1 lacks Span<T>.Sort, so it always allocates the array.
+            Span<int> cellCounts = cellCount <= 1024 ? stackalloc int[cellCount] : new int[cellCount];
             int index = 0;
             foreach (List<SpatialEntry<T>> cell in _grid.Values)
                 cellCounts[index++] = cell.Count;
             cellCounts.Sort();
+#else
+            int[] cellCounts = new int[cellCount];
+            int index = 0;
+            foreach (List<SpatialEntry<T>> cell in _grid.Values)
+                cellCounts[index++] = cell.Count;
+            Array.Sort(cellCounts);
+#endif
             return new SpatialHashGridStats
             {
                 TotalObjects = _count,
-                OccupiedCells = _grid.Count,
-                AverageObjectsPerCell = _count > 0 ? (float)_count / _grid.Count : 0,
-                MaxObjectsPerCell = cellCounts.Length > 0 ? cellCounts[^1] : 0,
+                OccupiedCells = cellCount,
+                AverageObjectsPerCell = _count > 0 ? (float)_count / cellCount : 0,
+                MaxObjectsPerCell = cellCounts.Length > 0 ? cellCounts[cellCounts.Length - 1] : 0,
                 MedianObjectsPerCell = cellCounts.Length > 0 ? cellCounts[cellCounts.Length / 2] : 0
             };
         }

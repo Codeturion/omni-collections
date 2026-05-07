@@ -1,26 +1,27 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <LangVersion>latest</LangVersion>
-    <Nullable>enable</Nullable>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
-  </PropertyGroup>
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <PackageId>OmniCollections.Grid</PackageId>
-    <Version>1.0.1</Version>
-    <Authors>Codeturion</Authors>
     <Description>Grid data structures (BitGrid2D, LayeredGrid2D, HexGrid2D) for Omni.Collections</Description>
     <PackageTags>collections;grid;2d;hex;performance</PackageTags>
-    <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <RepositoryUrl>https://github.com/Codeturion/omni-collections</RepositoryUrl>
-    <PackageProjectUrl>https://github.com/Codeturion/omni-collections</PackageProjectUrl>
     <PackageReleaseNotes>Grid data structures: BitGrid2D, LayeredGrid2D, HexGrid2D</PackageReleaseNotes>
-    <IsPackable>true</IsPackable>
   </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
+    <Compile Remove="HexGrid/HexPathfinding.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <!-- Replace, don't append: the root PublicAPI.*.txt declares the netstandard2.1
+         API surface; on net8 we use the net8-extended surface that includes
+         HexPathfinding + the 2 net8-only HexGrid2D methods. Without these Remove
+         lines the analyzer would see the union of both surfaces and emit RS0017
+         on net8 (the root file claims nothing about the net8-only symbols). -->
+    <AdditionalFiles Remove="$(MSBuildProjectDirectory)\PublicAPI.Shipped.txt" />
+    <AdditionalFiles Remove="$(MSBuildProjectDirectory)\PublicAPI.Unshipped.txt" />
+    <AdditionalFiles Include="net8.0\PublicAPI.Shipped.txt" />
+    <AdditionalFiles Include="net8.0\PublicAPI.Unshipped.txt" Condition="Exists('net8.0\PublicAPI.Unshipped.txt')" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../Omni.Collections.Core/Omni.Collections.Core.csproj" />
