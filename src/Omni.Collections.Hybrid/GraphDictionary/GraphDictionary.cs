@@ -519,24 +519,29 @@ namespace Omni.Collections.Hybrid.GraphDictionary
             {
                 if (!_nodes.ContainsKey(source))
                     return [];
+                // Bounded Dijkstra: priority queue ordered by distance, settle each node once.
+                // The previous queue-based relaxation could re-enqueue nodes and produce wrong
+                // distances on weighted graphs because FIFO order does not respect distance.
                 var distances = new Dictionary<TKey, double> { [source] = 0 };
-                var queue = new Queue<TKey>();
-                queue.Enqueue(source);
+                var settled = new HashSet<TKey>();
+                var queue = new SortedSet<(double Distance, TKey Key)> { (0, source) };
                 while (queue.Count > 0)
                 {
-                    var current = queue.Dequeue();
-                    var currentDistance = distances[current];
-                    if (currentDistance >= maxDistance) continue;
+                    var (currentDistance, current) = queue.Min;
+                    queue.Remove(queue.Min);
+                    if (!settled.Add(current)) continue;
+                    if (currentDistance > maxDistance) break;
                     if (_nodes.TryGetValue(current, out var node) && node.Neighbors != null)
                     {
                         foreach (var (neighbor, edgeInfo) in node.Neighbors)
                         {
+                            if (settled.Contains(neighbor)) continue;
                             var newDistance = currentDistance + edgeInfo.Weight;
-                            if (newDistance <= maxDistance &&
-                                (!distances.ContainsKey(neighbor) || newDistance < distances[neighbor]))
+                            if (newDistance > maxDistance) continue;
+                            if (!distances.TryGetValue(neighbor, out var existing) || newDistance < existing)
                             {
                                 distances[neighbor] = newDistance;
-                                queue.Enqueue(neighbor);
+                                queue.Add((newDistance, neighbor));
                             }
                         }
                     }
