@@ -132,10 +132,42 @@ public sealed class Digest
     {
         if (other == null || other._count == 0)
             return;
-        foreach (var centroid in other._centroids)
+        // Linear merge: walk both centroid lists in lockstep (two-pointer) and
+        // build a sorted union in one pass. Previously Merge called Add per
+        // centroid; each Add does a List<T>.Insert that shifts O(c) elements,
+        // making Merge O(c1*c2) worst case. Linear merge is O(c1+c2), then
+        // Compress collapses adjacent centroids that fit under the scale
+        // function. Compress's EnsureSorted is a no-op because we build the
+        // merged list in sorted order.
+        EnsureSorted();
+        var thisCentroids = _centroids;
+        var otherCentroids = other._centroids;
+        if (other._needsSort)
         {
-            Add(centroid.Mean, centroid.Weight);
+            // Sort 'other' on its own copy so we don't mutate the caller's state.
+            otherCentroids = new List<Centroid>(other._centroids);
+            otherCentroids.Sort((a, b) => a.Mean.CompareTo(b.Mean));
         }
+        var merged = new List<Centroid>(thisCentroids.Count + otherCentroids.Count);
+        int i = 0, j = 0;
+        while (i < thisCentroids.Count && j < otherCentroids.Count)
+        {
+            if (thisCentroids[i].Mean <= otherCentroids[j].Mean)
+                merged.Add(thisCentroids[i++]);
+            else
+                merged.Add(otherCentroids[j++]);
+        }
+        while (i < thisCentroids.Count) merged.Add(thisCentroids[i++]);
+        while (j < otherCentroids.Count) merged.Add(otherCentroids[j++]);
+
+        _centroids.Clear();
+        _centroids.AddRange(merged);
+        _count += other._count;
+        if (other._min < _min) _min = other._min;
+        if (other._max > _max) _max = other._max;
+        _needsSort = false;
+        if (_centroids.Count > _compression)
+            Compress();
     }
 
     public Digest Clone()
