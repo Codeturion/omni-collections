@@ -8,9 +8,14 @@ using Omni.Collections.Core.Security;
 namespace Omni.Collections.Hybrid
 {
     /// <summary>
-    /// A multi-value dictionary that elegantly handles one-to-many relationships with preserved insertion order.
-    /// Achieves O(1) Add operations and O(m) value removal where m is values per key, through optimized linked node management.
-    /// Perfect for dependency graphs, event subscription systems, and tag-based indexing where multiple ordered
+    /// A multi-value dictionary where each key maps to an ordered list of values, with insertion order
+    /// preserved per key. Add is O(1) average; <see cref="this[TKey]"/> and <see cref="TryGetValues"/>
+    /// return a <see cref="NodeValueView"/> in O(1) (the view aliases the per-key value list — mutations
+    /// to the multimap after the view is obtained invalidate it; call the standard LINQ ToArray() for
+    /// a snapshot). Enumeration of the view is O(values per key); indexed access via <c>view[i]</c> is
+    /// O(i) since the per-key value list is singly linked — prefer <c>foreach</c> for sequential reads.
+    /// Read paths mutate LRU order: the accessed key moves to the front of the recency list. Suited to
+    /// dependency graphs, event subscription systems, and tag-based indexing where multiple ordered
     /// values per key are fundamental to the data model.
     /// </summary>
     public class LinkedMultiMap<TKey, TValue> : IEnumerable<KeyValuePair<TKey, LinkedMultiMap<TKey, TValue>.NodeValueView>>, IDisposable

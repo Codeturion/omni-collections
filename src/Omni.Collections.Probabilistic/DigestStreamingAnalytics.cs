@@ -9,10 +9,10 @@ namespace Omni.Collections.Probabilistic;
 
 /// <summary>
 /// A streaming percentile engine wrapping a <see cref="Digest"/> with a sliding time window. All public operations
-/// delegate to the underlying digest, so per-call cost is O(c) (linear in centroid count); a periodic cleanup pass
-/// rebuilds the digest from the retained value buffer in O(buffer) when the cleanup interval elapses. Suited to
-/// real-time dashboards, SLA monitoring, and per-window percentile analytics; for lifetime quantiles, use
-/// <see cref="Digest"/> directly without the windowing machinery.
+/// delegate to the underlying skip-list-backed digest, so per-call cost is O(log c) where c is the centroid count
+/// (bounded by compression × 2); a periodic cleanup pass rebuilds the digest from the retained value buffer in
+/// O(buffer) when the cleanup interval elapses. Suited to real-time dashboards, SLA monitoring, and per-window
+/// percentile analytics; for lifetime quantiles, use <see cref="Digest"/> directly without the windowing machinery.
 /// </summary>
 public class DigestStreamingAnalytics<T> : IDisposable
 {

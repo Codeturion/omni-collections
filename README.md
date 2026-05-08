@@ -225,12 +225,12 @@ K-dimensional tree for nearest-neighbor and range queries on multi-dimensional p
 
 | Operation | Time | Space |
 |---|---|---|
-| `Insert` | O(log N) avg amortized; periodic O(N log² N) rebuild every 64 inserts past N=1000 when height exceeds 2·log₂(N)+2 | O(1) |
+| `Insert` | O(log N) avg amortized; periodic O(N log N) rebuild every 64 inserts past N=1000 when height exceeds 2·log₂(N)+2 | O(1) |
 | `FindNearest` | O(log N) avg | O(1) |
 | `FindNearestK(k)` | O((log N + k) log k) avg | O(k) |
 | `FindNearestK(k)` (`List<T>` overload) | same — additionally allocates `BoundedPriorityQueue` + `List<T>` per call (use the `PooledList<T>` overload for alloc-free queries) | O(k) heap |
 | `RangeQuery` | O(N^(1−1/d) + k) where k = result size | O(k) |
-| `InsertRange(M items)` | O(M log N) for small batches; O((N+M) log²(N+M)) when batch ≥ N/2 (rebuild path) | O(M) |
+| `InsertRange(M items)` | O(M log N) for small batches; O((N+M) log(N+M)) avg when batch ≥ N/2 (rebuild path via Quickselect partition) | O(M) |
 | `Clear` | O(1) (orphans the tree; GC reclaims) | — |
 
 ```csharp
@@ -464,6 +464,7 @@ Vertex-keyed dictionary plus weighted directed edges. BFS shortest-path, distanc
 | `GetNeighbors(key)` | O(deg(key)) | O(deg) |
 | `Keys` / `Values` | O(N) — materializes a snapshot copy under read lock | O(N) |
 | `FindShortestPath` (weighted; reads `EdgeInfo.Weight`) | O((V+E) log V) — Dijkstra with sorted-set priority queue | O(V) |
+| `FindShortestUnweighted` (unweighted; ignores edge weights) | O(V + E) — BFS, returns the path with the fewest hops | O(V) |
 | `FindNodesWithinDistance` | O((V+E) log V) — bounded Dijkstra | O(V) |
 | `FindStronglyConnectedComponents` | O(V + E) | O(V) |
 | `GetClusteringCoefficient(key)` | O(deg(key)²) | O(1) |
@@ -486,8 +487,11 @@ Dictionary where each key maps to an *ordered* list of values. Append per key is
 | Operation | Time | Space |
 |---|---|---|
 | `Add(key, value)` | O(1) avg | O(1) |
-| `this[key]` (get) | O(values for this key) — *mutates LRU order*; allocates `TValue[]` per call | O(values for this key) |
-| `TryGetValues(key)` | O(values for this key) — *mutates LRU order*; allocates `TValue[]` per call | O(values for this key) |
+| `this[key]` (get) | O(1) — returns a `NodeValueView` aliasing the per-key value list; *mutates LRU order* | O(1) |
+| `TryGetValues(key)` | O(1) — same view shape; *mutates LRU order* | O(1) |
+| `NodeValueView.Count` | O(1) | — |
+| `NodeValueView` enumeration | O(values for this key) | O(1) |
+| `NodeValueView[i]` (indexer) | O(i) — per-key value list is singly linked; prefer `foreach` for sequential reads | O(1) |
 | `RemoveKey(key)` | O(1) avg — unlinks KeyNode; values reclaimed by GC | O(1) |
 | `Remove(key, value)` | O(values for that key) | O(1) |
 | `ContainsKey` | O(1) avg | O(1) |
@@ -496,13 +500,14 @@ Dictionary where each key maps to an *ordered* list of values. Append per key is
 | `Clear` | O(buckets) — zeroes bucket array; values reclaimed by GC | — |
 | Storage | — | O(keys + total values) |
 
-The returned `IReadOnlyList<TValue>` is a fresh array; for repeated positional access prefer iterating once. The per-key value list is singly linked, so any view-style indexer would also be O(i).
+The returned `NodeValueView` aliases the live multimap state — mutations after the view is obtained invalidate it. Call the standard LINQ `ToArray()` for a snapshot copy.
 
 ```csharp
 var mm = new LinkedMultiMap<string, Tag>();
 mm.Add("photo1", tag1);
 mm.Add("photo1", tag2);
-IReadOnlyList<Tag> tags = mm["photo1"];
+var tags = mm["photo1"];          // O(1), live view
+foreach (var tag in tags) { … }   // O(values)
 ```
 
 **Use when** one key naturally maps to many values and per-key insertion order matters (tag bags, event streams partitioned by topic).
@@ -645,14 +650,14 @@ Streaming approximate quantile sketch. Compresses observations into a bounded se
 
 | Operation | Time | Space |
 |---|---|---|
-| `Add(value)` / `Add(value, weight)` | O(c), c = centroid count — binary search for insert position; `List<Centroid>.Insert` shifts tail | O(1) |
-| `Quantile(q)` / `Percentile(p)` | O(c) — linear forward scan accumulating cumulative weight | O(1) |
-| `Cdf(x)` | O(c) | O(1) |
-| `Merge(other)` | O(c₁ + c₂) — linear merge then compress | O(1) |
-| `Compress` | O(c log c) | — |
-| `Clone` | O(c) | O(c) |
+| `Add(value)` / `Add(value, weight)` | O(log c), c = centroid count — skip-list descent locates insert position and updates cumulative-weight prefix sums per level | O(1) avg per node |
+| `Quantile(q)` / `Percentile(p)` | O(log c) — top-down skip-list descent advancing while cumulative width < target | O(1) |
+| `Cdf(x)` | O(log c) | O(1) |
+| `Merge(other)` | O(c₁ + c₂) — linear merge of both digests' in-order centroid sequences, then compress | O(c₁ + c₂) intermediate |
+| `Compress` | O(c log c) — rebuilds the skip list from the merged in-order list | — |
+| `Clone` | O(c log c) | O(c) |
 | `Clear` | O(c) | — |
-| Storage | — | O(compression), typically c ≤ ~`compression` centroids |
+| Storage | — | O(compression), typically c ≤ ~`compression` centroids; per-node overhead ~96 bytes (forward + width arrays at expected ~2 levels avg) |
 
 ```csharp
 var d = new Digest(compression: 100.0);
@@ -670,12 +675,12 @@ d.Merge(otherShard);
 
 | Operation | Time | Space |
 |---|---|---|
-| `Add(item, ts?)` | O(c) per call (inherits Digest); periodic O(buffer) on cleanup boundary when `cleanupInterval` elapses | O(1) |
-| `AddRange(items)` | O(n · c) | O(1) |
-| `GetPercentile(p)` | O(c) | O(1) |
-| `GetPercentiles([...])` | O(p · c) | O(p) |
-| `GetAnalytics()` | O(c) | O(1) |
-| `Merge(other)` | O(c₁ + c₂) | O(1) |
+| `Add(item, ts?)` | O(log c) per call (inherits Digest); periodic O(buffer) on cleanup boundary when `cleanupInterval` elapses | O(1) |
+| `AddRange(items)` | O(n · log c) | O(1) |
+| `GetPercentile(p)` | O(log c) | O(1) |
+| `GetPercentiles([...])` | O(p · log c) | O(p) |
+| `GetAnalytics()` | O(log c) (six fixed-percentile descents) | O(1) |
+| `Merge(other)` | O(c₁ + c₂) | O(c₁ + c₂) intermediate |
 | `Clear` | O(c) | — |
 | Storage | — | O(compression) for the digest + bounded recent-value buffer |
 
@@ -899,16 +904,16 @@ Summary across all 32 types. Symbols used in this table:
 | `QueueDictionary<TKey,TValue>` | O(1) avg Enqueue | O(1) avg by key | O(1) Dequeue, O(1) avg by key | O(N) | O(N) |
 | `DequeDictionary<TKey,TValue>` | O(1) avg Push{Front,Back} | O(1) avg by key | O(1) Pop{Front,Back}, O(1) avg by key | O(N) | O(N) |
 | `CounterDictionary<TKey,TValue>` | O(1) avg | O(1) avg (*count++ on `TryGetValue`*) | O(1) avg | O(N) | O(N + freq buckets) |
-| `GraphDictionary<TKey,TValue>` | O(1) avg vertex / edge | O((V+E) log V) ShortestPath (Dijkstra), O(V+E) SCC | O(deg) vertex, O(1) avg edge | O(V+E) | O(V + E) |
-| `LinkedMultiMap<TKey,TValue>` | O(1) avg | O(values) per-key (allocates `TValue[]`, *mutates LRU*) | O(1) avg key, O(values) per pair | O(keys + values) | O(keys + values) |
+| `GraphDictionary<TKey,TValue>` | O(1) avg vertex / edge | O((V+E) log V) ShortestPath (Dijkstra), O(V+E) ShortestUnweighted (BFS) / SCC | O(deg) vertex, O(1) avg edge | O(V+E) | O(V + E) |
+| `LinkedMultiMap<TKey,TValue>` | O(1) avg | O(1) view (*mutates LRU*); enumeration O(values), indexer O(i) | O(1) avg key, O(values) per pair | O(keys + values) | O(keys + values) |
 | `ConcurrentLinkedDictionary<TKey,TValue>` | O(1) avg | O(1) avg (*mutates access timestamp*) | O(1) avg | O(N) | O(N + 1 lock per bucket) |
 | `PredictiveDictionary<TKey,TValue>` | O(1) avg | O(1) avg + pattern update on read; bounded GetPredictions | O(1) avg | O(N) | O(N + capped patterns) |
 | **Probabilistic** |
 | `BloomFilter<T>` | O(h) | O(h) Contains (one-sided FP) | — | — | O(m) bits |
 | `CountMinSketch<T>` | O(d) | O(d) Estimate | — | — | O(width · depth) |
 | `HyperLogLog<T>` | O(1) | O(m) first call, O(1) cached | — | — | O(m) bytes |
-| `Digest` | O(c) Add | O(c) Quantile | — | — | O(compression) |
-| `DigestStreamingAnalytics<T>` | O(c) Add | O(c) Percentile | — | — | O(compression + window buffer) |
+| `Digest` | O(log c) Add | O(log c) Quantile / Cdf | — | — | O(compression) |
+| `DigestStreamingAnalytics<T>` | O(log c) Add | O(log c) Percentile | — | — | O(compression + window buffer) |
 | **Grid** |
 | `BitGrid2D` | O(1) set | O(1) get | — | O(W·H) | ⌈W·H / 8⌉ bytes |
 | `LayeredGrid2D<T>` | O(1) set | O(1) get | — | O(W·H·layers) | O(W·H·layers) |
