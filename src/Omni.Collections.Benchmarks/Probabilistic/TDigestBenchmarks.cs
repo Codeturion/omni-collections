@@ -18,6 +18,9 @@ public class DigestBenchmarks
     [Params(Sizes.Small, Sizes.Medium, Sizes.Large)]
     public int N;
 
+    [Params(100.0, 1000.0)]
+    public double Compression;
+
     private double[] _values = null!;
 
     private Digest _omniFilled = null!;
@@ -35,7 +38,7 @@ public class DigestBenchmarks
         for (int i = 0; i < _values.Length; i++)
             _values[i] = rng.NextDouble() * 1000.0;
 
-        _omniFilled = new Digest();
+        _omniFilled = new Digest(Compression);
         _baselineSorted = new double[N];
         for (int i = 0; i < N; i++)
         {
@@ -48,7 +51,7 @@ public class DigestBenchmarks
     [IterationSetup(Targets = new[] { nameof(Omni_Add), nameof(Baseline_Add) })]
     public void ResetForAdd()
     {
-        _omniMut = new Digest();
+        _omniMut = new Digest(Compression);
         _baselineMut = new List<double>(N + OpsPerIteration);
         for (int i = 0; i < N; i++)
         {
@@ -84,7 +87,7 @@ public class DigestBenchmarks
     [Benchmark, BenchmarkCategory("Fill"), InvocationCount(1)]
     public Digest Omni_Fill()
     {
-        var c = new Digest();
+        var c = new Digest(Compression);
         for (int i = 0; i < N; i++)
             c.Add(_values[i]);
         return c;
