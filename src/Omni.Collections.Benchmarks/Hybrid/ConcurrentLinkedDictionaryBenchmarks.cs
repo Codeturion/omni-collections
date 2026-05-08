@@ -15,7 +15,7 @@ namespace Omni.Collections.Benchmarks.Hybrid;
 public class ConcurrentLinkedDictionaryBenchmarks
 {
     // Single-threaded benchmarks for API speed comparison. Real concurrency
-    // tests (lock-free reads, parallel scaling) are scheduled for Phase 5.
+    // tests (per-bucket monitor contention, parallel scaling) are scheduled for Phase 5.
     private const int OpsPerIteration = 32768;
 
     [Params(Sizes.Small, Sizes.Medium, Sizes.Large)]
@@ -120,7 +120,7 @@ public class ConcurrentLinkedDictionaryBenchmarks
         return r;
     }
 
-    /// Claim: ConcurrentLinkedDictionary.TryGetValue (lock-free read claim) vs ConcurrentDictionary.
+    /// Claim: ConcurrentLinkedDictionary.TryGetValue (per-bucket monitor on read) vs ConcurrentDictionary.
     [Benchmark, BenchmarkCategory("Lookup")]
     public bool Omni_Lookup()
     {

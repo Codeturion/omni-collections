@@ -313,3 +313,10 @@ MigrationBackup/
 .ionide/
 .claude
 .idea
+
+# Personal session-state — not committed
+CLAUDE.md
+handover.md
+currentbenchmarks.md
+bench-postchange.txt
+docs/complexity-audit-*.md

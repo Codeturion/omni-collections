@@ -84,7 +84,8 @@ LIFO stack whose backing array is rented from `ArrayPool<T>`. Adds `Span<T>` bat
 | `Push` | O(1) amortized | O(1) |
 | `Pop` | O(1) | O(1) |
 | `Peek` | O(1) | — |
-| `PushSpan(span)` / `PopSpan(count)` | O(n) | O(1) |
+| `PushSpan(span)` | O(n) | O(1) |
+| `PopSpan(count)` | O(n) — allocates a fresh `T[count]` per call | O(n) heap |
 | Storage | — | O(capacity), buffer rented from `ArrayPool<T>` |
 
 ```csharp
@@ -92,6 +93,8 @@ using var stack = PooledStack<Item>.CreateWithArrayPool(initialCapacity: 1000);
 stack.Push(item);
 ReadOnlySpan<Item> popped = stack.PopSpan(8);
 ```
+
+The pooled buffer backs the stack itself; `PopSpan` returns a fresh `T[]` (no caller cleanup) rather than a slice of the pool.
 
 **Use when** you create and drop many short-lived stacks, or want span-based batch push/pop the BCL `Stack<T>` doesn't expose.
 **Don't use when** the stack is long-lived and you don't use the span APIs — `Stack<T>` is simpler.
@@ -105,7 +108,8 @@ FIFO queue whose backing array is rented from `ArrayPool<T>`. Adds `Span<T>` bat
 | `Enqueue` | O(1) amortized | O(1) |
 | `Dequeue` | O(1) | O(1) |
 | `Peek` | O(1) | — |
-| `EnqueueSpan(span)` / `DequeueSpan(count)` | O(n) | O(1) |
+| `EnqueueSpan(span)` | O(n) | O(1) |
+| `DequeueSpan(count)` | O(n) — allocates a fresh `T[count]` per call | O(n) heap |
 | Storage | — | O(capacity), buffer rented from `ArrayPool<T>` |
 
 ```csharp
@@ -113,6 +117,8 @@ using var queue = PooledQueue<Order>.CreateWithArrayPool(capacity: 10_000);
 queue.Enqueue(order);
 ReadOnlySpan<Order> burst = queue.DequeueSpan(8);
 ```
+
+The pooled buffer backs the queue itself; `DequeueSpan` returns a fresh `T[]` (no caller cleanup) rather than a slice of the pool.
 
 **Use when** queue instances churn (per-request, per-frame) and you want buffer reuse across them, or you need span-batch enqueue/dequeue.
 **Don't use when** a single long-lived queue suffices — `Queue<T>` is simpler and at parity for that case.
@@ -123,12 +129,12 @@ Binary min-heap over `T : IComparable<T>`. Smallest element always at the root. 
 
 | Operation | Time | Space |
 |---|---|---|
-| `Insert` | O(log N) | O(1) |
+| `Insert` | O(log N)* — amortized; O(N) on resize | O(1) |
 | `ExtractMin` | O(log N) | O(1) |
 | `PeekMin` | O(1) | — |
-| `InsertRange` | O(n log N) | O(1) |
+| `InsertRange` | O(n log N)* | O(1) |
 | `BuildHeap(array)` | O(N) (Floyd build) | O(1) |
-| Storage | — | O(capacity) |
+| Storage | — | O(N), grows on Insert via doubling |
 
 ```csharp
 using var heap = MinHeap<Task>.CreateWithArrayPool(initialCapacity: 1000);
@@ -145,12 +151,12 @@ Binary max-heap over `T : IComparable<T>`. Largest element always at the root. O
 
 | Operation | Time | Space |
 |---|---|---|
-| `Insert` | O(log N) | O(1) |
+| `Insert` | O(log N)* — amortized; O(N) on resize | O(1) |
 | `ExtractMax` | O(log N) | O(1) |
 | `PeekMax` | O(1) | — |
-| `InsertRange` | O(n log N) | O(1) |
+| `InsertRange` | O(n log N)* | O(1) |
 | `BuildHeap(array)` | O(N) (Floyd build) | O(1) |
-| Storage | — | O(capacity) |
+| Storage | — | O(N), grows on Insert via doubling |
 
 ```csharp
 using var heap = MaxHeap<int>.CreateWithArrayPool(initialCapacity: 1000);
@@ -171,7 +177,9 @@ var top = heap.ExtractMax();
 
 2D point-keyed tree that subdivides space into four quadrants per node. Returns items intersecting an axis-aligned query rectangle.
 
-| Operation | Time | Space |
+Below N=5000 (the internal `_spatialThreshold` default), `QuadTree<T>` stores items in a flat linear list. The complexities below describe spatial mode (N≥5000); below threshold, `Insert` is O(1) amortized, `Remove` / `Query` / `FindNearest` are O(N), and the one-time mode switch is O(N).
+
+| Operation | Time (spatial mode, N≥5000) | Space |
 |---|---|---|
 | `Insert(point, item)` | O(log N) avg, O(N) worst (degenerate / colocated) | O(1) |
 | `Remove(point, item)` | O(log N) avg | O(1) |
@@ -199,7 +207,7 @@ List<GameObject> visible = tree.Query(cameraBounds);
 | `FindInBounds(aabb)` | O(log N + k) | O(k) |
 | `FindInFrustum(planes)` | O(log N + k) | O(k) |
 | `FindNearest(point)` | O(log N) avg | O(1) |
-| `Clear` | O(N) | — |
+| `Clear` | O(1) (orphans the tree; GC reclaims) | — |
 | Storage | — | O(N) |
 
 ```csharp
@@ -217,11 +225,13 @@ K-dimensional tree for nearest-neighbor and range queries on multi-dimensional p
 
 | Operation | Time | Space |
 |---|---|---|
-| `Insert` | O(log N) avg, O(N) worst (degenerate input) | O(1) |
+| `Insert` | O(log N) avg amortized; periodic O(N log N) rebuild every 64 inserts past N=1000 when height exceeds 2·log₂(N)+2 | O(1) |
 | `FindNearest` | O(log N) avg | O(1) |
-| `FindNearestK(k)` | O(k log N) avg | O(k) |
+| `FindNearestK(k)` | O((log N + k) log k) avg | O(k) |
+| `FindNearestK(k)` (`List<T>` overload) | same — additionally allocates `BoundedPriorityQueue` + `List<T>` per call (use the `PooledList<T>` overload for alloc-free queries) | O(k) heap |
 | `RangeQuery` | O(N^(1−1/d) + k) where k = result size | O(k) |
-| `Clear` | O(N) | — |
+| `InsertRange(M items)` | O(M log N) for small batches; O((N+M) log(N+M)) avg when batch ≥ N/2 (rebuild path via Quickselect partition) | O(M) |
+| `Clear` | O(1) (orphans the tree; GC reclaims) | — |
 
 ```csharp
 var tree = KdTree<DataPoint>.Create3D(p => p.X, p => p.Y, p => p.Z);
@@ -236,14 +246,18 @@ var nearest = tree.FindNearest(query);
 
 Uniform-cell hash grid keyed by 2D coordinates. Each cell holds a list of items currently inside it.
 
-| Operation | Time | Space |
+Below N=5000 (the internal `_spatialThreshold` default), `SpatialHashGrid<T>` stores items in a flat linear list and **every read scans the list** — `Remove` / `GetObjectsAt` / `GetObjectsInRadius` / `GetObjectsInRectangle` are O(N), and `GetPotentialCollisions` is O(N²). The complexities below describe spatial mode (N≥5000); the one-time mode switch is O(N).
+
+| Operation | Time (spatial mode, N≥5000) | Space |
 |---|---|---|
 | `Insert(x, y, item)` | O(1) avg | O(1) |
-| `Remove(x, y, item)` | O(1) avg | O(1) |
+| `Remove(x, y, item)` (point-inserted entry) | O(1) avg | O(1) |
+| `Remove(x, y, item)` (`InsertBounds`-inserted entry) | O(C·M), C = cells spanned, M = entries per cell | O(1) |
 | `GetObjectsAt(x, y)` | O(c), c = items in that cell | O(c) |
 | `GetObjectsInRadius(x, y, r)` | O((r/cellSize)² · c) | O(k) |
 | `GetObjectsInRectangle(...)` | O((w·h/cellSize²) · c) | O(k) |
-| `GetPotentialCollisions()` | O(N + pairs) | O(pairs) |
+| `GetPotentialCollisions()` | O(Σ c_i²) where c_i = items per cell; ≈ O(N) for uniform distribution, worse for clustered | O(pairs) |
+| `GetStatistics()` | O(C log C) — sorts cell counts | O(C) |
 | `Clear` | O(occupied cells) | — |
 | Storage | — | O(N + occupied cells) |
 
@@ -262,10 +276,10 @@ foreach (var e in grid.GetObjectsInRadius(px, py, 100f)) { /* ... */ }
 
 | Operation | Time | Space |
 |---|---|---|
-| `UpdateObject` / `RemoveObject` | O(1) avg | O(1) |
+| `UpdateObject` / `RemoveObject` | O(1) avg amortized; periodic O(N) when `snapshotInterval` elapses (snapshot pass copies all current objects) | O(1) |
 | `GetObjectsInRadius` (live) | O((r/cellSize)² · c) | O(k) |
-| `GetObjectsInRadiusAtTime(when)` | O(snapshots) + O((r/cellSize)² · c) | O(k) |
-| `GetObjectTrajectory(obj, lookBack)` | O(snapshots) | O(snapshots) |
+| `GetObjectsInRadiusAtTime(when)` | O(log snapshots) + O((r/cellSize)² · c) | O(k) |
+| `GetObjectTrajectory(obj, lookBack)` | O(s log s), s = matching snapshots in window | O(s) |
 | `GetObjectsAlongPath(...)` | O(path length / cellSize · c) | O(k) |
 | Storage | — | O(N + retained snapshots × snapshot size) |
 
@@ -448,9 +462,12 @@ Vertex-keyed dictionary plus weighted directed edges. BFS shortest-path, distanc
 | `Remove(key)` | O(deg(key)) | O(1) |
 | `AddEdge` / `RemoveEdge` / `HasEdge` | O(1) avg | O(1) |
 | `GetNeighbors(key)` | O(deg(key)) | O(deg) |
-| `FindShortestPath` (unweighted BFS) | O(V + E) | O(V) |
-| `FindNodesWithinDistance` | O(V + E) | O(V) |
+| `Keys` / `Values` | O(N) — materializes a snapshot copy under read lock | O(N) |
+| `FindShortestPath` (weighted; reads `EdgeInfo.Weight`) | O((V+E) log V) — Dijkstra with sorted-set priority queue | O(V) |
+| `FindShortestUnweighted` (unweighted; ignores edge weights) | O(V + E) — BFS, returns the path with the fewest hops | O(V) |
+| `FindNodesWithinDistance` | O((V+E) log V) — bounded Dijkstra | O(V) |
 | `FindStronglyConnectedComponents` | O(V + E) | O(V) |
+| `GetClusteringCoefficient(key)` | O(deg(key)²) | O(1) |
 | Storage | — | O(V + E) |
 
 ```csharp
@@ -470,21 +487,27 @@ Dictionary where each key maps to an *ordered* list of values. Append per key is
 | Operation | Time | Space |
 |---|---|---|
 | `Add(key, value)` | O(1) avg | O(1) |
-| `this[key]` (get) | O(1) avg, returns `IReadOnlyList<TValue>` | — |
-| `TryGetValues(key)` | O(1) avg | O(1) |
-| `RemoveKey(key)` | O(values for that key) | O(1) |
+| `this[key]` (get) | O(1) — returns a `NodeValueView` aliasing the per-key value list; *mutates LRU order* | O(1) |
+| `TryGetValues(key)` | O(1) — same view shape; *mutates LRU order* | O(1) |
+| `NodeValueView.Count` | O(1) | — |
+| `NodeValueView` enumeration | O(values for this key) | O(1) |
+| `NodeValueView[i]` (indexer) | O(i) — per-key value list is singly linked; prefer `foreach` for sequential reads | O(1) |
+| `RemoveKey(key)` | O(1) avg — unlinks KeyNode; values reclaimed by GC | O(1) |
 | `Remove(key, value)` | O(values for that key) | O(1) |
 | `ContainsKey` | O(1) avg | O(1) |
 | `Contains(key, value)` | O(values for that key) | O(1) |
 | `GetValueCount(key)` | O(1) | — |
-| `Clear` | O(total values) | — |
+| `Clear` | O(buckets) — zeroes bucket array; values reclaimed by GC | — |
 | Storage | — | O(keys + total values) |
+
+The returned `NodeValueView` aliases the live multimap state — mutations after the view is obtained invalidate it. Call the standard LINQ `ToArray()` for a snapshot copy.
 
 ```csharp
 var mm = new LinkedMultiMap<string, Tag>();
 mm.Add("photo1", tag1);
 mm.Add("photo1", tag2);
-IReadOnlyList<Tag> tags = mm["photo1"];
+var tags = mm["photo1"];          // O(1), live view
+foreach (var tag in tags) { … }   // O(values)
 ```
 
 **Use when** one key naturally maps to many values and per-key insertion order matters (tag bags, event streams partitioned by topic).
@@ -496,13 +519,15 @@ Thread-safe `LinkedDictionary` variant. Per-bucket fine-grained locks for writes
 
 | Operation | Time | Space |
 |---|---|---|
-| `AddOrUpdate` | O(1) avg | O(1) |
-| `TryGetValue` | O(1) avg — *mutates per-node access timestamp* | O(1) |
-| `ContainsKey` | O(1) avg — *mutates per-node access timestamp* | O(1) |
+| `AddOrUpdate` | O(1) avg — acquires per-bucket monitor; on existing-key update also acquires the per-instance LRU writer lock | O(1) |
+| `TryGetValue` | O(1) avg — *mutates per-node access timestamp* under the per-bucket monitor | O(1) |
+| `ContainsKey` | O(1) avg — *mutates per-node access timestamp* under the per-bucket monitor | O(1) |
 | `TryRemove` | O(1) avg | O(1) |
-| `this[key]` (get) | O(1) avg — *mutates per-node access timestamp* | — |
-| `Clear` | O(N) under write lock | — |
+| `this[key]` (get) | O(1) avg — *mutates per-node access timestamp* under the per-bucket monitor | — |
+| `Clear` | O(buckets) under per-bucket locks; nodes reclaimed by GC | — |
 | Storage | — | O(N) + one lock per bucket |
+
+Enumeration takes a one-time O(N) snapshot of the LRU chain under the read lock, then releases the lock before yielding — concurrent writers are not blocked during iteration. Mutations after the snapshot is taken are not reflected.
 
 ```csharp
 var cache = new ConcurrentLinkedDictionary<string, byte[]>(
@@ -520,11 +545,11 @@ Dictionary that records short n-gram access patterns. `GetPredictions(context)` 
 
 | Operation | Time | Space |
 |---|---|---|
-| `AddOrUpdate` | O(1) avg + O(1) pattern update | O(1) |
+| `AddOrUpdate` | O(1) avg | O(1) |
 | `TryGetValue` | O(1) avg + O(1) pattern update | O(1) |
 | `this[key]` (get) | O(1) avg + O(1) pattern update | — |
-| `GetPredictions(context)` | O(p), p = predictions for that context | O(p) |
-| `PrefetchLikely(context, factory)` | O(p · factory cost) | O(p) |
+| `GetPredictions(context)` | O(maxFrequencyKeys + log(maxFrequencyKeys)) — bounded by the frequency-fallback table (default ≥256) | O(top-5) |
+| `PrefetchLikely(context, factory)` | O(predictions · factory cost) | O(predictions) |
 | `Remove` | O(1) avg | O(1) |
 | `Clear` | O(N + patterns) | — |
 | Storage | — | O(N + capped pattern table) |
@@ -581,7 +606,7 @@ Frequency sketch with bounded over-estimation. Width and depth set the error env
 | `Merge(other)` | O(width · depth) | O(1) |
 | `Scale(factor)` | O(width · depth) | — |
 | `Clear` | O(width · depth) | — |
-| Storage | — | O(width · depth) `uint` cells |
+| Storage | — | O(roundUpToPowerOf2(width) · depth) `uint` cells — actual width is up to 2× the constructor arg |
 
 ```csharp
 var sketch = new CountMinSketch<string>(width: 1024, depth: 4);
@@ -625,14 +650,14 @@ Streaming approximate quantile sketch. Compresses observations into a bounded se
 
 | Operation | Time | Space |
 |---|---|---|
-| `Add(value)` / `Add(value, weight)` | O(log c) avg, c = centroid count | O(1) amortized |
-| `Quantile(q)` / `Percentile(p)` | O(log c) | O(1) |
+| `Add(value)` / `Add(value, weight)` | O(log c), c = centroid count — skip-list descent locates insert position and updates cumulative-weight prefix sums per level | O(1) avg per node |
+| `Quantile(q)` / `Percentile(p)` | O(log c) — top-down skip-list descent advancing while cumulative width < target | O(1) |
 | `Cdf(x)` | O(log c) | O(1) |
-| `Merge(other)` | O(c₁ + c₂) | O(1) |
-| `Compress` | O(c log c) | — |
+| `Merge(other)` | O(c₁ + c₂) — linear two-pointer merge of both digests' in-order centroid sequences, then bulk-rebuild | O(c₁ + c₂) intermediate |
+| `Compress` | O(c) — level-0 walk + single-pass bulk-rebuild (no per-centroid descent) | — |
 | `Clone` | O(c) | O(c) |
 | `Clear` | O(c) | — |
-| Storage | — | O(compression), typically c ≤ ~`compression` centroids |
+| Storage | — | O(compression), typically c ≤ ~`compression` centroids; per-node overhead ~96 bytes (forward + width arrays at expected ~2 levels avg) |
 
 ```csharp
 var d = new Digest(compression: 100.0);
@@ -650,13 +675,14 @@ d.Merge(otherShard);
 
 | Operation | Time | Space |
 |---|---|---|
-| `Add(item, ts?)` | O(log c) amortized | O(1) |
-| `AddRange(items)` | O(n log c) | O(1) |
+| `Add(item, ts?)` | O(log c) per call (inherits Digest); periodic O(buffer) on cleanup boundary when `cleanupInterval` elapses | O(1) |
+| `AddRange(items)` | O(n · log c) | O(1) |
 | `GetPercentile(p)` | O(log c) | O(1) |
 | `GetPercentiles([...])` | O(p · log c) | O(p) |
-| `GetAnalytics()` | O(log c) | O(1) |
-| `Merge(other)` | O(c₁ + c₂) | O(1) |
+| `GetAnalytics()` | O(log c) (six fixed-percentile descents) | O(1) |
+| `Merge(other)` | O(c₁ + c₂) | O(c₁ + c₂) intermediate |
 | `Clear` | O(c) | — |
+
 | Storage | — | O(compression) for the digest + bounded recent-value buffer |
 
 ```csharp
@@ -737,15 +763,17 @@ Sparse hexagonal grid keyed by axial `HexCoord(q, r)`. Supports neighbor lookup 
 | `GetNeighbors(coord)` | O(6) | O(6) |
 | `GetWithinDistance(center, d)` | O(d²) | O(d²) |
 | `GetRing(center, d)` / `GetLine(start, end)` | O(d) / O(distance) | O(d) / O(distance) |
-| `FindPath(start, goal, costFn)` | O((V + E) log V) A* | O(V) |
-| `GetReachable(start, points, costFn)` | O((V + E) log V) bounded by `points` | O(V) |
+| `FindPath(start, goal, isBlocked, getCost?)` | O((V + E) log V) A* | O(V) |
+| `GetReachable(start, movementPoints, isBlocked, getCost?)` | O((V + E) log V) bounded by `movementPoints` | O(V) |
 | Storage | — | O(N) cells |
 
 ```csharp
 var hex = new HexGrid2D<Tile>();
 hex[new HexCoord(q: 0, r: 0)] = startTile;
 foreach (var c in hex.GetNeighbors(new HexCoord(0, 0))) { /* six neighbors */ }
-var path = hex.FindPath(start, goal, costFn: c => c.Tile.MoveCost);
+var path = hex.FindPath(start, goal,
+    isBlocked: c => !hex.Contains(c),
+    getCost: c => hex[c].MoveCost);
 ```
 
 **Use when** the gameplay grid is hexagonal — strategy games, board games, hex-based simulation. Axial coordinate math is built in.
@@ -791,7 +819,8 @@ list.BatchUpdate(l => { l.Add(a); l.Add(b); });     // single Reset notification
 | `AddRange` / `RemoveWhere` | O(n) + one batched notify | O(1) |
 | `Contains(item)` | O(1) avg | — |
 | `UnionWith` | O(other.Count) + one notify | O(1) |
-| `IntersectWith` / `ExceptWith` / `SymmetricExceptWith` | O(N + other.Count) + one notify | O(1) |
+| `IntersectWith` / `ExceptWith` | O(N + other.Count) + one notify | O(1) |
+| `SymmetricExceptWith(other)` | O(N + other.Count) + one notify — allocates one HashSet snapshot of size N | O(N) heap |
 | `Clear` | O(N) + one `Reset` | — |
 | Storage | — | O(N) |
 
@@ -819,7 +848,7 @@ Fixed-capacity ring buffer of `(timestamp, T)` pairs. Records are written at "no
 | `Record(snapshot)` / `Record(snapshot, ts)` | O(1) | O(1) |
 | `GetAtTime(ts)` / `RewindTo` / `JumpForward` / `JumpBackward` | O(log N) | O(1) |
 | `Replay(start, end)` | O(log N + k) | O(1) streaming |
-| `ReplayAtFps(start, fps)` | O(log N + frames) | O(1) streaming |
+| `ReplayAtFps(startTime, fps = 60)` | O(log N + frames) — yields `(T, long)` from `startTime` to `EndTime` | O(1) streaming |
 | `GetTimeWindow(start, duration)` | O(log N + k) | O(1) streaming |
 | Storage | — | O(capacity), buffer optionally rented from `ArrayPool<T>` |
 
@@ -827,7 +856,7 @@ Fixed-capacity ring buffer of `(timestamp, T)` pairs. Records are written at "no
 using var timeline = TimelineArray<GameState>.CreateWithArrayPool(capacity: 1800);
 timeline.Record(state);
 GameState? past = timeline.GetAtTime(targetTimestamp);
-foreach (var s in timeline.Replay(start, end)) { /* ... */ }
+foreach (var (snapshot, ts) in timeline.ReplayAtFps(startTime, fps: 30)) { /* ... */ }
 ```
 
 **Use when** you record per-frame or per-tick state and need to query "what did it look like at time T" — replay buffers, lag compensation, deterministic rollback netcode.
@@ -845,7 +874,9 @@ Summary across all 32 types. Symbols used in this table:
 - `h` — hash-function count (BloomFilter only — disambiguated from `k` to avoid the collision)
 - `m` — bit-array size (BloomFilter) or HLL register count, depending on the row
 - `c` — Digest centroid count, or SpatialHashGrid cell count, depending on the row
+- `C` — occupied cell count (SpatialHashGrid)
 - `d` — sketch depth (CountMinSketch)
+- `deg` — vertex degree (GraphDictionary)
 - `r` — query radius (Spatial)
 - `s` — subscriber count on `INotifyCollectionChanged` (Reactive)
 - `V`, `E` — graph vertex / edge count (GraphDictionary)
@@ -859,14 +890,14 @@ Summary across all 32 types. Symbols used in this table:
 | `PooledList<T>` | O(1)* | O(1) index, O(N) Contains | O(N − i) | O(N) | O(capacity) |
 | `PooledStack<T>` | O(1)* Push | O(1) Peek | O(1) Pop | O(N) | O(capacity) |
 | `PooledQueue<T>` | O(1)* Enqueue | O(1) Peek | O(1) Dequeue | O(N) | O(capacity) |
-| `MinHeap<T>` | O(log N) Insert | O(1) PeekMin | O(log N) ExtractMin | O(N) | O(capacity) |
-| `MaxHeap<T>` | O(log N) Insert | O(1) PeekMax | O(log N) ExtractMax | O(N) | O(capacity) |
+| `MinHeap<T>` | O(log N)* Insert | O(1) PeekMin | O(log N) ExtractMin | O(N) | O(N) |
+| `MaxHeap<T>` | O(log N)* Insert | O(1) PeekMax | O(log N) ExtractMax | O(N) | O(N) |
 | **Spatial** |
 | `QuadTree<T>` | O(log N) avg | O(log N + k) Query | O(log N) avg | O(N) | O(N) |
 | `OctTree<T>` | O(log N) avg | O(log N + k) Sphere/AABB/Frustum | — | O(N) | O(N) |
-| `KdTree<T>` | O(log N) avg | O(log N) Nearest, O(N^(1−1/d) + k) Range | — | O(N) | O(N) |
-| `SpatialHashGrid<T>` | O(1) avg | O((r/cell)² · c) Radius | O(1) avg | O(N) | O(N + cells) |
-| `TemporalSpatialHashGrid<T>` | O(1) avg | O((r/cell)² · c) live, + O(snapshots) at past time | O(1) avg | O(N) | O(N + snapshots) |
+| `KdTree<T>` | O(log N) avg* | O(log N) Nearest, O(N^(1−1/d) + k) Range | — | O(N) | O(N) |
+| `SpatialHashGrid<T>` | O(1) avg | O((r/cell)² · c) Radius (spatial mode) | O(1) avg | O(N) | O(N + cells) |
+| `TemporalSpatialHashGrid<T>` | O(1) avg* | O((r/cell)² · c) live, + O(log snapshots) at past time | O(1) avg | O(N) | O(N + snapshots) |
 | `BloomRTreeDictionary<TKey,TValue>` | O(log N) avg | O(1) by key, O(log N + k) by region | O(log N) avg | O(N) | O(N) |
 | **Hybrid** |
 | `BoundedDictionary<TKey,TValue>` | O(1) avg | O(1) avg | O(1) avg | O(N) | O(capacity) |
@@ -874,16 +905,16 @@ Summary across all 32 types. Symbols used in this table:
 | `QueueDictionary<TKey,TValue>` | O(1) avg Enqueue | O(1) avg by key | O(1) Dequeue, O(1) avg by key | O(N) | O(N) |
 | `DequeDictionary<TKey,TValue>` | O(1) avg Push{Front,Back} | O(1) avg by key | O(1) Pop{Front,Back}, O(1) avg by key | O(N) | O(N) |
 | `CounterDictionary<TKey,TValue>` | O(1) avg | O(1) avg (*count++ on `TryGetValue`*) | O(1) avg | O(N) | O(N + freq buckets) |
-| `GraphDictionary<TKey,TValue>` | O(1) avg vertex / edge | O(V+E) ShortestPath, O(V+E) SCC | O(deg) vertex, O(1) avg edge | O(V+E) | O(V + E) |
-| `LinkedMultiMap<TKey,TValue>` | O(1) avg | O(1) avg key, O(values) per-key membership | O(values) per key | O(keys + values) | O(keys + values) |
+| `GraphDictionary<TKey,TValue>` | O(1) avg vertex / edge | O((V+E) log V) ShortestPath (Dijkstra), O(V+E) ShortestUnweighted (BFS) / SCC | O(deg) vertex, O(1) avg edge | O(V+E) | O(V + E) |
+| `LinkedMultiMap<TKey,TValue>` | O(1) avg | O(1) view (*mutates LRU*); enumeration O(values), indexer O(i) | O(1) avg key, O(values) per pair | O(keys + values) | O(keys + values) |
 | `ConcurrentLinkedDictionary<TKey,TValue>` | O(1) avg | O(1) avg (*mutates access timestamp*) | O(1) avg | O(N) | O(N + 1 lock per bucket) |
-| `PredictiveDictionary<TKey,TValue>` | O(1) avg + pattern update | O(1) avg + pattern update; O(p) GetPredictions | O(1) avg | O(N) | O(N + capped patterns) |
+| `PredictiveDictionary<TKey,TValue>` | O(1) avg | O(1) avg + pattern update on read; bounded GetPredictions | O(1) avg | O(N) | O(N + capped patterns) |
 | **Probabilistic** |
 | `BloomFilter<T>` | O(h) | O(h) Contains (one-sided FP) | — | — | O(m) bits |
 | `CountMinSketch<T>` | O(d) | O(d) Estimate | — | — | O(width · depth) |
 | `HyperLogLog<T>` | O(1) | O(m) first call, O(1) cached | — | — | O(m) bytes |
-| `Digest` | O(log c)* | O(log c) Quantile | — | — | O(compression) |
-| `DigestStreamingAnalytics<T>` | O(log c)* | O(log c) Percentile | — | — | O(compression + window buffer) |
+| `Digest` | O(log c) Add | O(log c) Quantile / Cdf | — | — | O(compression) |
+| `DigestStreamingAnalytics<T>` | O(log c) Add | O(log c) Percentile | — | — | O(compression + window buffer) |
 | **Grid** |
 | `BitGrid2D` | O(1) set | O(1) get | — | O(W·H) | ⌈W·H / 8⌉ bytes |
 | `LayeredGrid2D<T>` | O(1) set | O(1) get | — | O(W·H·layers) | O(W·H·layers) |

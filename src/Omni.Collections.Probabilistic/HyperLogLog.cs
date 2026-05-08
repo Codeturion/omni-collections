@@ -154,9 +154,32 @@ public class HyperLogLog<T> where T : notnull
 
     public long EstimateUnion(HyperLogLog<T> other)
     {
-        HyperLogLog<T>? union = Clone();
-        union.Merge(other);
-        return union.EstimateCardinality();
+        if (other == null)
+            throw new ArgumentNullException(nameof(other));
+        if (_bucketCount != other._bucketCount)
+            throw new ArgumentException("HyperLogLogs must have same bucket count for union");
+        // Compute the union cardinality directly from per-bucket max(this, other)
+        // without allocating a clone — same math as EstimateCardinality but folded into
+        // a single pass over both bucket arrays. Saves the m-byte clone allocation
+        // and one of the three m-byte traversals.
+        double sum = 0;
+        int zeroBuckets = 0;
+        for (int i = 0; i < _bucketCount; i++)
+        {
+            byte b = _buckets[i] >= other._buckets[i] ? _buckets[i] : other._buckets[i];
+            sum += 1.0 / (1L << b);
+            if (b == 0) zeroBuckets++;
+        }
+        double rawEstimate = _alpha * _bucketCount * _bucketCount / sum;
+        if (rawEstimate <= 2.5 * _bucketCount)
+        {
+            if (zeroBuckets > 0)
+                return (long)(_bucketCount * Math.Log((double)_bucketCount / zeroBuckets));
+            return (long)rawEstimate;
+        }
+        if (rawEstimate <= (1.0 / 30.0) * (1L << 32))
+            return (long)rawEstimate;
+        return (long)(-1 * (1L << 32) * Math.Log(1.0 - rawEstimate / (1L << 32)));
     }
 
     public long EstimateIntersection(HyperLogLog<T> other)
