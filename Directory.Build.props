@@ -37,7 +37,7 @@
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
 
-    <Version>2.1.1</Version>
+    <Version>3.0.0</Version>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(_OmniIsBenchmarkAutogen)' != 'true' AND '$(IsPackable)' != 'false'">

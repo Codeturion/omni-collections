@@ -7,11 +7,11 @@
 [![GitHub Last Commit](https://img.shields.io/github/last-commit/Codeturion/omni-collections)](https://github.com/Codeturion/omni-collections/commits)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-**32 specialized .NET data structures with documented Big-O bounds, multi-targeted for `net8.0` and `netstandard2.1`.**
+**29 specialized .NET data structures with documented Big-O bounds, multi-targeted for `net8.0` and `netstandard2.1`.**
 
 ## What this library is
 
-32 .NET data structures the BCL doesn't ship: spatial indexes, observable collections, bounded-memory probabilistic estimators, temporal queries, and keyed collections that maintain access order. All public types document Big-O time and space complexity per operation. Multi-targets `net8.0` and `netstandard2.1`; symbol packages and SourceLink ship with every release.
+29 .NET data structures the BCL doesn't ship: spatial indexes, observable collections, bounded-memory probabilistic estimators, temporal queries, and keyed collections that maintain access order. All public types document Big-O time and space complexity per operation. Multi-targets `net8.0` and `netstandard2.1`; symbol packages and SourceLink ship with every release.
 
 ## Install
 
@@ -21,7 +21,21 @@ dotnet add package OmniCollections
 
 The umbrella package pulls in all 8 sub-packages. For trimmed deployments, install only the per-namespace packages you need: `OmniCollections.Linear`, `OmniCollections.Spatial`, `OmniCollections.Hybrid`, `OmniCollections.Probabilistic`, `OmniCollections.Grid`, `OmniCollections.Reactive`, `OmniCollections.Temporal`, `OmniCollections.Core`.
 
-## The 32 collections
+## v2.x → v3.0 migration
+
+v3.0 cuts three Hybrid types whose value props didn't justify their existence after the v2.x curation pass. If you used any of them, here's the drop-in replacement:
+
+| Removed | Replace with |
+|---|---|
+| `PredictiveDictionary<K,V>` | `Dictionary<K,V>` + your own n-gram predictor (the v2.x type was 259 LOC of pattern bookkeeping over a plain dict, with no automatic prefetch — the predictor logic is small enough to inline where you need it) |
+| `QueueDictionary<K,V>` | `Queue<KeyValuePair<K,V>>` + `Dictionary<K,V>` kept in sync (≈30 lines of wrapper) |
+| `DequeDictionary<K,V>` | `LinkedList<T>` + `Dictionary<K, LinkedListNode<T>>` kept in sync (≈30 lines of wrapper) |
+
+If you need the v2.x source as a starting point, it's in the git history (`git log --all -- src/Omni.Collections.Hybrid/PredictiveDictionary src/Omni.Collections.Hybrid/QueueDictionary src/Omni.Collections.Hybrid/DequeDictionary.cs`).
+
+No other public-API changes between v2.1.x and v3.0.0.
+
+## The 29 collections
 
 Organized by namespace. Click each category to expand.
 
@@ -327,7 +341,7 @@ var hits = dict.FindIntersecting(searchBounds);
 
 ### Hybrid
 
-<details><summary><strong>BoundedDictionary, LinkedDictionary, QueueDictionary, DequeDictionary, CounterDictionary, GraphDictionary, LinkedMultiMap, ConcurrentLinkedDictionary, PredictiveDictionary</strong> (9 types)</summary>
+<details><summary><strong>BoundedDictionary, LinkedDictionary, CounterDictionary, GraphDictionary, LinkedMultiMap, ConcurrentLinkedDictionary</strong> (6 types)</summary>
 
 #### `BoundedDictionary<TKey, TValue>` — Hybrid (FIFO eviction)
 
@@ -374,59 +388,6 @@ if (lru.TryGetValue("k", out var v)) { /* "k" is now most-recently-used */ }
 
 **Use when** you want a single-threaded LRU cache without the `MemoryCache` weight class.
 **Don't use when** iteration must not perturb recency — `ContainsKey` is the side-effect-free probe; `TryGetValue` and the indexer both touch order.
-
-#### `QueueDictionary<TKey, TValue>` — Hybrid (FIFO)
-
-FIFO queue with O(1) key lookup against the same backing storage. `Dequeue` removes from the head; key access does not reorder.
-
-| Operation | Time | Space |
-|---|---|---|
-| `Enqueue(key, value)` | O(1) avg | O(1) |
-| `Dequeue` | O(1) | O(1) |
-| `TryDequeue` | O(1) | O(1) |
-| `PeekFront` / `PeekBack` | O(1) | — |
-| `TryGetValue` | O(1) avg — does not touch FIFO order | O(1) |
-| `ContainsKey` | O(1) avg | O(1) |
-| `Remove(key)` | O(1) avg | O(1) |
-| `Clear` | O(N) | — |
-| Storage | — | O(N) |
-
-```csharp
-var q = new QueueDictionary<string, Message>();
-q.Enqueue("msg1", message);
-var head = q.Dequeue();          // KeyValuePair<string, Message>
-var lookup = q["msg1"];          // throws if Dequeue already removed it
-```
-
-**Use when** you process items in FIFO order but also need to dedupe / look up by key (job queues with idempotent IDs, message inboxes).
-**Don't use when** you only need queue semantics; `Queue<T>` is leaner without the dictionary overhead.
-
-#### `DequeDictionary<TKey, TValue>` — Hybrid (Deque)
-
-Double-ended queue with O(1) key lookup. Push and pop on either end; explicit `MoveToFront` / `MoveToBack` for re-prioritizing.
-
-| Operation | Time | Space |
-|---|---|---|
-| `PushFront(key, value)` | O(1) avg | O(1) |
-| `PushBack(key, value)` | O(1) avg | O(1) |
-| `PopFront` / `PopBack` | O(1) | O(1) |
-| `PeekFront` / `PeekBack` | O(1) | — |
-| `TryGetValue` | O(1) avg — does not touch order | O(1) |
-| `MoveToFront(key)` | O(1) avg | O(1) |
-| `MoveToBack(key)` | O(1) avg | O(1) |
-| `Remove(key)` | O(1) avg | O(1) |
-| `Clear` | O(N) | — |
-| Storage | — | O(N) |
-
-```csharp
-var dq = new DequeDictionary<string, Step>();
-dq.PushFront("a", first);
-dq.PushBack("b", last);
-var oldest = dq.PopFront();
-```
-
-**Use when** you need both ends of a queue and key-based lookup (undo/redo stacks, sliding windows, bidirectional cursors).
-**Don't use when** you only push/pop one end; `QueueDictionary` halves the pointer bookkeeping.
 
 #### `CounterDictionary<TKey, TValue>` — Hybrid (LFU)
 
@@ -541,31 +502,6 @@ if (cache.TryGetValue("k", out var v)) { /* concurrent-safe */ }
 
 **Use when** multiple threads share an LRU cache and you don't want one global lock around it.
 **Don't use when** you only have one writer thread — `LinkedDictionary` skips the lock cost.
-
-#### `PredictiveDictionary<TKey, TValue>` — Hybrid (n-gram prefetch)
-
-Dictionary that records short n-gram access patterns. `GetPredictions(context)` returns keys likely to follow; `PrefetchLikely(context, factory)` hydrates them through a caller-supplied value factory. Pattern learning happens synchronously on each access.
-
-| Operation | Time | Space |
-|---|---|---|
-| `AddOrUpdate` | O(1) avg | O(1) |
-| `TryGetValue` | O(1) avg + O(1) pattern update | O(1) |
-| `this[key]` (get) | O(1) avg + O(1) pattern update | — |
-| `GetPredictions(context)` | O(maxFrequencyKeys + log(maxFrequencyKeys)) — bounded by the frequency-fallback table (default ≥256) | O(top-5) |
-| `PrefetchLikely(context, factory)` | O(predictions · factory cost) | O(predictions) |
-| `Remove` | O(1) avg | O(1) |
-| `Clear` | O(N + patterns) | — |
-| Storage | — | O(N + capped pattern table) |
-
-```csharp
-var d = new PredictiveDictionary<string, CachedRow>();
-d.AddOrUpdate("user123", row);
-var ctx = new[] { "user123", "user124" };
-int prefetched = d.PrefetchLikely(ctx, key => LoadFromDb(key));
-```
-
-**Use when** access has a sequential pattern (`A → B → C`) and the value factory is cheap enough that prefetching pays off.
-**Don't use when** access is random or the factory is expensive — pattern bookkeeping is dead weight; use `Dictionary<K,V>`.
 
 </details>
 
@@ -905,13 +841,10 @@ Summary across all 32 types. Symbols used in this table:
 | **Hybrid** |
 | `BoundedDictionary<TKey,TValue>` | O(1) avg | O(1) avg | O(1) avg | O(N) | O(capacity) |
 | `LinkedDictionary<TKey,TValue>` | O(1) avg | O(1) avg (*mutates LRU on `TryGetValue` / get*) | O(1) avg | O(N) | O(N) |
-| `QueueDictionary<TKey,TValue>` | O(1) avg Enqueue | O(1) avg by key | O(1) Dequeue, O(1) avg by key | O(N) | O(N) |
-| `DequeDictionary<TKey,TValue>` | O(1) avg Push{Front,Back} | O(1) avg by key | O(1) Pop{Front,Back}, O(1) avg by key | O(N) | O(N) |
 | `CounterDictionary<TKey,TValue>` | O(1) avg | O(1) avg (*count++ on `TryGetValue`*) | O(1) avg | O(N) | O(N + freq buckets) |
 | `GraphDictionary<TKey,TValue>` | O(1) avg vertex / edge | O((V+E) log V) ShortestPath (Dijkstra), O(V+E) ShortestUnweighted (BFS) / SCC | O(deg) vertex, O(1) avg edge | O(V+E) | O(V + E) |
 | `LinkedMultiMap<TKey,TValue>` | O(1) avg | O(1) view (*mutates LRU*); enumeration O(values), indexer O(i) | O(1) avg key, O(values) per pair | O(keys + values) | O(keys + values) |
 | `ConcurrentLinkedDictionary<TKey,TValue>` | O(1) avg | O(1) avg (*mutates access timestamp*) | O(1) avg | O(N) | O(N + 1 lock per bucket) |
-| `PredictiveDictionary<TKey,TValue>` | O(1) avg | O(1) avg + pattern update on read; bounded GetPredictions | O(1) avg | O(N) | O(N + capped patterns) |
 | **Probabilistic** |
 | `BloomFilter<T>` | O(h) | O(h) Contains (one-sided FP) | — | — | O(m) bits |
 | `CountMinSketch<T>` | O(d) | O(d) Estimate | — | — | O(width · depth) |
