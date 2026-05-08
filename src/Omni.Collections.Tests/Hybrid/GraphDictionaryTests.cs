@@ -393,6 +393,60 @@ public class GraphDictionaryTests
     }
 
     [Fact]
+    public void FindShortestUnweighted_PrefersFewestHops_IgnoresWeights()
+    {
+        using var graph = new GraphDictionary<string, int>();
+        graph.Add("a", 1);
+        graph.Add("b", 2);
+        graph.Add("c", 3);
+        // Direct a->b is 100 hops worth of weight, but only 1 edge.
+        // Two-hop a->c->b has lower total weight in the weighted sense.
+        // Unweighted prefers the 1-hop direct path regardless of weight.
+        graph.AddEdge("a", "b", weight: 100.0);
+        graph.AddEdge("a", "c", weight: 1.0);
+        graph.AddEdge("c", "b", weight: 1.0);
+
+        var path = graph.FindShortestUnweighted("a", "b");
+
+        path.Should().NotBeNull();
+        path!.Path.Should().Equal("a", "b");
+        path.TotalWeight.Should().Be(1.0); // hop count
+    }
+
+    [Fact]
+    public void FindShortestUnweighted_Unreachable_ReturnsNull()
+    {
+        using var graph = new GraphDictionary<string, int>();
+        graph.Add("a", 1);
+        graph.Add("b", 2);
+
+        graph.FindShortestUnweighted("a", "b").Should().BeNull();
+    }
+
+    [Fact]
+    public void FindShortestUnweighted_SameStartAndEnd_ReturnsSelfPath()
+    {
+        using var graph = new GraphDictionary<string, int>();
+        graph.Add("a", 1);
+
+        var path = graph.FindShortestUnweighted("a", "a");
+
+        path.Should().NotBeNull();
+        path!.Path.Should().Equal("a");
+        path.TotalWeight.Should().Be(0.0);
+    }
+
+    [Fact]
+    public void FindShortestUnweighted_MissingEndpoint_ReturnsNull()
+    {
+        using var graph = new GraphDictionary<string, int>();
+        graph.Add("a", 1);
+
+        graph.FindShortestUnweighted("a", "ghost").Should().BeNull();
+        graph.FindShortestUnweighted("ghost", "a").Should().BeNull();
+    }
+
+    [Fact]
     public void FindNodesWithinDistance_ReturnsReachableWithinBudget()
     {
         using var graph = new GraphDictionary<string, int>();

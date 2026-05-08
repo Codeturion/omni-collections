@@ -1,6 +1,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 
 namespace Omni.Collections.Grid2D;
@@ -133,18 +134,56 @@ public class BitGrid2D : IDisposable
 
     public void FillArea(int x, int y, int width, int height, bool value)
     {
-        for (int dx = 0; dx < width; dx++)
+        if (width <= 0 || height <= 0) return;
+        // Clip the rectangle to grid bounds (matches the previous IsInBounds-skip semantics).
+        int x1 = Math.Max(0, x);
+        int y1 = Math.Max(0, y);
+        int x2 = Math.Min(_width, x + width);
+        int y2 = Math.Min(_height, y + height);
+        if (x1 >= x2 || y1 >= y2) return;
+        // For each row in the rectangle, fill a contiguous bit range using
+        // word-level ops. Per-row cost is O((x2 - x1) / 64); total is
+        // O(height · width / 64) instead of O(width · height) per-cell.
+        int rowSpan = x2 - x1;
+        for (int row = y1; row < y2; row++)
         {
-            for (int dy = 0; dy < height; dy++)
-            {
-                int px = x + dx;
-                int py = y + dy;
-                if (IsInBounds(px, py))
-                {
-                    this[px, py] = value;
-                }
-            }
+            int startBit = row * _width + x1;
+            SetBitRange(startBit, startBit + rowSpan - 1, value);
         }
+    }
+
+    private void SetBitRange(int startBit, int endBit, bool value)
+    {
+        int firstWord = startBit / 64;
+        int lastWord = endBit / 64;
+        int firstOffset = startBit % 64;
+        int lastOffset = endBit % 64;
+        // Build a mask covering bits [firstOffset..lastOffset] in a single word.
+        // upperMask = bits [0..lastOffset];  lowerMask = bits [0..firstOffset-1];
+        // mask = upperMask & ~lowerMask = bits [firstOffset..lastOffset].
+        if (firstWord == lastWord)
+        {
+            ulong upperMask = lastOffset == 63 ? ulong.MaxValue : (1UL << (lastOffset + 1)) - 1;
+            ulong lowerMask = (1UL << firstOffset) - 1;
+            ulong mask = upperMask & ~lowerMask;
+            if (value) _bits[firstWord] |= mask;
+            else _bits[firstWord] &= ~mask;
+            return;
+        }
+        // First word: bits [firstOffset..63]
+        ulong firstWordMask = ~((1UL << firstOffset) - 1);
+        if (value) _bits[firstWord] |= firstWordMask;
+        else _bits[firstWord] &= ~firstWordMask;
+        // Middle words: full ulong fill
+        ulong fillVal = value ? ulong.MaxValue : 0UL;
+        for (int i = firstWord + 1; i < lastWord; i++)
+        {
+            _bits[i] = fillVal;
+        }
+        // Last word: bits [0..lastOffset]
+        ulong lastWordMask = lastOffset == 63 ? ulong.MaxValue : (1UL << (lastOffset + 1)) - 1;
+        if (value) _bits[lastWord] |= lastWordMask;
+        else _bits[lastWord] &= ~lastWordMask;
     }
 
     public void ClearArea(int x, int y, int width, int height)
@@ -279,14 +318,29 @@ public class BitGrid2D : IDisposable
 
     public IEnumerable<(int x, int y)> EnumerateSetBits()
     {
-        for (int x = 0; x < _width; x++)
+        // Walk the bit-packed storage word-by-word. For each non-zero word, use
+        // TrailingZeroCount to jump straight to the next set bit; clear the bit
+        // and repeat. Skips entire 64-bit words of zeros in one comparison.
+        // Total work: O(set bits + W·H/64) instead of O(W·H) per-cell scan.
+        int wordCount = _bits.Length;
+        for (int wordIdx = 0; wordIdx < wordCount; wordIdx++)
         {
-            for (int y = 0; y < _height; y++)
+            ulong word = _bits[wordIdx];
+            // Mask off any bits past _totalBits in the final word (those positions
+            // don't correspond to real cells, even if they happened to be set by
+            // a word-level write).
+            if (wordIdx == wordCount - 1 && (_totalBits & 63) != 0)
             {
-                if (this[x, y])
-                {
-                    yield return (x, y);
-                }
+                ulong validMask = (1UL << (_totalBits & 63)) - 1;
+                word &= validMask;
+            }
+            int wordBase = wordIdx * 64;
+            while (word != 0)
+            {
+                int bitInWord = BitOperations.TrailingZeroCount(word);
+                int bitIndex = wordBase + bitInWord;
+                yield return (bitIndex % _width, bitIndex / _width);
+                word &= word - 1; // clear lowest set bit
             }
         }
     }

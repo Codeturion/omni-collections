@@ -226,32 +226,40 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
     public int RemoveAll(Predicate<T> predicate)
     {
         ThrowIfNotifying();
-        var removedItems = new List<T>();
-        var removedIndices = new List<int>();
-        for (int i = _items.Count - 1; i >= 0; i--)
+        // Single-pass swap-and-truncate: walk forward, copy survivors leftward over
+        // removed slots, then truncate the tail. O(N) total — vs the previous
+        // descending-index RemoveAt loop which was O(N*k) for k matches due to per-
+        // match list shifts.
+        int writeIndex = 0;
+        int removedCount = 0;
+        int count = _items.Count;
+        for (int readIndex = 0; readIndex < count; readIndex++)
         {
-            if (predicate(_items[i]))
+            T item = _items[readIndex];
+            if (predicate(item))
             {
-                removedItems.Add(_items[i]);
-                removedIndices.Add(i);
+                removedCount++;
+            }
+            else
+            {
+                if (writeIndex != readIndex)
+                    _items[writeIndex] = item;
+                writeIndex++;
             }
         }
-        if (removedItems.Count > 0)
+        if (removedCount > 0)
         {
-            for (int i = 0; i < removedIndices.Count; i++)
-            {
-                _items.RemoveAt(removedIndices[i]);
-            }
+            _items.RemoveRange(writeIndex, removedCount);
             IncrementVersion();
             OnPropertyChanged(nameof(Count));
             // Removed items are typically non-contiguous, so the (Remove, items, index) shape
             // would be semantically wrong (INotifyCollectionChanged contract requires a single
-            // contiguous range). Fire Reset; per-item ItemRemoved events still fire individually
-            // for fine-grained subscribers via the loop below the removal loop above.
+            // contiguous range). Reset is the right action; subscribers needing per-item
+            // notifications use ItemRemoved-aware variants.
             OnCollectionChanged(NotifyCollectionChangedAction.Reset);
             OnListChanged();
         }
-        return removedItems.Count;
+        return removedCount;
     }
 
     public void Clear()
@@ -356,40 +364,43 @@ public class ObservableList<T> : IList<T>, INotifyCollectionChanged, INotifyProp
         ThrowIfDisposed();
         ThrowIfNotifying();
 
+        // Single-pass swap-and-truncate, same shape as the synchronous RemoveAll
+        // but yields periodically and collects removed items so per-item
+        // ItemRemoved events can fire after the structural mutation completes.
         var removedItems = new List<T>();
-        var lowestIndex = -1;
-        var removedCount = 0;
-
-        // Process from highest index down so RemoveAt's index is stable for each step.
-        for (int i = _items.Count - 1; i >= 0; i--)
+        int writeIndex = 0;
+        int removedCount = 0;
+        int yieldCounter = 0;
+        int count = _items.Count;
+        for (int readIndex = 0; readIndex < count; readIndex++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-
-            if (predicate(_items[i]))
+            T item = _items[readIndex];
+            if (predicate(item))
             {
-                var item = _items[i];
-                _items.RemoveAt(i);
                 removedItems.Add(item);
-                lowestIndex = i; // Each later assignment overwrites with a smaller i; final value is the lowest.
                 removedCount++;
-
-                // Yield control periodically
-                if (removedCount % 1000 == 0)
-                {
-                    await Task.Yield();
-                }
+            }
+            else
+            {
+                if (writeIndex != readIndex)
+                    _items[writeIndex] = item;
+                writeIndex++;
+            }
+            if (++yieldCounter >= 1000)
+            {
+                yieldCounter = 0;
+                await Task.Yield();
             }
         }
 
         if (removedCount > 0)
         {
+            _items.RemoveRange(writeIndex, removedCount);
             IncrementVersion();
 
-            // removedItems was built in descending-index order; reverse so the OldItems list
-            // reads in ascending-index order, which is the natural shape consumers expect.
-            removedItems.Reverse();
-
-            // Fire per-item ItemRemoved events for fine-grained subscribers.
+            // Fire per-item ItemRemoved events for fine-grained subscribers
+            // (removedItems was collected in ascending index order — natural shape).
             foreach (T item in removedItems)
             {
                 OnItemRemoved(item);

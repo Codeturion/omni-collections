@@ -34,5 +34,19 @@ internal static class BitOperations
         uint hi = (uint)(value >> 32);
         return hi != 0 ? LeadingZeroCount(hi) : 32 + LeadingZeroCount((uint)value);
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int TrailingZeroCount(ulong value)
+    {
+        if (value == 0) return 64;
+        int count = 0;
+        if ((value & 0xFFFFFFFFUL) == 0) { count += 32; value >>= 32; }
+        if ((value & 0x0000FFFFUL) == 0) { count += 16; value >>= 16; }
+        if ((value & 0x000000FFUL) == 0) { count += 8;  value >>= 8; }
+        if ((value & 0x0000000FUL) == 0) { count += 4;  value >>= 4; }
+        if ((value & 0x00000003UL) == 0) { count += 2;  value >>= 2; }
+        if ((value & 0x00000001UL) == 0) { count += 1; }
+        return count;
+    }
 }
 #endif
