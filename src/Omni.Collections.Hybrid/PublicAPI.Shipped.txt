@@ -119,6 +119,7 @@ Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.Enumerator
 Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.Enumerator.Reset() -> void
 Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.FindNodesWithinDistance(TKey source, double maxDistance) -> System.Collections.Generic.IEnumerable<(TKey Key, double Distance)>!
 Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.FindShortestPath(TKey start, TKey end) -> Omni.Collections.Hybrid.GraphDictionary.GraphPath<TKey>?
+Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.FindShortestUnweighted(TKey start, TKey end) -> Omni.Collections.Hybrid.GraphDictionary.GraphPath<TKey>?
 Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.FindStronglyConnectedComponents() -> System.Collections.Generic.IEnumerable<System.Collections.Generic.IEnumerable<TKey>!>!
 Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.GetChunkedEnumerator(int chunkSize = 1000) -> System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, TValue>>!
 Omni.Collections.Hybrid.GraphDictionary.GraphDictionary<TKey, TValue>.GetClusteringCoefficient(TKey key) -> double

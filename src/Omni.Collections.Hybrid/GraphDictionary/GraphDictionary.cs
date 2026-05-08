@@ -445,6 +445,64 @@ namespace Omni.Collections.Hybrid.GraphDictionary
         }
         #endregion
         #region Advanced Graph Algorithms
+        public GraphPath<TKey>? FindShortestUnweighted(TKey start, TKey end)
+        {
+            // BFS over the graph treating every edge as unit-weight. Returns the
+            // path with the fewest hops, ignoring edge weights entirely. Use
+            // FindShortestPath when edge weights matter (Dijkstra, O((V+E) log V)).
+            Interlocked.Increment(ref _traversalCount);
+            _structureLock.EnterReadLock();
+            try
+            {
+                if (!_nodes.ContainsKey(start) || !_nodes.ContainsKey(end))
+                    return null;
+                if (start.Equals(end))
+                    return new GraphPath<TKey>(new List<TKey> { start }, 0);
+                var cacheKey = $"shortest_unweighted_{start}_{end}_{_cacheVersion}";
+                if (_metricsCache.TryGetValue(cacheKey, out var cached))
+                    return (GraphPath<TKey>?)cached;
+                var previous = new Dictionary<TKey, TKey>();
+                var visited = new HashSet<TKey> { start };
+                var queue = new Queue<TKey>();
+                queue.Enqueue(start);
+                while (queue.Count > 0)
+                {
+                    var current = queue.Dequeue();
+                    if (!_nodes.TryGetValue(current, out var node) || node.Neighbors == null)
+                        continue;
+                    foreach (var (neighbor, _) in node.Neighbors)
+                    {
+                        if (!visited.Add(neighbor))
+                            continue;
+                        previous[neighbor] = current;
+                        if (neighbor.Equals(end))
+                        {
+                            var path = new List<TKey>();
+                            var cursor = end;
+                            while (!cursor.Equals(start))
+                            {
+                                path.Add(cursor);
+                                cursor = previous[cursor];
+                            }
+                            path.Add(start);
+                            path.Reverse();
+                            // Hop count rather than weighted distance — every edge counts as 1.
+                            var result = new GraphPath<TKey>(path, path.Count - 1);
+                            _metricsCache.TryAdd(cacheKey, result);
+                            return result;
+                        }
+                        queue.Enqueue(neighbor);
+                    }
+                }
+                _metricsCache.TryAdd(cacheKey, null!);
+                return null;
+            }
+            finally
+            {
+                _structureLock.ExitReadLock();
+            }
+        }
+
         public GraphPath<TKey>? FindShortestPath(TKey start, TKey end)
         {
             Interlocked.Increment(ref _traversalCount);
