@@ -30,6 +30,9 @@ public class DigestBenchmarks
     private List<double> _baselineMut = null!;
     private int _addCounter;
 
+    private Digest _mergeLeft = null!;
+    private Digest _mergeRight = null!;
+
     [GlobalSetup]
     public void GlobalSetup()
     {
@@ -82,6 +85,30 @@ public class DigestBenchmarks
 
     [Benchmark(Baseline = true), BenchmarkCategory("Quantile")]
     public double Baseline_Quantile() => _baselineSorted[(int)(_baselineSorted.Length * 0.95)];
+
+    [IterationSetup(Targets = new[] { nameof(Omni_Merge) })]
+    public void ResetForMerge()
+    {
+        // Build two distinct digests of N values each so Merge has to actually
+        // combine c₁ + c₂ centroids, exercising the bulk-rebuild path.
+        _mergeLeft = new Digest(Compression);
+        _mergeRight = new Digest(Compression);
+        for (int i = 0; i < N; i++)
+        {
+            _mergeLeft.Add(_values[i]);
+            _mergeRight.Add(_values[(i + N) % _values.Length]);
+        }
+    }
+
+    /// Claim: Digest.Merge is O(c₁+c₂) — linear merge of both digests' sorted centroid lists,
+    /// then bulk-rebuild the skip list. The bulk-build replaces the previous per-centroid
+    /// Add path which gave O((c₁+c₂) log(c₁+c₂)).
+    [Benchmark, BenchmarkCategory("Merge"), InvocationCount(1)]
+    public Digest Omni_Merge()
+    {
+        _mergeLeft.Merge(_mergeRight);
+        return _mergeLeft;
+    }
 
     /// Claim: Digest uses bounded memory regardless of N; storing all values + sorting allocates O(N).
     [Benchmark, BenchmarkCategory("Fill"), InvocationCount(1)]

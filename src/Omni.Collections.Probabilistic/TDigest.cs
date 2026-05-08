@@ -376,6 +376,18 @@ public sealed class Digest
     /// <summary>
     /// Reset the skip list and bulk-insert from a sorted list of centroids. Keeps
     /// _count/_min/_max as set by the caller; recomputes _centroidCount and _level.
+    ///
+    /// Single-pass left-to-right bulk-build: maintain an update[]/rank[] stack of
+    /// the rightmost level-i predecessor and its cumulative weight. For each new
+    /// centroid: pick a level via the same RandomLevel() distribution Add uses,
+    /// splice the node in at its levels in O(level) by referencing the stack.
+    /// Width values fall out as (newRank - ranks[i]) — no descent needed since the
+    /// input is already sorted.
+    ///
+    /// Total work: sum of node levels across the build = O(c) on expectation
+    /// (geometric-distribution levels sum to ~2c). Replaces the previous
+    /// per-centroid Add-style splice which did a full O(log c) descent for each
+    /// centroid → O(c log c).
     /// </summary>
     private void RebuildFromSorted(List<Centroid> sorted)
     {
@@ -388,66 +400,58 @@ public sealed class Digest
         _level = 1;
         _centroidCount = 0;
 
-        if (sorted.Count == 0)
+        int n = sorted.Count;
+        if (n == 0)
             return;
 
-        // Re-insert each centroid using the standard Add path (bypassing validation
-        // since these are already-known-good values, but still doing the rank-tracked
-        // skip-list splice). We can't go through Add(value, weight) because the
-        // centroid's mean is generally not exactly representable as the original
-        // input, and we shouldn't touch _count/min/max again. Inline a simplified
-        // splice that does no mergeability check (centroids are already merged where
-        // appropriate by Compress / linear merge).
+        // Initialize the rightmost-predecessor stacks. update[i] is the most-
+        // recently-linked level-i node (initially _head); ranks[i] is its
+        // cumulative weight (initially 0).
         var update = _updateNodes;
         var ranks = _updateRanks;
-        foreach (var centroid in sorted)
+        for (int i = 0; i < MaxLevel; i++)
         {
-            Node x = _head;
-            double rank = 0;
-            for (int i = _level - 1; i >= 0; i--)
-            {
-                Node? next = x.Forward[i];
-                while (next != null && next.Centroid.Mean < centroid.Mean)
-                {
-                    rank += x.Width[i];
-                    x = next;
-                    next = x.Forward[i];
-                }
-                update[i] = x;
-                ranks[i] = rank;
-            }
+            update[i] = _head;
+            ranks[i] = 0;
+        }
 
-            int newLevel = RandomLevel();
-            if (newLevel > _level)
-            {
-                for (int i = _level; i < newLevel; i++)
-                {
-                    update[i] = _head;
-                    ranks[i] = 0;
-                }
-                _level = newLevel;
-            }
+        int maxLevelUsed = 1;
+        double cumWeight = 0;
+        for (int k = 0; k < n; k++)
+        {
+            var centroid = sorted[k];
+            int level = RandomLevel();
+            if (level > maxLevelUsed)
+                maxLevelUsed = level;
 
-            var node = new Node(centroid, newLevel);
-            double newNodeRank = ranks[0];
-            for (int i = 0; i < newLevel; i++)
+            cumWeight += centroid.Weight;
+            // newRank = cumulative weight at the new node (sum of weights of all
+            // centroids 0..k, inclusive). This matches the Width[i] semantic:
+            // Width[i] of X = cumWeight(X.Forward[i]) - cumWeight(X). Each level-i
+            // predecessor's Forward[i] now points at this new node, so its Width[i]
+            // is (newRank - rank-at-that-predecessor).
+            double newRank = cumWeight;
+
+            var node = new Node(centroid, level);
+            for (int i = 0; i < level; i++)
             {
                 Node parent = update[i]!;
-                node.Forward[i] = parent.Forward[i];
                 parent.Forward[i] = node;
-
-                double originalParentWidth = parent.Width[i];
-                double headPart = newNodeRank - ranks[i];
-                parent.Width[i] = headPart + centroid.Weight;
-                node.Width[i] = node.Forward[i] == null ? 0 : (originalParentWidth - headPart);
+                parent.Width[i] = newRank - ranks[i];
+                update[i] = node;
+                ranks[i] = newRank;
             }
-            for (int i = newLevel; i < _level; i++)
-            {
-                update[i]!.Width[i] += centroid.Weight;
-            }
+            // Levels above `level`: this node is invisible at those levels and the
+            // current update[i] still points to whatever prior level-i predecessor
+            // (or _head if none yet). Its Width[i] will be set when the next level-i
+            // node arrives, OR will remain at the cleared 0 if no such node exists
+            // (matching the convention that tail-of-level Width[i] = 0 when
+            // Forward[i] = null). No work needed here.
 
             _centroidCount++;
         }
+
+        _level = maxLevelUsed;
     }
 
     private double ScaleFunction(double q0, double q1)

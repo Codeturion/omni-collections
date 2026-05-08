@@ -653,9 +653,9 @@ Streaming approximate quantile sketch. Compresses observations into a bounded se
 | `Add(value)` / `Add(value, weight)` | O(log c), c = centroid count — skip-list descent locates insert position and updates cumulative-weight prefix sums per level | O(1) avg per node |
 | `Quantile(q)` / `Percentile(p)` | O(log c) — top-down skip-list descent advancing while cumulative width < target | O(1) |
 | `Cdf(x)` | O(log c) | O(1) |
-| `Merge(other)` | O(c₁ + c₂) — linear merge of both digests' in-order centroid sequences, then compress | O(c₁ + c₂) intermediate |
-| `Compress` | O(c log c) — rebuilds the skip list from the merged in-order list | — |
-| `Clone` | O(c log c) | O(c) |
+| `Merge(other)` | O(c₁ + c₂) — linear two-pointer merge of both digests' in-order centroid sequences, then bulk-rebuild | O(c₁ + c₂) intermediate |
+| `Compress` | O(c) — level-0 walk + single-pass bulk-rebuild (no per-centroid descent) | — |
+| `Clone` | O(c) | O(c) |
 | `Clear` | O(c) | — |
 | Storage | — | O(compression), typically c ≤ ~`compression` centroids; per-node overhead ~96 bytes (forward + width arrays at expected ~2 levels avg) |
 
@@ -682,6 +682,7 @@ d.Merge(otherShard);
 | `GetAnalytics()` | O(log c) (six fixed-percentile descents) | O(1) |
 | `Merge(other)` | O(c₁ + c₂) | O(c₁ + c₂) intermediate |
 | `Clear` | O(c) | — |
+
 | Storage | — | O(compression) for the digest + bounded recent-value buffer |
 
 ```csharp
