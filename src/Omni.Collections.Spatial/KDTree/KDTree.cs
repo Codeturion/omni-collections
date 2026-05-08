@@ -276,11 +276,13 @@ public class KdTree<T> : IDisposable
         if (start > end)
             return null;
         var dimension = depth % _dimensions;
-        Array.Sort(items, start, end - start + 1,
-            Comparer<T>.Create((a, b) =>
-                _pointProvider.GetCoordinates(a)[dimension].CompareTo(
-                    _pointProvider.GetCoordinates(b)[dimension])));
         var median = (start + end) / 2;
+        // Quickselect partitions items[start..end] in O(end - start + 1) average,
+        // placing the median-by-coordinate at items[median] with everything to its
+        // left smaller and everything to its right at-or-greater. Per-level cost
+        // drops from O(N log N) (full Sort) to O(N), so total Build cost is
+        // O(N log N) instead of the previous O(N log² N).
+        QuickselectByDimension(items, start, end, median, dimension);
         var node = CreateNode();
         node.Item = items[median];
         node.Left = BuildRecursiveOptimized(items, start, median - 1, depth + 1);
@@ -288,28 +290,50 @@ public class KdTree<T> : IDisposable
         return node;
     }
 
-    private KdNode? BuildRecursive(List<T> items, int depth)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private double CoordAt(T item, int dimension)
     {
-        if (items.Count == 0)
-            return null;
-        var dimension = depth % _dimensions;
-        items.Sort((a, b) =>
-            _pointProvider.GetCoordinates(a)[dimension].CompareTo(
-                _pointProvider.GetCoordinates(b)[dimension]));
-        var median = items.Count / 2;
-        var node = CreateNode();
-        node.Item = items[median];
-        if (median > 0)
+        return _pointProvider.GetCoordinates(item)[dimension];
+    }
+
+    private void QuickselectByDimension(T[] items, int low, int high, int k, int dimension)
+    {
+        // Iterative Quickselect with median-of-three pivot selection. Partitions in-place
+        // until items[k] is the kth-smallest by `dimension`-coordinate within [low..high];
+        // items[low..k-1] are <= items[k] and items[k+1..high] are >= items[k] (no further
+        // ordering guaranteed within each side, which is exactly what kd-tree build needs).
+        // Average O(high - low + 1) per call; worst case O((high - low + 1)²) on adversarial
+        // input (mitigated by median-of-three).
+        while (low < high)
         {
-            List<T>? leftItems = items.GetRange(0, median);
-            node.Left = BuildRecursive(leftItems, depth + 1);
+            int mid = low + (high - low) / 2;
+            // Sort {items[low], items[mid], items[high]} so items[mid] holds the median
+            // of the three, then swap median to items[high] for Lomuto partition.
+            if (CoordAt(items[low], dimension) > CoordAt(items[high], dimension))
+                (items[low], items[high]) = (items[high], items[low]);
+            if (CoordAt(items[mid], dimension) > CoordAt(items[high], dimension))
+                (items[mid], items[high]) = (items[high], items[mid]);
+            if (CoordAt(items[low], dimension) > CoordAt(items[mid], dimension))
+                (items[low], items[mid]) = (items[mid], items[low]);
+            // Now items[low] <= items[mid] <= items[high]; pivot is items[mid].
+            (items[mid], items[high]) = (items[high], items[mid]);
+            double pivot = CoordAt(items[high], dimension);
+            // Lomuto partition over [low..high - 1] with pivot at items[high].
+            int i = low - 1;
+            for (int j = low; j < high; j++)
+            {
+                if (CoordAt(items[j], dimension) < pivot)
+                {
+                    i++;
+                    if (i != j) (items[i], items[j]) = (items[j], items[i]);
+                }
+            }
+            i++;
+            (items[i], items[high]) = (items[high], items[i]);
+            if (i == k) return;
+            if (i > k) high = i - 1;
+            else low = i + 1;
         }
-        if (median + 1 < items.Count)
-        {
-            List<T>? rightItems = items.GetRange(median + 1, items.Count - median - 1);
-            node.Right = BuildRecursive(rightItems, depth + 1);
-        }
-        return node;
     }
 
     private void FindNearestRecursive(KdNode node, double[] target, int depth, ref NearestResult<T> best)
