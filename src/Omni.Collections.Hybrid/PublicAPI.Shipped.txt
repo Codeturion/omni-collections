@@ -201,18 +201,22 @@ Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.Clear() -> void
 Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.Contains(TKey key, TValue value) -> bool
 Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.ContainsKey(TKey key) -> bool
 Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.Dispose() -> void
-Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.GetEnumerator() -> System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<TKey, System.Collections.Generic.IReadOnlyList<TValue>!>>!
+Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.GetEnumerator() -> System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<TKey, Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.NodeValueView!>>!
 Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.GetValueCount(TKey key) -> int
 Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.KeyCount.get -> int
 Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.Keys.get -> System.Collections.Generic.IEnumerable<TKey>!
 Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.LinkedMultiMap() -> void
 Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.LinkedMultiMap(int capacity, Omni.Collections.Hybrid.LinkedDictionary.CapacityMode mode = Omni.Collections.Hybrid.LinkedDictionary.CapacityMode.Dynamic, bool allowDuplicateValues = true) -> void
 Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.LinkedMultiMap(int capacity, Omni.Collections.Hybrid.LinkedDictionary.CapacityMode mode, bool allowDuplicateValues, System.Collections.Generic.IEqualityComparer<TKey>? keyComparer, System.Collections.Generic.IEqualityComparer<TValue>? valueComparer, bool enableLruOptimization = false, Omni.Collections.Core.Security.SecureHashOptions? hashOptions = null) -> void
+Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.NodeValueView
+Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.NodeValueView.Count.get -> int
+Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.NodeValueView.GetEnumerator() -> System.Collections.Generic.IEnumerator<TValue>!
+Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.NodeValueView.this[int index].get -> TValue
 Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.Remove(TKey key, TValue value) -> bool
 Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.RemoveKey(TKey key) -> bool
 Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.TotalValueCount.get -> int
-Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.TryGetValues(TKey key, out System.Collections.Generic.IReadOnlyList<TValue>! values) -> bool
-Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.this[TKey key].get -> System.Collections.Generic.IReadOnlyList<TValue>!
+Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.TryGetValues(TKey key, out Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.NodeValueView! values) -> bool
+Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.this[TKey key].get -> Omni.Collections.Hybrid.LinkedMultiMap<TKey, TValue>.NodeValueView!
 Omni.Collections.Hybrid.PredictiveDictionary.PredictiveDictionary<TKey, TValue>
 Omni.Collections.Hybrid.PredictiveDictionary.PredictiveDictionary<TKey, TValue>.AddOrUpdate(TKey key, TValue value) -> void
 Omni.Collections.Hybrid.PredictiveDictionary.PredictiveDictionary<TKey, TValue>.Clear() -> void

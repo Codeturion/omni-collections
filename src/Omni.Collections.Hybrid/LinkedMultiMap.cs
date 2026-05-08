@@ -13,10 +13,10 @@ namespace Omni.Collections.Hybrid
     /// Perfect for dependency graphs, event subscription systems, and tag-based indexing where multiple ordered
     /// values per key are fundamental to the data model.
     /// </summary>
-    public class LinkedMultiMap<TKey, TValue> : IEnumerable<KeyValuePair<TKey, IReadOnlyList<TValue>>>, IDisposable
+    public class LinkedMultiMap<TKey, TValue> : IEnumerable<KeyValuePair<TKey, LinkedMultiMap<TKey, TValue>.NodeValueView>>, IDisposable
         where TKey : notnull
     {
-        sealed private class ValueNode
+        sealed internal class ValueNode
         {
             public readonly TValue Value;
 
@@ -27,7 +27,7 @@ namespace Omni.Collections.Hybrid
             }
         }
 
-        sealed private class KeyNode
+        sealed internal class KeyNode
         {
             public readonly TKey Key;
             public readonly int HashCode;
@@ -44,10 +44,18 @@ namespace Omni.Collections.Hybrid
             }
         }
 
-        sealed private class NodeValueView : IReadOnlyList<TValue>
+        /// <summary>
+        /// A live view over a key's value list. Construction is O(1); enumeration
+        /// is O(values per key); indexed access (<c>view[i]</c>) is O(i) — prefer
+        /// <c>foreach</c> for sequential reads. The view aliases the multimap's
+        /// internal storage: mutations to the multimap after the view is obtained
+        /// invalidate the view's contents (the next read sees post-mutation state).
+        /// Call the view's standard LINQ <c>ToArray()</c> for a snapshot.
+        /// </summary>
+        public sealed class NodeValueView : IReadOnlyList<TValue>
         {
-            private KeyNode? _node;
-            public void SetNode(KeyNode node)
+            private readonly KeyNode? _node;
+            internal NodeValueView(KeyNode? node)
             {
                 _node = node;
             }
@@ -92,7 +100,7 @@ namespace Omni.Collections.Hybrid
         private readonly IEqualityComparer<TValue> _valueComparer;
         private readonly SecureHashOptions _hashOptions;
         private readonly bool _enableLruOptimization;
-        private readonly NodeValueView _cachedView;
+        private static readonly NodeValueView _emptyView = new NodeValueView(null);
         public int KeyCount => _keyCount;
         public int TotalValueCount => _totalValueCount;
         public IEnumerable<TKey> Keys
@@ -144,7 +152,6 @@ namespace Omni.Collections.Hybrid
             }
             _valueComparer = valueComparer ?? EqualityComparer<TValue>.Default;
             _enableLruOptimization = enableLruOptimization;
-            _cachedView = new NodeValueView();
             var bucketCount = HybridUtils.GetPrime(capacity);
             _buckets = new KeyNode?[bucketCount];
         }
@@ -176,17 +183,29 @@ namespace Omni.Collections.Hybrid
             }
         }
 
-        public IReadOnlyList<TValue> this[TKey key]
+        /// <summary>
+        /// Returns a live view over the values for <paramref name="key"/>. O(1) per call —
+        /// the returned <see cref="NodeValueView"/> holds a reference to the key's value
+        /// list and walks it lazily. Indexed access is O(i); enumeration is O(values).
+        /// The view aliases multimap state — subsequent mutations invalidate it. *Mutates
+        /// LRU order*: the accessed key moves to the front of the recency list.
+        /// </summary>
+        public NodeValueView this[TKey key]
         {
             get
             {
-                if (TryGetValues(key, out IReadOnlyList<TValue>? values))
+                if (TryGetValues(key, out NodeValueView values))
                     return values;
-                return Array.Empty<TValue>();
+                return _emptyView;
             }
         }
 
-        public bool TryGetValues(TKey key, out IReadOnlyList<TValue> values)
+        /// <summary>
+        /// Tries to retrieve the live view of values for <paramref name="key"/>. Same
+        /// O(1) view semantics as the indexer; same LRU mutation. Returns <c>false</c>
+        /// (with an empty view) if the key is absent.
+        /// </summary>
+        public bool TryGetValues(TKey key, out NodeValueView values)
         {
             var hashCode = _keyComparer.GetHashCode(key) & 0x7FFFFFFF;
             var bucketIndex = hashCode % _buckets.Length;
@@ -194,10 +213,10 @@ namespace Omni.Collections.Hybrid
             if (node != null)
             {
                 MoveToFront(node);
-                values = GetNodeValues(node);
+                values = WrapNodeValues(node);
                 return true;
             }
-            values = Array.Empty<TValue>();
+            values = _emptyView;
             return false;
         }
 
@@ -335,26 +354,16 @@ namespace Omni.Collections.Hybrid
             _totalValueCount++;
         }
 
-        private IReadOnlyList<TValue> GetNodeValues(KeyNode node)
-        {
-            if (node.ValueCount == 0)
-                return Array.Empty<TValue>();
-            var result = new TValue[node.ValueCount];
-            var current = node.FirstValue;
-            int index = 0;
-            while (current != null && index < node.ValueCount)
-            {
-                result[index++] = current.Value;
-                current = current.Next;
-            }
-            return result;
-        }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private IReadOnlyList<TValue> GetCachedNodeValues(KeyNode node)
+        private NodeValueView WrapNodeValues(KeyNode node)
         {
-            _cachedView.SetNode(node);
-            return _cachedView;
+            // O(1): allocate the lightweight view object that holds a reference
+            // to the node and walks the value list lazily on demand. Previously
+            // GetNodeValues allocated a TValue[node.ValueCount] and copied each
+            // value into it — O(values per key) heap. The view aliases the
+            // multimap's internal storage; mutations after the view is returned
+            // invalidate it. Snapshot via standard LINQ ToArray() if needed.
+            return new NodeValueView(node);
         }
         #endregion
         #region LRU Management
@@ -441,13 +450,12 @@ namespace Omni.Collections.Hybrid
         }
         #endregion
         #region IEnumerable Implementation
-        public IEnumerator<KeyValuePair<TKey, IReadOnlyList<TValue>>> GetEnumerator()
+        public IEnumerator<KeyValuePair<TKey, NodeValueView>> GetEnumerator()
         {
             var current = _lruHead;
             while (current != null)
             {
-                _cachedView.SetNode(current);
-                yield return new KeyValuePair<TKey, IReadOnlyList<TValue>>(current.Key, _cachedView);
+                yield return new KeyValuePair<TKey, NodeValueView>(current.Key, new NodeValueView(current));
                 current = current.NextLru;
             }
         }
