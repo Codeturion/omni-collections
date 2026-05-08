@@ -20,6 +20,11 @@ public class KdTree<T> : IDisposable
     private readonly IKdPointProvider<T> _pointProvider;
     private readonly IDistanceMetric _distanceMetric;
     private int _count;
+    // Tracked-incrementally height: the maximum depth at which any current node lives.
+    // Maintained by Insert (O(1) per call) and reset to ⌈log₂(_count)⌉ on Build.
+    // Replaces the prior O(N) EstimateTreeHeight walk that ran every 64 inserts —
+    // that walk made amortized Insert cost O(N/64) = O(N), defeating the O(log N) claim.
+    private int _maxDepth;
     public int Count => _count;
     public int Dimensions => _dimensions;
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -51,9 +56,14 @@ public class KdTree<T> : IDisposable
 
     public void Insert(T item)
     {
-        _root = InsertRecursive(_root, item, 0);
+        int leafDepth = -1;
+        _root = InsertRecursive(_root, item, 0, ref leafDepth);
         _count++;
-        // Amortize the O(n) height check: only consider rebalancing every 64 inserts past 1000.
+        // Track the deepest leaf incrementally — O(1) per Insert vs the previous O(N)
+        // EstimateTreeHeight walk. leafDepth is the depth at which the new node was
+        // placed; tree height is leafDepth + 1.
+        if (leafDepth + 1 > _maxDepth)
+            _maxDepth = leafDepth + 1;
         if (_count > 1000 && (_count & 63) == 0)
         {
             RebalanceIfNeeded();
@@ -63,7 +73,8 @@ public class KdTree<T> : IDisposable
     private void RebalanceIfNeeded()
     {
         if (_root == null) return;
-        var height = EstimateTreeHeight(_root);
+        // _maxDepth is maintained incrementally by Insert and reset to ⌈log₂(_count)⌉
+        // on Build (rebuilt trees are balanced). No tree walk needed here — O(1).
 #if NET5_0_OR_GREATER
         var optimalHeight = Math.Log2(_count);
 #else
@@ -71,21 +82,12 @@ public class KdTree<T> : IDisposable
 #endif
         // Rebuild when height exceeds 2 * log2(count) + 2 — i.e., the tree has degraded
         // significantly past balanced. Constant + slack term avoids spurious rebuilds at small count.
-        if (height > optimalHeight * 2 + 2)
+        if (_maxDepth > optimalHeight * 2 + 2)
         {
             T[]? items = GetAllItems().ToArray();
             Clear();
             Build(items);
         }
-    }
-
-    private int EstimateTreeHeight(KdNode node)
-    {
-        if (node == null) return 0;
-        return 1 + Math.Max(
-            node.Left != null ? EstimateTreeHeight(node.Left) : 0,
-            node.Right != null ? EstimateTreeHeight(node.Right) : 0
-        );
     }
 
     public void InsertRange(IEnumerable<T> items)
@@ -111,8 +113,10 @@ public class KdTree<T> : IDisposable
         {
             foreach (var item in itemArray)
             {
-                _root = InsertRecursive(_root, item, 0);
+                int leafDepth = -1;
+                _root = InsertRecursive(_root, item, 0, ref leafDepth);
                 _count++;
+                if (leafDepth + 1 > _maxDepth) _maxDepth = leafDepth + 1;
             }
         }
     }
@@ -122,6 +126,9 @@ public class KdTree<T> : IDisposable
         T[]? itemArray = items.ToArray();
         _root = BuildRecursiveOptimized(itemArray, 0, itemArray.Length - 1, 0);
         _count = itemArray.Length;
+        // BuildRecursiveOptimized via Quickselect produces a balanced kd-tree, so the
+        // height is exactly ⌈log₂(N+1)⌉. Reset the incremental tracker accordingly.
+        _maxDepth = _count == 0 ? 0 : (int)Math.Ceiling(Math.Log(_count + 1, 2.0));
     }
 
     public void BatchInsert(IEnumerable<T> items)
@@ -253,10 +260,13 @@ public class KdTree<T> : IDisposable
         }
     }
 
-    private KdNode InsertRecursive(KdNode? node, T item, int depth)
+    private KdNode InsertRecursive(KdNode? node, T item, int depth, ref int leafDepth)
     {
         if (node == null)
         {
+            // Record where the new leaf landed so Insert can update _maxDepth in O(1)
+            // without ever walking the tree.
+            leafDepth = depth;
             var newNode = CreateNode();
             newNode.Item = item;
             return newNode;
@@ -265,9 +275,9 @@ public class KdTree<T> : IDisposable
         var itemCoords = _pointProvider.GetCoordinates(item);
         var nodeCoords = _pointProvider.GetCoordinates(node.Item);
         if (itemCoords[dimension] < nodeCoords[dimension])
-            node.Left = InsertRecursive(node.Left, item, depth + 1);
+            node.Left = InsertRecursive(node.Left, item, depth + 1, ref leafDepth);
         else
-            node.Right = InsertRecursive(node.Right, item, depth + 1);
+            node.Right = InsertRecursive(node.Right, item, depth + 1, ref leafDepth);
         return node;
     }
 
@@ -410,6 +420,7 @@ public class KdTree<T> : IDisposable
     {
         _root = null;
         _count = 0;
+        _maxDepth = 0;
     }
 
     public void Dispose()

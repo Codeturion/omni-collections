@@ -29,6 +29,21 @@ namespace Omni.Collections.Hybrid.GraphDictionary
         private long _edgeCount;
         private long _lookupCount;
         private long _traversalCount;
+
+        // Distance-first comparer for the SortedSet priority queue used by Dijkstra
+        // variants. We tie-break by a monotonic sequence number rather than by
+        // TKey.CompareTo, because TKey is only constrained to `notnull` — invoking
+        // Comparer<TKey>.Default.Compare on a non-IComparable TKey would throw at
+        // runtime. Sequence is local to each PQ run; the comparer itself is stateless.
+        private sealed class DistanceComparer : IComparer<(double Distance, long Sequence, TKey Key)>
+        {
+            public int Compare((double Distance, long Sequence, TKey Key) x, (double Distance, long Sequence, TKey Key) y)
+            {
+                int c = x.Distance.CompareTo(y.Distance);
+                return c != 0 ? c : x.Sequence.CompareTo(y.Sequence);
+            }
+        }
+        private static readonly DistanceComparer s_distanceComparer = new DistanceComparer();
         private readonly IClock _clock;
         static private readonly ArrayPool<GraphNode> NodeArrayPool = ArrayPool<GraphNode>.Shared;
         static private readonly ArrayPool<TKey> KeyArrayPool = ArrayPool<TKey>.Shared;
@@ -458,7 +473,9 @@ namespace Omni.Collections.Hybrid.GraphDictionary
                     return null;
                 if (start.Equals(end))
                     return new GraphPath<TKey>(new List<TKey> { start }, 0);
-                var cacheKey = $"shortest_unweighted_{start}_{end}_{_cacheVersion}";
+                // ASCII Unit Separator '' as delimiter — vanishingly unlikely to appear
+                // in any user TKey.ToString() so the resulting key is collision-resistant.
+                var cacheKey = $"shortest_unweighted{start}{end}{_cacheVersion}";
                 if (_metricsCache.TryGetValue(cacheKey, out var cached))
                     return (GraphPath<TKey>?)cached;
                 var previous = new Dictionary<TKey, TKey>();
@@ -511,22 +528,25 @@ namespace Omni.Collections.Hybrid.GraphDictionary
             {
                 if (!_nodes.ContainsKey(start) || !_nodes.ContainsKey(end))
                     return null;
-                var cacheKey = $"shortest_path_{start}_{end}_{_cacheVersion}";
+                var cacheKey = $"shortest_path{start}{end}{_cacheVersion}";
                 if (_metricsCache.TryGetValue(cacheKey, out var cached))
                     return (GraphPath<TKey>?)cached;
                 var distances = new Dictionary<TKey, double>();
                 var previous = new Dictionary<TKey, TKey>();
                 var visited = new HashSet<TKey>();
-                var queue = new SortedSet<(double Distance, TKey Key)>();
+                var queue = new SortedSet<(double Distance, long Sequence, TKey Key)>(s_distanceComparer);
+                long pqSeq = 0;
                 foreach (var key in _nodes.Keys)
                 {
                     distances[key] = key.Equals(start) ? 0 : double.PositiveInfinity;
                 }
-                queue.Add((0, start));
+                queue.Add((0, pqSeq++, start));
                 while (queue.Count > 0)
                 {
-                    var (currentDistance, current) = queue.Min;
-                    queue.Remove(queue.Min);
+                    var entry = queue.Min;
+                    queue.Remove(entry);
+                    var currentDistance = entry.Distance;
+                    var current = entry.Key;
                     if (visited.Contains(current)) continue;
                     visited.Add(current);
                     if (current.Equals(end))
@@ -555,7 +575,7 @@ namespace Omni.Collections.Hybrid.GraphDictionary
                             {
                                 distances[neighbor] = newDistance;
                                 previous[neighbor] = current;
-                                queue.Add((newDistance, neighbor));
+                                queue.Add((newDistance, pqSeq++, neighbor));
                             }
                         }
                     }
@@ -582,11 +602,15 @@ namespace Omni.Collections.Hybrid.GraphDictionary
                 // distances on weighted graphs because FIFO order does not respect distance.
                 var distances = new Dictionary<TKey, double> { [source] = 0 };
                 var settled = new HashSet<TKey>();
-                var queue = new SortedSet<(double Distance, TKey Key)> { (0, source) };
+                var queue = new SortedSet<(double Distance, long Sequence, TKey Key)>(s_distanceComparer);
+                long pqSeq = 0;
+                queue.Add((0, pqSeq++, source));
                 while (queue.Count > 0)
                 {
-                    var (currentDistance, current) = queue.Min;
-                    queue.Remove(queue.Min);
+                    var entry = queue.Min;
+                    queue.Remove(entry);
+                    var currentDistance = entry.Distance;
+                    var current = entry.Key;
                     if (!settled.Add(current)) continue;
                     if (currentDistance > maxDistance) break;
                     if (_nodes.TryGetValue(current, out var node) && node.Neighbors != null)
@@ -599,7 +623,7 @@ namespace Omni.Collections.Hybrid.GraphDictionary
                             if (!distances.TryGetValue(neighbor, out var existing) || newDistance < existing)
                             {
                                 distances[neighbor] = newDistance;
-                                queue.Add((newDistance, neighbor));
+                                queue.Add((newDistance, pqSeq++, neighbor));
                             }
                         }
                     }
