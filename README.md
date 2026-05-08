@@ -527,7 +527,7 @@ Thread-safe `LinkedDictionary` variant. Per-bucket fine-grained locks for writes
 | `Clear` | O(buckets) under per-bucket locks; nodes reclaimed by GC | — |
 | Storage | — | O(N) + one lock per bucket |
 
-Enumeration acquires the LRU read lock for the lifetime of the iterator and blocks concurrent writers — materialize a snapshot before iterating if you need write throughput.
+Enumeration takes a one-time O(N) snapshot of the LRU chain under the read lock, then releases the lock before yielding — concurrent writers are not blocked during iteration. Mutations after the snapshot is taken are not reflected.
 
 ```csharp
 var cache = new ConcurrentLinkedDictionary<string, byte[]>(

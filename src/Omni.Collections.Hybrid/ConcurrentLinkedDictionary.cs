@@ -12,7 +12,7 @@ namespace Omni.Collections.Hybrid
     /// <summary>
     /// A thread-safe LRU dictionary with per-bucket monitors for hash-table mutation and a per-instance LRU writer lock for ordering.
     /// Reads acquire the per-bucket monitor briefly to update the access timestamp; writes (AddOrUpdate on existing key, Remove,
-    /// MoveToFront) additionally acquire the LRU writer lock. Enumeration takes the LRU read lock for the lifetime of the iterator.
+    /// MoveToFront) additionally acquire the LRU writer lock. Enumeration takes a one-time O(N) snapshot of the LRU chain under the read lock, then releases the lock before yielding — concurrent writers are not blocked during iteration.
     /// Suited to high-concurrency LRU caches and multi-threaded event processors where strict access-order eviction matters; if
     /// only insertion-order semantics are needed, <see cref="LinkedDictionary.LinkedDictionary{TKey,TValue}"/> is leaner.
     /// </summary>
@@ -329,22 +329,46 @@ namespace Omni.Collections.Hybrid
         }
         #endregion
         #region Enumeration
+        /// <summary>
+        /// Returns an enumerator over the dictionary in LRU order (most-recently-used first).
+        /// Materializes a snapshot of the LRU chain under the LRU read lock at enumerator-
+        /// construction time, then releases the lock and iterates the snapshot — concurrent
+        /// writers are NOT blocked for the iterator's lifetime.
+        /// </summary>
+        /// <remarks>
+        /// Snapshot cost: O(N) time + O(N) space (one <see cref="KeyValuePair{TKey,TValue}"/>
+        /// per current entry). Mutations that occur after the snapshot is taken are not
+        /// reflected in the iteration; this is the standard concurrent-snapshot trade-off.
+        /// Previously this method held the LRU read lock for the entire enumerator lifetime,
+        /// which serialized all writers behind enumerations of any duration.
+        /// </remarks>
         public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
         {
+            // Take the snapshot under the read lock, then release it before yielding so
+            // concurrent writers aren't blocked by the duration of the caller's iteration.
+            KeyValuePair<TKey, TValue>[] snapshot;
             _lruLock.EnterReadLock();
             try
             {
+                snapshot = new KeyValuePair<TKey, TValue>[_count];
+                int idx = 0;
                 UniversalDictionaryNode<TKey, TValue>? current = _lruHead;
-                while (current != null)
+                while (current != null && idx < snapshot.Length)
                 {
-                    yield return new KeyValuePair<TKey, TValue>(current.Key, current.Value);
+                    snapshot[idx++] = new KeyValuePair<TKey, TValue>(current.Key, current.Value);
                     current = UniversalNodeHelper.GetNextLru(current);
                 }
+                // If the chain was shorter than _count (transient state during a concurrent
+                // mutation we observed mid-step), trim the unfilled tail.
+                if (idx < snapshot.Length)
+                    Array.Resize(ref snapshot, idx);
             }
             finally
             {
                 _lruLock.ExitReadLock();
             }
+            for (int i = 0; i < snapshot.Length; i++)
+                yield return snapshot[i];
         }
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         #endregion
