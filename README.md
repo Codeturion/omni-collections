@@ -29,7 +29,7 @@ v3.0 cuts three Hybrid types whose value props didn't justify their existence af
 |---|---|
 | `PredictiveDictionary<K,V>` | `Dictionary<K,V>` + your own n-gram predictor (the v2.x type was 259 LOC of pattern bookkeeping over a plain dict, with no automatic prefetch — the predictor logic is small enough to inline where you need it) |
 | `QueueDictionary<K,V>` | `Queue<KeyValuePair<K,V>>` + `Dictionary<K,V>` kept in sync (≈30 lines of wrapper) |
-| `DequeDictionary<K,V>` | `LinkedList<T>` + `Dictionary<K, LinkedListNode<T>>` kept in sync (≈30 lines of wrapper) |
+| `DequeDictionary<K,V>` | `LinkedList<KeyValuePair<K,V>>` + `Dictionary<K, LinkedListNode<KeyValuePair<K,V>>>` kept in sync (≈30 lines of wrapper — the dictionary maps to list nodes so removal stays O(1)) |
 
 If you need the v2.x source as a starting point, it's in the git history (`git log --all -- src/Omni.Collections.Hybrid/PredictiveDictionary src/Omni.Collections.Hybrid/QueueDictionary src/Omni.Collections.Hybrid/DequeDictionary.cs`).
 
