@@ -649,7 +649,7 @@ public class LinkedDictionaryTests
 
         var act = () =>
         {
-            foreach (var _ in dict)
+            foreach (var kvp in dict)
             {
                 dict.TryGetValue("first", out _);
             }
