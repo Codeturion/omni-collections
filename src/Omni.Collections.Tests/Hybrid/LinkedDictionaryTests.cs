@@ -421,9 +421,9 @@ public class LinkedDictionaryTests
         var items = dict.ToList();
 
         items.Should().HaveCount(3);
-        items[0].Should().Be(new KeyValuePair<string, int>("third", 3)); // MRU first
+        items[0].Should().Be(new KeyValuePair<string, int>("first", 1)); // oldest first
         items[1].Should().Be(new KeyValuePair<string, int>("second", 2));
-        items[2].Should().Be(new KeyValuePair<string, int>("first", 1)); // LRU last
+        items[2].Should().Be(new KeyValuePair<string, int>("third", 3)); // newest last
     }
 
     /// <summary>

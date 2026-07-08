@@ -14,6 +14,7 @@ namespace Omni.Collections.Hybrid.LinkedDictionary
     /// never reorder. <see cref="CapacityMode.Fixed"/> is an LRU cache — successful lookups and
     /// updates move the entry to the most-recently-used position (and therefore invalidate
     /// active enumerators), and inserting beyond capacity evicts the least recently used entry.
+    /// Enumeration runs oldest-first: insertion order in Dynamic mode, LRU→MRU in Fixed mode.
     /// </summary>
     public class LinkedDictionary<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>, IDisposable
         where TKey : notnull
@@ -322,9 +323,9 @@ namespace Omni.Collections.Hybrid.LinkedDictionary
                 if (_version != _dictionary._version)
                     throw new InvalidOperationException("Collection was modified during enumeration");
                 if (_current == null)
-                    _current = _dictionary._head;
+                    _current = _dictionary._tail;
                 else
-                    _current = _current.NextOrdering;
+                    _current = _current.PrevOrdering;
                 if (_current != null)
                 {
                     _currentValue = new KeyValuePair<TKey, TValue>(_current.Key, _current.Value);
