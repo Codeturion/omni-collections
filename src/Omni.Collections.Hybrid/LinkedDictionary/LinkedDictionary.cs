@@ -8,10 +8,12 @@ using Omni.Collections.Core.Security;
 namespace Omni.Collections.Hybrid.LinkedDictionary
 {
     /// <summary>
-    /// A dictionary that preserves insertion order while delivering O(1) hash-table speed for all operations.
-    /// Combines O(1) Add/Remove/Contains with guaranteed iteration order through optimized doubly-linked node management.
-    /// Perfect for LRU caches, ordered configurations, and session management where both O(1) access
-    /// and predictable iteration order are fundamental requirements.
+    /// A dictionary that combines O(1) hash-table speed with a predictable iteration order
+    /// through optimized doubly-linked node management. Ordering semantics depend on the mode:
+    /// <see cref="CapacityMode.Dynamic"/> preserves insertion order — reads and value updates
+    /// never reorder. <see cref="CapacityMode.Fixed"/> is an LRU cache — successful lookups and
+    /// updates move the entry to the most-recently-used position (and therefore invalidate
+    /// active enumerators), and inserting beyond capacity evicts the least recently used entry.
     /// </summary>
     public class LinkedDictionary<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>, IDisposable
         where TKey : notnull
@@ -87,7 +89,8 @@ namespace Omni.Collections.Hybrid.LinkedDictionary
                 if (current.HashCode == hashCode && _comparer.Equals(current.Key, key))
                 {
                     current.Value = value;
-                    MoveToFront(current);
+                    if (_capacityMode == CapacityMode.Fixed)
+                        MoveToFront(current);
                     _version++;
                     return;
                 }
@@ -120,7 +123,11 @@ namespace Omni.Collections.Hybrid.LinkedDictionary
                 if (current.HashCode == hashCode && _comparer.Equals(current.Key, key))
                 {
                     value = current.Value;
-                    MoveToFront(current);
+                    if (_capacityMode == CapacityMode.Fixed && current != _head)
+                    {
+                        MoveToFront(current);
+                        _version++;
+                    }
                     return true;
                 }
                 current = current.Next;
