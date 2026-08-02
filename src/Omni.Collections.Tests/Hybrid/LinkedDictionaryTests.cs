@@ -464,6 +464,54 @@ public class LinkedDictionaryTests
     }
 
     /// <summary>
+    /// Tests that a lookup during enumeration is detected too. A read is not a change to the
+    /// contents, but it is a change to the order, and the ordering chain is what the
+    /// enumerator walks: without this the walk silently skips or repeats entries.
+    /// </summary>
+    [Fact]
+    public void Enumeration_ReadDuringIteration_ThrowsInvalidOperationException()
+    {
+        var dict = new LinkedDictionary<string, int>();
+        dict.AddOrUpdate("key1", 1);
+        dict.AddOrUpdate("key2", 2);
+        dict.AddOrUpdate("key3", 3);
+
+        var act = () =>
+        {
+            foreach (var kvp in dict)
+            {
+                dict.TryGetValue("key1", out _); // The LRU entry moves to the front
+            }
+        };
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("Collection was modified during enumeration");
+    }
+
+    /// <summary>
+    /// Tests that a lookup which moves nothing leaves enumeration alone. Reading the MRU key
+    /// is already at the front, and ContainsKey never reorders at all, so neither is a change.
+    /// </summary>
+    [Fact]
+    public void Enumeration_ReadThatMovesNothing_DoesNotThrow()
+    {
+        var dict = new LinkedDictionary<string, int>();
+        dict.AddOrUpdate("key1", 1);
+        dict.AddOrUpdate("key2", 2);
+
+        var act = () =>
+        {
+            foreach (var kvp in dict)
+            {
+                dict.ContainsKey("key1").Should().BeTrue();
+                dict.TryGetValue("key2", out _); // Already the MRU entry, so nothing moves
+            }
+        };
+
+        act.Should().NotThrow();
+    }
+
+    /// <summary>
     /// Tests that fixed capacity mode evicts LRU items when capacity is exceeded.
     /// The dictionary should maintain fixed size by removing oldest items.
     /// </summary>

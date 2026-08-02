@@ -204,6 +204,10 @@ namespace Omni.Collections.Hybrid.LinkedDictionary
                 return;
             RemoveFromLru(node);
             AddToFront(node);
+            // A read reorders, so a read is a structural change to the chain the enumerator
+            // walks. Bumping here rather than in TryGetValue keeps it to the case where a node
+            // actually moved: a hit on the MRU key, and ContainsKey, still cost nothing.
+            _version++;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
