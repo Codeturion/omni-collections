@@ -368,14 +368,14 @@ var oldest = cache.GetOldest();
 
 #### `LinkedDictionary<TKey, TValue>` — Hybrid (LRU)
 
-`Dictionary<K,V>` that maintains an access-order linked list. Reads move the entry to the front; the back is the eviction candidate when used as a fixed-capacity LRU cache.
+`Dictionary<K,V>` that maintains an ordering linked list. Semantics depend on mode: `Dynamic` (default) preserves insertion order and reads are pure; `Fixed` is an LRU cache — reads and updates move the entry to the front, and the back is the eviction candidate.
 
 | Operation | Time | Space |
 |---|---|---|
 | `AddOrUpdate` | O(1) avg, O(N) worst (collision) | O(1) |
-| `TryGetValue` | O(1) avg — *mutates LRU order* | O(1) |
+| `TryGetValue` | O(1) avg — *Fixed mode: mutates LRU order, invalidates enumerators* | O(1) |
 | `ContainsKey` | O(1) avg — does not touch LRU order | O(1) |
-| `this[key]` (get) | O(1) avg — *mutates LRU order* | — |
+| `this[key]` (get) | O(1) avg — *Fixed mode: mutates LRU order, invalidates enumerators* | — |
 | `Remove` | O(1) avg | O(1) |
 | `Clear` | O(N) | — |
 | Storage | — | O(N), one entry + two list pointers per key |
@@ -386,8 +386,8 @@ lru.AddOrUpdate("k", payload);
 if (lru.TryGetValue("k", out var v)) { /* "k" is now most-recently-used */ }
 ```
 
-**Use when** you want a single-threaded LRU cache without the `MemoryCache` weight class.
-**Don't use when** iteration must not perturb recency — `ContainsKey` is the side-effect-free probe; `TryGetValue` and the indexer both touch order.
+**Use when** you want a single-threaded LRU cache (`Fixed`) or an insertion-ordered dictionary (`Dynamic`) without the `MemoryCache` weight class.
+**Don't use when** you need to look up entries mid-iteration in `Fixed` mode — the LRU move invalidates the enumerator; `ContainsKey` is the side-effect-free probe.
 
 #### `CounterDictionary<TKey, TValue>` — Hybrid (LFU)
 
@@ -840,7 +840,7 @@ Summary across all 32 types. Symbols used in this table:
 | `BloomRTreeDictionary<TKey,TValue>` | O(log N) avg | O(1) by key, O(log N + k) by region | O(log N) avg | O(N) | O(N) |
 | **Hybrid** |
 | `BoundedDictionary<TKey,TValue>` | O(1) avg | O(1) avg | O(1) avg | O(N) | O(capacity) |
-| `LinkedDictionary<TKey,TValue>` | O(1) avg | O(1) avg (*mutates LRU on `TryGetValue` / get*) | O(1) avg | O(N) | O(N) |
+| `LinkedDictionary<TKey,TValue>` | O(1) avg | O(1) avg (*Fixed mode: mutates LRU on `TryGetValue` / get*) | O(1) avg | O(N) | O(N) |
 | `CounterDictionary<TKey,TValue>` | O(1) avg | O(1) avg (*count++ on `TryGetValue`*) | O(1) avg | O(N) | O(N + freq buckets) |
 | `GraphDictionary<TKey,TValue>` | O(1) avg vertex / edge | O((V+E) log V) ShortestPath (Dijkstra), O(V+E) ShortestUnweighted (BFS) / SCC | O(deg) vertex, O(1) avg edge | O(V+E) | O(V + E) |
 | `LinkedMultiMap<TKey,TValue>` | O(1) avg | O(1) view (*mutates LRU*); enumeration O(values), indexer O(i) | O(1) avg key, O(values) per pair | O(keys + values) | O(keys + values) |

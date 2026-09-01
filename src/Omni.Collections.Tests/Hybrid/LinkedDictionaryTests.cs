@@ -370,12 +370,12 @@ public class LinkedDictionaryTests
 
     /// <summary>
     /// Tests that accessing an item updates its position to most recently used.
-    /// The TryGetValue operation should move accessed items to front of LRU chain.
+    /// In Fixed mode, TryGetValue should move accessed items to front of LRU chain.
     /// </summary>
     [Fact]
     public void TryGetValue_AccessExistingItem_MovesItemToMostRecent()
     {
-        var dict = new LinkedDictionary<string, int>();
+        var dict = new LinkedDictionary<string, int>(10, CapacityMode.Fixed);
         dict.AddOrUpdate("first", 1);
         dict.AddOrUpdate("second", 2);
         dict.AddOrUpdate("third", 3);
@@ -389,12 +389,12 @@ public class LinkedDictionaryTests
 
     /// <summary>
     /// Tests that updating an existing item moves it to most recently used position.
-    /// The AddOrUpdate operation should maintain LRU ordering for updates.
+    /// In Fixed mode, AddOrUpdate should maintain LRU ordering for updates.
     /// </summary>
     [Fact]
     public void AddOrUpdate_ExistingItem_MovesItemToMostRecent()
     {
-        var dict = new LinkedDictionary<string, int>();
+        var dict = new LinkedDictionary<string, int>(10, CapacityMode.Fixed);
         dict.AddOrUpdate("first", 1);
         dict.AddOrUpdate("second", 2);
         dict.AddOrUpdate("third", 3);
@@ -421,9 +421,9 @@ public class LinkedDictionaryTests
         var items = dict.ToList();
 
         items.Should().HaveCount(3);
-        items[0].Should().Be(new KeyValuePair<string, int>("third", 3)); // MRU first
+        items[0].Should().Be(new KeyValuePair<string, int>("first", 1)); // oldest first
         items[1].Should().Be(new KeyValuePair<string, int>("second", 2));
-        items[2].Should().Be(new KeyValuePair<string, int>("first", 1)); // LRU last
+        items[2].Should().Be(new KeyValuePair<string, int>("third", 3)); // newest last
     }
 
     /// <summary>
@@ -609,7 +609,7 @@ public class LinkedDictionaryTests
     [Fact]
     public void ComplexLruBehavior_MultipleOperations_MaintainsCorrectOrder()
     {
-        var dict = new LinkedDictionary<string, int>();
+        var dict = new LinkedDictionary<string, int>(10, CapacityMode.Fixed);
         dict.AddOrUpdate("A", 1);
         dict.AddOrUpdate("B", 2);
         dict.AddOrUpdate("C", 3);
@@ -622,6 +622,89 @@ public class LinkedDictionaryTests
         // Expected order: A (MRU), B, D, C (LRU)
         dict.PeekMru().Key.Should().Be("A");
         dict.PeekLru().Key.Should().Be("C");
+    }
+
+    /// <summary>
+    /// Tests that in Dynamic mode reads are pure and never reorder the chain.
+    /// TryGetValue must preserve insertion order for iteration.
+    /// </summary>
+    [Fact]
+    public void TryGetValue_DynamicMode_DoesNotReorder()
+    {
+        var dict = new LinkedDictionary<string, int>();
+        dict.AddOrUpdate("first", 1);
+        dict.AddOrUpdate("second", 2);
+        dict.AddOrUpdate("third", 3);
+
+        dict.TryGetValue("first", out _);
+
+        dict.Select(kvp => kvp.Key).Should().Equal("first", "second", "third");
+        dict.PeekMru().Key.Should().Be("third");
+        dict.PeekLru().Key.Should().Be("first");
+    }
+
+    /// <summary>
+    /// Tests that in Dynamic mode updating a value keeps the entry at its insertion position.
+    /// AddOrUpdate on an existing key must not move it in the ordering chain.
+    /// </summary>
+    [Fact]
+    public void AddOrUpdate_DynamicModeExistingItem_KeepsInsertionPosition()
+    {
+        var dict = new LinkedDictionary<string, int>();
+        dict.AddOrUpdate("first", 1);
+        dict.AddOrUpdate("second", 2);
+        dict.AddOrUpdate("third", 3);
+
+        dict.AddOrUpdate("first", 10);
+
+        dict.Select(kvp => kvp.Key).Should().Equal("first", "second", "third");
+        dict["first"].Should().Be(10);
+    }
+
+    /// <summary>
+    /// Tests that in Dynamic mode lookups during enumeration are safe.
+    /// Reads must not invalidate active enumerators.
+    /// </summary>
+    [Fact]
+    public void Enumeration_DynamicModeWithConcurrentLookups_DoesNotThrow()
+    {
+        var dict = new LinkedDictionary<string, int>();
+        dict.AddOrUpdate("first", 1);
+        dict.AddOrUpdate("second", 2);
+        dict.AddOrUpdate("third", 3);
+
+        var keys = new List<string>();
+        foreach (var kvp in dict)
+        {
+            dict.TryGetValue("third", out _);
+            keys.Add(kvp.Key);
+        }
+
+        keys.Should().Equal("first", "second", "third");
+    }
+
+    /// <summary>
+    /// Tests that in Fixed mode a reordering lookup fails fast during enumeration.
+    /// The LRU move must invalidate active enumerators instead of silently corrupting iteration.
+    /// </summary>
+    [Fact]
+    public void Enumeration_FixedModeLookupReorders_ThrowsInvalidOperationException()
+    {
+        var dict = new LinkedDictionary<string, int>(10, CapacityMode.Fixed);
+        dict.AddOrUpdate("first", 1);
+        dict.AddOrUpdate("second", 2);
+        dict.AddOrUpdate("third", 3);
+
+        var act = () =>
+        {
+            foreach (var kvp in dict)
+            {
+                dict.TryGetValue("first", out _);
+            }
+        };
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("Collection was modified during enumeration");
     }
 
     /// <summary>
